@@ -293,3 +293,101 @@ export const adminAccessSchema = z.object({
   userId: z.string().min(1).max(40),
   admin: z.enum(["on", "off"]),
 });
+
+// ---------- company hiring process and sources (D-057) ----------
+
+const optionalInt = (min: number, max: number) =>
+  z
+    .string()
+    .optional()
+    .transform((value, ctx) => {
+      if (!value || !value.trim()) return null;
+      const n = Number(value);
+      if (!Number.isInteger(n) || n < min || n > max) {
+        ctx.addIssue({ code: "custom", message: `Enter a whole number from ${min} to ${max}.` });
+        return z.NEVER;
+      }
+      return n;
+    });
+
+export const roundFormSchema = z.object({
+  companyId: z.string().min(1).max(40),
+  roundId: z.string().min(1).max(40).optional(),
+  name: z.string().trim().min(1, "Required.").max(120),
+  type: z.enum([
+    "ONLINE_TEST",
+    "CODING_TEST",
+    "GROUP_DISCUSSION",
+    "TECHNICAL_INTERVIEW",
+    "HR_INTERVIEW",
+    "MANAGERIAL_INTERVIEW",
+  ]),
+  platform: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() ? v.trim() : null)),
+  durationMin: optionalInt(1, 600),
+  isElimination: z.enum(["", "yes", "no"]).transform((v) => (v === "" ? null : v === "yes")),
+  description: optionalMarkdown,
+});
+
+export type RoundFormInput = z.infer<typeof roundFormSchema>;
+
+export function roundFormFromData(formData: FormData) {
+  return roundFormSchema.safeParse({
+    companyId: formData.get("companyId") ?? "",
+    roundId: formData.get("roundId") || undefined,
+    name: formData.get("name") ?? "",
+    type: formData.get("type"),
+    platform: formData.get("platform") ?? undefined,
+    durationMin: formData.get("durationMin") ?? undefined,
+    isElimination: formData.get("isElimination") ?? "",
+    description: formData.get("description") ?? undefined,
+  });
+}
+
+export const sectionFormSchema = z.object({
+  roundId: z.string().min(1).max(40),
+  sectionId: z.string().min(1).max(40).optional(),
+  name: z.string().trim().min(1, "Required.").max(120),
+  type: z.enum(["MCQ", "CODING"]),
+  questionCount: wholeNumber(1, 500),
+  minutes: wholeNumber(1, 600),
+  negativeMarks: z.coerce
+    .number({ message: "Enter a number." })
+    .min(0, "At least 0.")
+    .max(10, "At most 10."),
+  canGoBack: z.boolean(),
+  topicIds: z.array(z.string().min(1).max(40)).min(1, "Choose at least one topic."),
+});
+
+export type SectionFormInput = z.infer<typeof sectionFormSchema>;
+
+export function sectionFormFromData(formData: FormData) {
+  return sectionFormSchema.safeParse({
+    roundId: formData.get("roundId") ?? "",
+    sectionId: formData.get("sectionId") || undefined,
+    name: formData.get("name") ?? "",
+    type: formData.get("type"),
+    questionCount: formData.get("questionCount") ?? "",
+    minutes: formData.get("minutes") ?? "",
+    negativeMarks: formData.get("negativeMarks") || "0",
+    canGoBack: formData.get("canGoBack") === "on",
+    topicIds: formData.getAll("topicIds"),
+  });
+}
+
+export const sourceFormSchema = z.object({
+  companyId: z.string().min(1).max(40),
+  label: z.string().trim().min(1, "Required.").max(200),
+  url: z
+    .string()
+    .trim()
+    .regex(/^https?:\/\/\S+$/i, "Enter an http(s) link."),
+  checkedOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.")
+    .transform((v) => new Date(`${v}T00:00:00Z`)),
+});
+
+export type SourceFormInput = z.infer<typeof sourceFormSchema>;

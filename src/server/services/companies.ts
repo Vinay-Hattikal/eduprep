@@ -31,7 +31,7 @@ function loadCompany(slug: string) {
         include: {
           sections: {
             orderBy: { order: "asc" },
-            include: { topics: { select: { slug: true, name: true } } },
+            include: { topics: { select: { id: true, slug: true, name: true } } },
           },
         },
       },
