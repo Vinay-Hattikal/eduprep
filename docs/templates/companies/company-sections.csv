@@ -1,0 +1,6 @@
+company,round_order,section_order,section_name,section_type,question_count,minutes,negative_marks,can_go_back,topics
+acme-tech,1,1,Numerical Ability,mcq,20,25,0,yes,percentages|profit-loss|time-work|averages|ratio-proportion|time-speed-distance
+acme-tech,1,2,Reasoning Ability,mcq,20,25,0,yes,number-series|blood-relations|syllogism|seating-arrangement|coding-decoding
+acme-tech,1,3,Verbal Ability,mcq,20,20,0,yes,reading-comprehension|error-spotting|fill-blanks|synonyms
+acme-tech,1,4,Programming Logic,mcq,10,20,0,no,pseudo-loops|pseudo-bitwise|lang-c
+acme-tech,2,1,Coding,coding,2,60,0,yes,arrays|strings|hashing

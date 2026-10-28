@@ -1,0 +1,19 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+PSC-LOOP-0101,pseudocode,pseudo-loops,,numeric,What is printed?,"set s = 0
+for i = 1 to 5
+    if i mod 2 = 1 then s = s + i
+end for
+print s",pseudocode,,,,,,9,0,Odd i from 1 to 5 are added: 1 + 3 + 5 = 9.,easy,45,,loop-trace,original,,
+PSC-LOOP-0102,pseudocode,pseudo-loops,,single,What is printed? (/ is integer division),"set n = 10, c = 0
+while n > 1
+    n = n / 2
+    c = c + 1
+end while
+print c",pseudocode,2,3,4,5,,B,,"n goes 10 → 5 → 2 → 1, three halvings.",medium,60,,loop-trace,original,globex-systems,2026-09
+PSC-LOOP-0103,pseudocode,pseudo-loops,,numeric,What is printed?,"set a = 1, b = 1
+repeat 4 times
+    set t = a + b
+    set a = b
+    set b = t
+end repeat
+print b",pseudocode,,,,,,8,0,"(a, b) goes (1,1) → (1,2) → (2,3) → (3,5) → (5,8). It prints b = 8: Fibonacci.",medium,75,,fibonacci,original,,

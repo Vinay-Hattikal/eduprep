@@ -1,0 +1,8 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+LR-BR-0001,logical-reasoning,blood-relations,,single,"Pointing to a man, Riya says, ""He is the son of my grandfather's only son."" How is the man related to Riya?",,,Brother,Cousin,Uncle,Father,,A,,Riya's grandfather's only son is Riya's father. The son of Riya's father is Riya's brother.,easy,40,,,original,acme-tech,2026-08
+LR-NS-0001,logical-reasoning,number-series,,numeric,"Find the next number in the series: 2, 6, 12, 20, 30, ?",,,,,,,,42,0,"The terms are $1\times2, 2\times3, 3\times4, 4\times5, 5\times6$, so the next term is $6 \times 7 = 42$. (Differences 4, 6, 8, 10, 12 also give 42.)",easy,30,,pattern,original,,
+LR-SYL-0001,logical-reasoning,syllogism,,single,"**Statements:** All cats are dogs. Some dogs are birds.
+
+**Conclusions:**
+I. Some birds are cats.
+II. All cats are birds.",,,Only I follows,Only II follows,Both I and II follow,Neither I nor II follows,,D,,"The birds that are dogs may or may not include any cats, so I does not definitely follow. Nothing links all cats to birds, so II does not follow either.",medium,60,,venn-method,original,,

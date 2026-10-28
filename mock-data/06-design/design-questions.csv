@@ -1,0 +1,14 @@
+external_id,slug,kind,title,difficulty,prompt,requirements,approach,tradeoffs,follow_ups,companies,tracks
+LLD-0101,design-an-lru-cache,low_level_design,Design an LRU cache,medium,Design a fixed-capacity cache that evicts the **least recently used** entry when full.,"- `get(key)` and `put(key, value)` in O(1)
+- Capacity set at construction
+- Thread safety is a follow-up","A hash map from key to a node in a **doubly linked list** ordered by recency. `get` moves the node to the front; `put` inserts at the front and, when over capacity, removes the tail and its map entry.","- A linked hash map (e.g. Java's `LinkedHashMap` with access order) gives the same behaviour in a few lines.
+- One global lock is simple but limits throughput; segmenting the cache trades exact LRU for concurrency.",Make it thread-safe. Add a time-to-live per entry.,initech-software,backend-java|data-engineer
+SD-0101,design-a-notification-service,system_design,Design a notification service,medium,"Design a service other teams call to send users email, SMS and push notifications.","- 10 million notifications a day, bursts of 5,000 per second
+- User preferences and opt-outs
+- Retries and no duplicates
+- Templates with variables","1. **API** accepts a request (user, template, data, idempotency key) and writes it to a queue.
+2. **Workers** per channel render the template, check preferences and rate limits, and call providers.
+3. **Retries** with backoff; failed messages go to a dead-letter queue.
+4. **Store** each message's status for support and analytics.","- At-least-once delivery plus idempotency keys vs exactly-once (very costly).
+- One queue per channel isolates a slow SMS provider from email.
+- Provider failover adds cost and complexity.",How do you send a campaign to 5 million users without hurting transactional messages?,,backend-java

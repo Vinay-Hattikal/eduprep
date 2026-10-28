@@ -1,0 +1,16 @@
+slug,name,description,audience,topics,interview_types,order,roadmap
+backend-java,Backend (Java),"For Java backend engineers moving to product companies: DSA, OOP and design patterns, databases, and system design.",experienced,arrays|hashing|trees|graphs|dynamic-programming|classes-objects|solid-principles|sql|transactions|indexing|lang-java|processes-threads,sde-experienced|system-design,1,"**Weeks 1-4: DSA.** Two problems a day from arrays, hashing, trees and graphs. Time yourself.
+**Weeks 5-6: Java depth.** Collections internals, concurrency, JVM memory, Spring basics.
+**Weeks 7-8: Databases.** Indexes, transactions and isolation levels, query plans.
+**Weeks 9-10: Design.** One low-level and one system design question a week, out loud.
+**Then:** a mock SDE interview and a system design mock, and fix what the scorecards say."
+service-to-product,Service to product switch,A 12-week plan for engineers at service companies preparing for product company interviews.,experienced,complexity-analysis|arrays|strings|two-pointers|linked-lists|stacks|trees|graphs|dynamic-programming|solid-principles|sql|indexing,sde-experienced|system-design|hr,2,"**What changes:** product companies test problem solving live (DSA), design thinking and ownership, not only your project.
+**Weeks 1-6: DSA foundations.** Patterns first (two pointers, sliding window, BFS/DFS, DP), 60-80 problems.
+**Weeks 7-8: Low-level design.** Classes, SOLID, parking lot, rate limiter, LRU cache.
+**Weeks 9-10: System design basics.** Load balancing, caching, databases, queues; design a URL shortener.
+**Weeks 11-12: Mocks.** At least two human mock interviews; rewrite your resume around impact numbers.
+**Tell your story:** why you're switching, what you owned, what you learned."
+frontend,Frontend,"JavaScript depth, browser fundamentals, DSA for frontend rounds and frontend system design.",experienced,lang-javascript|arrays|strings|hashing|trees|recursion-backtracking|application-layer|network-security,sde-experienced|system-design,3,"**JavaScript:** closures, the event loop, promises, `this`, prototypes.
+**Browser:** rendering, caching, HTTP, security (XSS, CSRF, CORS).
+**DSA:** easy-medium problems in JavaScript; trees and recursion for DOM questions.
+**Frontend system design:** design an autocomplete, a news feed, an image carousel."

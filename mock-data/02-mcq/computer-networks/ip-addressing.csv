@@ -1,0 +1,4 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+CN-IP-0101,computer-networks,ip-addressing,,numeric,How many usable host addresses does a /27 subnet have?,,,,,,,,30,0,"$2^{32-27} = 32$ addresses, minus the network and broadcast addresses: 30.",easy,45,,subnetting,original,,
+CN-IP-0102,computer-networks,ip-addressing,,single,Which of these is a private IPv4 address?,,,8.8.8.8,172.20.5.4,192.169.1.1,11.0.0.1,,B,,"Private ranges are 10.0.0.0/8, 172.16.0.0/12 (172.16–172.31) and 192.168.0.0/16. 192.169 is public.",easy,45,,,original,,
+CN-IP-0103,computer-networks,ip-addressing,,single,What is the subnet mask for a /20 network?,,,255.255.240.0,255.255.248.0,255.255.255.0,255.255.224.0,,A,,20 ones: 255.255 (16 bits) plus 4 bits in the third octet = 240.,medium,45,,subnetting,original,,

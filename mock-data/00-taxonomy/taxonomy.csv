@@ -1,0 +1,143 @@
+subject_slug,subject_name,topic_slug,topic_name,subtopic_slug,subtopic_name,order
+quantitative-aptitude,Quantitative Aptitude,number-system,Number System,divisibility,Divisibility,1
+quantitative-aptitude,Quantitative Aptitude,number-system,Number System,remainders,Remainders,1
+quantitative-aptitude,Quantitative Aptitude,number-system,Number System,unit-digit,Unit Digit,1
+quantitative-aptitude,Quantitative Aptitude,hcf-lcm,HCF and LCM,,,2
+quantitative-aptitude,Quantitative Aptitude,simplification,Simplification and Approximation,,,3
+quantitative-aptitude,Quantitative Aptitude,surds-indices,Surds and Indices,,,4
+quantitative-aptitude,Quantitative Aptitude,percentages,Percentages,basics,Basics,5
+quantitative-aptitude,Quantitative Aptitude,percentages,Percentages,successive-change,Successive Change,5
+quantitative-aptitude,Quantitative Aptitude,profit-loss,Profit and Loss,,,6
+quantitative-aptitude,Quantitative Aptitude,simple-interest,Simple Interest,,,7
+quantitative-aptitude,Quantitative Aptitude,compound-interest,Compound Interest,,,8
+quantitative-aptitude,Quantitative Aptitude,ratio-proportion,Ratio and Proportion,,,9
+quantitative-aptitude,Quantitative Aptitude,partnership,Partnership,,,10
+quantitative-aptitude,Quantitative Aptitude,averages,Averages,,,11
+quantitative-aptitude,Quantitative Aptitude,ages,Problems on Ages,,,12
+quantitative-aptitude,Quantitative Aptitude,mixtures-alligations,Mixtures and Alligations,,,13
+quantitative-aptitude,Quantitative Aptitude,time-work,Time and Work,,,14
+quantitative-aptitude,Quantitative Aptitude,pipes-cisterns,Pipes and Cisterns,,,15
+quantitative-aptitude,Quantitative Aptitude,time-speed-distance,"Time, Speed and Distance",,,16
+quantitative-aptitude,Quantitative Aptitude,trains,Problems on Trains,,,17
+quantitative-aptitude,Quantitative Aptitude,boats-streams,Boats and Streams,,,18
+quantitative-aptitude,Quantitative Aptitude,permutation-combination,Permutation and Combination,,,19
+quantitative-aptitude,Quantitative Aptitude,probability,Probability,,,20
+quantitative-aptitude,Quantitative Aptitude,progressions,Progressions (AP/GP),,,21
+quantitative-aptitude,Quantitative Aptitude,algebra,Algebra and Equations,,,22
+quantitative-aptitude,Quantitative Aptitude,logarithms,Logarithms,,,23
+quantitative-aptitude,Quantitative Aptitude,mensuration,Mensuration,,,24
+quantitative-aptitude,Quantitative Aptitude,geometry,Geometry,,,25
+logical-reasoning,Logical Reasoning,number-series,Number Series,,,1
+logical-reasoning,Logical Reasoning,letter-series,Letter and Alphanumeric Series,,,2
+logical-reasoning,Logical Reasoning,coding-decoding,Coding-Decoding,,,3
+logical-reasoning,Logical Reasoning,blood-relations,Blood Relations,,,4
+logical-reasoning,Logical Reasoning,direction-sense,Direction Sense,,,5
+logical-reasoning,Logical Reasoning,seating-arrangement,Seating Arrangement,linear,Linear,6
+logical-reasoning,Logical Reasoning,seating-arrangement,Seating Arrangement,circular,Circular,6
+logical-reasoning,Logical Reasoning,puzzles,Puzzles,,,7
+logical-reasoning,Logical Reasoning,syllogism,Syllogism,,,8
+logical-reasoning,Logical Reasoning,statements-conclusions,Statements and Conclusions,,,9
+logical-reasoning,Logical Reasoning,statements-assumptions,Statements and Assumptions,,,10
+logical-reasoning,Logical Reasoning,critical-reasoning,Critical Reasoning,,,11
+logical-reasoning,Logical Reasoning,analogy,Analogy,,,12
+logical-reasoning,Logical Reasoning,classification,Classification (Odd One Out),,,13
+logical-reasoning,Logical Reasoning,ranking-ordering,Ranking and Ordering,,,14
+logical-reasoning,Logical Reasoning,inequalities,Inequalities,,,15
+logical-reasoning,Logical Reasoning,input-output,Input-Output,,,16
+logical-reasoning,Logical Reasoning,data-sufficiency,Data Sufficiency,,,17
+logical-reasoning,Logical Reasoning,clocks,Clocks,,,18
+logical-reasoning,Logical Reasoning,calendars,Calendars,,,19
+logical-reasoning,Logical Reasoning,cubes-dice,Cubes and Dice,,,20
+logical-reasoning,Logical Reasoning,venn-diagrams,Venn Diagrams,,,21
+logical-reasoning,Logical Reasoning,visual-reasoning,Visual and Non-verbal Reasoning,,,22
+verbal-ability,Verbal Ability,reading-comprehension,Reading Comprehension,,,1
+verbal-ability,Verbal Ability,error-spotting,Error Spotting,,,2
+verbal-ability,Verbal Ability,sentence-correction,Sentence Correction,,,3
+verbal-ability,Verbal Ability,fill-blanks,Fill in the Blanks,,,4
+verbal-ability,Verbal Ability,sentence-completion,Sentence Completion,,,5
+verbal-ability,Verbal Ability,cloze-test,Cloze Test,,,6
+verbal-ability,Verbal Ability,para-jumbles,Para Jumbles,,,7
+verbal-ability,Verbal Ability,synonyms,Synonyms,,,8
+verbal-ability,Verbal Ability,antonyms,Antonyms,,,9
+verbal-ability,Verbal Ability,idioms-phrases,Idioms and Phrases,,,10
+verbal-ability,Verbal Ability,one-word-substitution,One Word Substitution,,,11
+verbal-ability,Verbal Ability,active-passive,Active and Passive Voice,,,12
+verbal-ability,Verbal Ability,direct-indirect,Direct and Indirect Speech,,,13
+data-interpretation,Data Interpretation,di-tables,Tables,,,1
+data-interpretation,Data Interpretation,di-bar-graphs,Bar Graphs,,,2
+data-interpretation,Data Interpretation,di-line-graphs,Line Graphs,,,3
+data-interpretation,Data Interpretation,di-pie-charts,Pie Charts,,,4
+data-interpretation,Data Interpretation,di-mixed-graphs,Mixed Graphs,,,5
+data-interpretation,Data Interpretation,di-caselets,Caselets,,,6
+operating-systems,Operating Systems,os-basics,OS Basics,,,1
+operating-systems,Operating Systems,processes-threads,Processes and Threads,,,2
+operating-systems,Operating Systems,cpu-scheduling,CPU Scheduling,,,3
+operating-systems,Operating Systems,process-synchronization,Process Synchronization,,,4
+operating-systems,Operating Systems,deadlocks,Deadlocks,,,5
+operating-systems,Operating Systems,memory-management,Memory Management,,,6
+operating-systems,Operating Systems,paging-segmentation,Paging and Segmentation,,,7
+operating-systems,Operating Systems,virtual-memory,Virtual Memory,,,8
+operating-systems,Operating Systems,file-systems,File Systems,,,9
+operating-systems,Operating Systems,disk-scheduling,Disk Scheduling,,,10
+dbms,DBMS,dbms-basics,DBMS Basics,,,1
+dbms,DBMS,er-model,ER Model,,,2
+dbms,DBMS,relational-model,Relational Model and Keys,,,3
+dbms,DBMS,sql,SQL,joins,Joins,4
+dbms,DBMS,sql,SQL,aggregation,Aggregation and Grouping,4
+dbms,DBMS,sql,SQL,subqueries,Subqueries,4
+dbms,DBMS,normalization,Normalization,,,5
+dbms,DBMS,transactions,Transactions and ACID,,,6
+dbms,DBMS,concurrency-control,Concurrency Control,,,7
+dbms,DBMS,indexing,Indexing and Hashing,,,8
+dbms,DBMS,nosql,NoSQL Basics,,,9
+computer-networks,Computer Networks,network-basics,Network Basics and Topologies,,,1
+computer-networks,Computer Networks,osi-tcpip,OSI and TCP/IP Models,,,2
+computer-networks,Computer Networks,data-link-layer,Data Link Layer,,,3
+computer-networks,Computer Networks,ip-addressing,IP Addressing and Subnetting,,,4
+computer-networks,Computer Networks,routing,Routing,,,5
+computer-networks,Computer Networks,transport-layer,Transport Layer (TCP/UDP),,,6
+computer-networks,Computer Networks,application-layer,"Application Layer (HTTP, DNS, SMTP)",,,7
+computer-networks,Computer Networks,network-security,Network Security,,,8
+oops,Object-Oriented Programming,classes-objects,Classes and Objects,,,1
+oops,Object-Oriented Programming,encapsulation,Encapsulation,,,2
+oops,Object-Oriented Programming,inheritance,Inheritance,,,3
+oops,Object-Oriented Programming,polymorphism,Polymorphism,,,4
+oops,Object-Oriented Programming,abstraction,Abstraction and Interfaces,,,5
+oops,Object-Oriented Programming,constructors-destructors,Constructors and Destructors,,,6
+oops,Object-Oriented Programming,exception-handling,Exception Handling,,,7
+oops,Object-Oriented Programming,solid-principles,SOLID and Design Principles,,,8
+dsa,Data Structures and Algorithms,complexity-analysis,Complexity Analysis,,,1
+dsa,Data Structures and Algorithms,arrays,Arrays,,,2
+dsa,Data Structures and Algorithms,strings,Strings,,,3
+dsa,Data Structures and Algorithms,hashing,Hashing,,,4
+dsa,Data Structures and Algorithms,two-pointers,Two Pointers and Sliding Window,,,5
+dsa,Data Structures and Algorithms,linked-lists,Linked Lists,,,6
+dsa,Data Structures and Algorithms,stacks,Stacks,,,7
+dsa,Data Structures and Algorithms,queues,Queues and Deques,,,8
+dsa,Data Structures and Algorithms,recursion-backtracking,Recursion and Backtracking,,,9
+dsa,Data Structures and Algorithms,sorting,Sorting,,,10
+dsa,Data Structures and Algorithms,searching,Searching and Binary Search,,,11
+dsa,Data Structures and Algorithms,trees,Trees,,,12
+dsa,Data Structures and Algorithms,bst,Binary Search Trees,,,13
+dsa,Data Structures and Algorithms,heaps,Heaps and Priority Queues,,,14
+dsa,Data Structures and Algorithms,graphs,Graphs,,,15
+dsa,Data Structures and Algorithms,greedy,Greedy,,,16
+dsa,Data Structures and Algorithms,dynamic-programming,Dynamic Programming,,,17
+dsa,Data Structures and Algorithms,bit-manipulation,Bit Manipulation,,,18
+dsa,Data Structures and Algorithms,math-number-theory,Math and Number Theory,,,19
+programming-languages,Programming Languages,lang-c,C,pointers,Pointers,1
+programming-languages,Programming Languages,lang-c,C,storage-classes,Storage Classes,1
+programming-languages,Programming Languages,lang-c,C,arrays-strings,Arrays and Strings,1
+programming-languages,Programming Languages,lang-cpp,C++,,,2
+programming-languages,Programming Languages,lang-java,Java,strings,Strings,3
+programming-languages,Programming Languages,lang-java,Java,collections,Collections,3
+programming-languages,Programming Languages,lang-java,Java,multithreading,Multithreading,3
+programming-languages,Programming Languages,lang-python,Python,data-types,Data Types and Mutability,4
+programming-languages,Programming Languages,lang-python,Python,functions,Functions and Scope,4
+programming-languages,Programming Languages,lang-javascript,JavaScript,,,5
+pseudocode,Pseudocode and Output Prediction,pseudo-loops,Loops,,,1
+pseudocode,Pseudocode and Output Prediction,pseudo-conditionals,Conditionals,,,2
+pseudocode,Pseudocode and Output Prediction,pseudo-functions-recursion,Functions and Recursion,,,3
+pseudocode,Pseudocode and Output Prediction,pseudo-arrays,Arrays,,,4
+pseudocode,Pseudocode and Output Prediction,pseudo-bitwise,Bitwise Operators,,,5
+pseudocode,Pseudocode and Output Prediction,pseudo-operators,Operators and Expressions,,,6

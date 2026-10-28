@@ -1,0 +1,70 @@
+external_id,title,slug,difficulty,topics,statement,input_format,output_format,constraints,time_limit_ms,memory_limit_mb,languages,scoring,checker,source,hint_1,hint_2,hint_3,editorial,solution_language,solution_code,brute_language,brute_code,starter_c,starter_cpp,starter_java,starter_python,starter_javascript,sample_1_input,sample_1_output,sample_1_explanation,sample_2_input,sample_2_output,sample_2_explanation,test_1_input,test_1_output,test_2_input,test_2_output,test_3_input,test_3_output,test_4_input,test_4_output,test_5_input,test_5_output,companies,asked_in
+CODE-ARR-0101,Maximum Subarray Sum,maximum-subarray-sum,medium,arrays|dynamic-programming,"Given an array of $n$ integers, find the largest possible sum of a **non-empty contiguous** subarray.","The first line contains $n$.
+The second line contains $n$ space-separated integers.",Print the maximum subarray sum.,"$1 \le n \le 10^5$
+$-10^4 \le a_i \le 10^4$",1000,256,c|cpp|java|python|javascript,per_test,exact,original,Trying every subarray is $O(n^2)$. Can one pass do it?,"At each position, either extend the best subarray ending just before it, or start fresh.","Keep `best_ending_here = max(a[i], best_ending_here + a[i])` and the overall maximum.","Kadane's algorithm: scan once, keeping the best sum of a subarray ending at the current index and the best seen so far. $O(n)$ time, $O(1)$ memory. Remember the array can be all negative: the answer is then the largest element, not 0.",cpp,"#include <bits/stdc++.h>
+using namespace std;
+int main() {
+    int n; cin >> n;
+    long long x, cur, best;
+    cin >> x; cur = best = x;
+    for (int i = 1; i < n; i++) { cin >> x; cur = max(x, cur + x); best = max(best, cur); }
+    cout << best << ""\n"";
+}
+",python,"import sys
+
+data = sys.stdin.read().split()
+n = int(data[0])
+a = list(map(int, data[1:1 + n]))
+best = a[0]
+for i in range(n):
+    s = 0
+    for j in range(i, n):
+        s += a[j]
+        best = max(best, s)
+print(best)
+",,,"import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        long[] a = new long[n];
+        for (int i = 0; i < n; i++) a[i] = sc.nextLong();
+        // Write your code here
+    }
+}
+",,,"5
+-2 1 -3 4 -1
+","4
+",The subarray [4] has the largest sum.,,,,"1
+-7
+","-7
+","4
+-3 -1 -4 -2
+","-1
+","9
+-2 1 -3 4 -1 2 1 -5 4
+","6
+","5
+1 2 3 4 5
+","15
+","6
+5 -9 6 -2 3 -1
+","7
+",globex-systems|initech-software,2026-09|2026-06
+CODE-STR-0101,Reverse the Words,reverse-the-words,easy,strings,"Given a sentence, print its words in reverse order. Words are separated by one or more spaces; print them separated by a single space.",One line containing the sentence.,"The words in reverse order, separated by single spaces.","$1 \le$ length $\le 10^5$
+The sentence has at least one word.",1000,256,c|cpp|java|python|javascript,all_or_nothing,exact,original,"Split the line on whitespace, ignoring empty pieces.",,,"Split into words (skipping repeated spaces), reverse the list and join with single spaces. $O(n)$.",javascript,"const line = require(""fs"").readFileSync(0, ""utf8"").split(""\n"")[0];
+console.log(line.split(/\s+/).filter(Boolean).reverse().join("" ""));
+",,,,,,,,"the sky is blue
+","blue is sky the
+",,,,,"hello
+","hello
+","  leading and trailing  
+","trailing and leading
+","a  b   c
+","c b a
+","Placement season starts now
+","now starts season Placement
+","x y
+","y x
+",globex-systems,2026-07

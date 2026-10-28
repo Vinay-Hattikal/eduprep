@@ -1,0 +1,4 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+VA-SYN-0101,verbal-ability,synonyms,,single,Choose the word closest in meaning to **METICULOUS**.,,,Careless,Careful and precise,Quick,Hesitant,,B,,Meticulous means showing great attention to detail.,easy,30,,,original,,
+VA-SYN-0102,verbal-ability,synonyms,,single,Choose the word closest in meaning to **CANDID**.,,,Frank,Secretive,Polite,Tired,,A,,A candid person speaks openly and honestly.,easy,30,,,original,,
+VA-SYN-0103,verbal-ability,synonyms,,single,Choose the word closest in meaning to **EPHEMERAL**.,,,Eternal,Short-lived,Heavy,Transparent,,B,,Ephemeral means lasting a very short time. *Eternal* is its opposite.,medium,30,,,original,,

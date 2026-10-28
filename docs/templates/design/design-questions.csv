@@ -1,0 +1,27 @@
+external_id,slug,kind,title,difficulty,prompt,requirements,approach,tradeoffs,follow_ups,companies,tracks
+SD-0001,design-a-url-shortener,system_design,Design a URL shortener,easy,Design a service like a link shortener: users submit a long URL and get a short one; visiting the short URL redirects to the original.,"- Create short links, optionally with a custom alias
+- Redirect quickly (p99 under 50 ms)
+- 100 million new links a month, 100:1 read to write ratio
+- Links expire after a configurable time
+- Basic click analytics","1. **API:** `POST /links` returns a short code; `GET /{code}` returns a 301/302.
+2. **Code generation:** base62 of a unique 64-bit id from a distributed id generator (or pre-generated key ranges per server). 7 characters give 62^7 ≈ 3.5 trillion codes.
+3. **Storage:** a key-value store (code → URL, expiry, owner). Writes are small and simple, so it shards well by code.
+4. **Reads:** cache hot codes in Redis/CDN in front of the store; most traffic hits a small set of links.
+5. **Analytics:** push click events to a queue and aggregate asynchronously, never on the redirect path.","- **301 vs 302:** 301 is cached by browsers (less load, but you lose click counts); 302 keeps analytics accurate.
+- **Hashing the URL vs ids:** hashing needs collision handling; ids are simple but need a coordinated generator.
+- **Custom aliases:** must check uniqueness on write; reserve words and block abuse.",How do you stop abuse (phishing links)? How would you delete expired links at scale?,acme-tech,backend-java|service-to-product
+LLD-0001,design-a-parking-lot,low_level_design,Design a parking lot,medium,"Design the classes for a multi-floor parking lot that supports bikes, cars and trucks, issues tickets at entry and charges at exit.","- Several floors, each with spots of different sizes
+- Assign the nearest free spot that fits the vehicle
+- Ticket at entry, payment at exit (hourly rates per vehicle type)
+- Display free spots per floor","**Classes:** `ParkingLot` (floors, entry/exit gates), `Floor` (spots by size), `Spot` (size, occupied by), `Vehicle` with subclasses or a `VehicleType` enum, `Ticket` (spot, entry time), `PricingStrategy` interface (hourly, flat).
+**Assigning spots:** each floor keeps a min-heap of free spots per size by distance; take the first that fits.
+**Patterns:** Strategy for pricing, Factory for vehicles, Singleton (or a single injected instance) for the lot, Observer for the display boards.","- Enum vs subclasses for vehicles: enum is simpler when behaviour doesn't differ.
+- Concurrency: two gates may assign the same spot; lock per floor or use an atomic compare-and-set on the spot.",Add reservations. Add electric-vehicle charging spots.,,backend-java|service-to-product
+SD-0002,design-a-rate-limiter,system_design,Design a rate limiter,medium,Design a rate limiter for an API gateway that limits each user to N requests per minute across many gateway servers.,"- Limits per user and per API key, configurable per endpoint
+- Works across 50 gateway servers
+- Adds under 5 ms latency
+- Returns HTTP 429 with a Retry-After header","1. **Algorithm:** token bucket (allows short bursts) or sliding window counter (smooth). Fixed windows allow double bursts at the boundary.
+2. **Shared state:** counters in Redis with atomic increments (a Lua script for token bucket) keyed by user and window.
+3. **Placement:** in the gateway, before routing; rules loaded from config and cached.
+4. **Failure:** if Redis is down, fail open (allow) for availability, with local in-memory limits as a backstop.","- Accuracy vs cost: a sliding log is exact but stores every timestamp; counters are cheap and close enough.
+- Central store vs local limits: central is accurate; local is fast but each server only sees part of the traffic.",How do you rate-limit by IP for anonymous users behind NAT?,,backend-java|frontend

@@ -1,0 +1,14 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+PSC-COND-0101,pseudocode,pseudo-conditionals,,single,What is printed?,"set x = 15
+if x > 10 and x < 20 then print ""A""
+else if x > 5 then print ""B""
+else print ""C""",pseudocode,A,B,C,A and B,,A,,"15 is between 10 and 20, so the first branch runs and the rest are skipped.",easy,30,,,original,,
+PSC-COND-0102,pseudocode,pseudo-conditionals,,single,What is printed?,"set a = 4, b = 7
+if a > b then max = a else max = b
+if max mod 2 = 0 then print ""even"" else print ""odd""",pseudocode,even,odd,4,7,,B,,"max = 7, and 7 mod 2 = 1, so it prints odd.",easy,45,,,original,,
+PSC-COND-0103,pseudocode,pseudo-conditionals,,numeric,What is printed?,"set marks = 72
+if marks >= 90 then grade = 4
+else if marks >= 75 then grade = 3
+else if marks >= 60 then grade = 2
+else grade = 1
+print grade",pseudocode,,,,,,2,0,"72 is below 90 and 75 but at least 60, so grade = 2.",easy,45,,,original,,

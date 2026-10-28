@@ -1,0 +1,5 @@
+company,round_order,round_name,round_type,platform,duration_min,is_elimination,description
+acme-tech,1,Online Assessment,online-test,tcs-ion,90,yes,"Aptitude, reasoning, verbal and programming logic MCQs."
+acme-tech,2,Coding Round,coding-test,hackerrank,60,yes,Two coding problems. Partial marks for test cases passed.
+acme-tech,3,Technical Interview,technical-interview,,30,yes,"Questions on projects, OOPs, DBMS and one coding question."
+acme-tech,4,HR Interview,hr-interview,,20,yes,"Background, relocation, strengths and weaknesses."

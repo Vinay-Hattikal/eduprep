@@ -1,0 +1,8 @@
+company,round_order,round_name,round_type,platform,duration_min,is_elimination,round_description,section_order,section_name,section_type,question_count,minutes,negative_marks,can_go_back,topics
+acme-tech,1,Online Assessment,online-test,tcs-ion,90,yes,"Aptitude, reasoning, verbal and programming logic MCQs.",1,Numerical Ability,mcq,20,25,0,yes,percentages|profit-loss|time-work|averages|ratio-proportion|time-speed-distance
+acme-tech,1,,,,,,,2,Reasoning Ability,mcq,20,25,0,yes,number-series|blood-relations|syllogism|seating-arrangement|coding-decoding
+acme-tech,1,,,,,,,3,Verbal Ability,mcq,20,20,0,yes,reading-comprehension|error-spotting|fill-blanks|synonyms
+acme-tech,1,,,,,,,4,Programming Logic,mcq,10,20,0,no,pseudo-loops|pseudo-bitwise|lang-c
+acme-tech,2,Coding Round,coding-test,hackerrank,60,yes,Two coding problems. Partial marks for test cases passed.,1,Coding,coding,2,60,0,yes,arrays|strings|hashing
+acme-tech,3,Technical Interview,technical-interview,,30,yes,"Questions on projects, OOPs, DBMS and one coding question.",,,,,,,,
+acme-tech,4,HR Interview,hr-interview,,20,yes,"Background, relocation, strengths and weaknesses.",,,,,,,,

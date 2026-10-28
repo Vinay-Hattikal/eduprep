@@ -1,0 +1,8 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+OOP-INH-0101,oops,inheritance,,single,What does this Java code print?,"class A { void show() { System.out.println(""A""); } }
+class B extends A { void show() { System.out.println(""B""); } }
+
+A obj = new B();
+obj.show();",java,A,B,Compile error,AB,,B,,The method call is resolved at run time on the actual object (a B): dynamic dispatch.,easy,45,,overriding,original,,
+OOP-INH-0102,oops,inheritance,,single,Java doesn't allow a class to extend two classes mainly to avoid:,,,The diamond problem,Slow compilation,Memory leaks,Deep recursion,,A,,"If two parents define the same method, it's unclear which one a child inherits. Java allows multiple interfaces instead.",easy,30,,,original,,
+OOP-INH-0103,oops,inheritance,,multiple,"In Java, what can a subclass do? Select all that apply.",,,Override a public method of its parent,Read the parent's private fields directly,Call the parent's constructor with super(),Add methods of its own,,A|C|D,,Private members are not accessible in subclasses; everything else listed is allowed.,medium,45,,,original,,

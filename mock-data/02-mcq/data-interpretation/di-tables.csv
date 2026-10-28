@@ -1,0 +1,4 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+DI-TBL-0101,data-interpretation,di-tables,,numeric,How many phones did the store sell in the whole year?,,,,,,,,1400,0,$300 + 360 + 330 + 410 = 1400$.,easy,60,PSG-DI-0101,total,original,,
+DI-TBL-0102,data-interpretation,di-tables,,single,In which quarter was the ratio of laptops to phones sold the highest?,,,Q1,Q2,Q3,Q4,,C,,"Ratios: Q1 0.40, Q2 0.42, Q3 0.55, Q4 0.37. Q3 is highest.",medium,90,PSG-DI-0101,ratio,original,,
+DI-TBL-0103,data-interpretation,di-tables,,numeric,By what percent did laptop sales grow from Q1 to Q3?,,,,,,,,50,0,$\frac{180 - 120}{120} \times 100 = 50\%$.,easy,60,PSG-DI-0101,percentage-change,original,,

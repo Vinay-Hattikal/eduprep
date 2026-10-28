@@ -1,0 +1,12 @@
+company,round_order,round_name,round_type,platform,duration_min,is_elimination,round_description,section_order,section_name,section_type,question_count,minutes,negative_marks,can_go_back,topics
+globex-systems,1,Online Assessment,online-test,tcs-ion,90,yes,"Aptitude, reasoning, verbal and programming logic.",1,Numerical Ability,mcq,20,25,0,yes,percentages|time-speed-distance|averages|time-work
+globex-systems,1,,,,,,,2,Reasoning Ability,mcq,20,25,0,yes,number-series|blood-relations|syllogism
+globex-systems,1,,,,,,,3,Verbal Ability,mcq,15,15,0,yes,reading-comprehension|synonyms|error-spotting
+globex-systems,1,,,,,,,4,Programming Logic,mcq,10,15,0,no,pseudo-loops|pseudo-conditionals|lang-c
+globex-systems,2,Coding Round,coding-test,hackerrank,60,yes,Two problems with partial marks.,1,Coding,coding,2,60,0,yes,arrays|strings
+globex-systems,3,Technical Interview,technical-interview,,30,yes,"Projects, OOP, DBMS and one coding question.",,,,,,,,
+globex-systems,4,HR Interview,hr-interview,,20,yes,"Background, relocation, strengths.",,,,,,,,
+initech-software,1,Coding Assessment,coding-test,hackerrank,90,yes,"Three problems: easy, medium, hard.",1,Coding,coding,3,90,0,yes,arrays|strings|hashing|dynamic-programming
+initech-software,2,Technical Interview 1,technical-interview,,60,yes,Data structures and problem solving.,,,,,,,,
+initech-software,3,Technical Interview 2,technical-interview,,60,yes,CS fundamentals and a design discussion.,,,,,,,,
+umbrella-analytics,1,Online Test,online-test,other,60,yes,Aptitude and SQL basics.,1,Aptitude and SQL,mcq,25,40,0.25,yes,percentages|di-tables|sql

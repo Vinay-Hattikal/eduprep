@@ -1,0 +1,10 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+PRG-PY-0101,programming-languages,lang-python,,single,What does this Python code print?,print([i * i for i in range(4)]),python,"[0, 1, 4, 9]","[1, 4, 9, 16]","[0, 1, 2, 3]","(0, 1, 4, 9)",,A,,"range(4) is 0, 1, 2, 3 and each is squared.",easy,30,,output-prediction,original,,
+PRG-PY-0102,programming-languages,lang-python,functions,single,What does this Python code print?,"def f(x, items=[]):
+    items.append(x)
+    return items
+
+f(1)
+print(f(2))",python,[2],"[1, 2]","[2, 1]",An error,,B,,"The default list is created once and shared between calls, so the second call appends to the same list.",hard,60,,mutable-default,original,,
+PRG-PY-0103,programming-languages,lang-python,data-types,single,What happens when this Python code runs?,"a = (1, 2, 3)
+a[0] = 9",python,"a becomes (9, 2, 3)",TypeError is raised,"a becomes [9, 2, 3]",Nothing happens,,B,,Tuples are immutable; item assignment raises TypeError.,easy,30,,,original,,

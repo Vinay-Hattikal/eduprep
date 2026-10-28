@@ -1,0 +1,54 @@
+problem_id,kind,language,code
+CODE-ARR-0001,reference,python,"import sys
+
+
+def main():
+    data = sys.stdin.read().split()
+    n, t = int(data[0]), int(data[1])
+    a = list(map(int, data[2:2 + n]))
+    seen = set()
+    for x in a:
+        if t - x in seen:
+            print(""YES"")
+            return
+        seen.add(x)
+    print(""NO"")
+
+
+main()"
+CODE-ARR-0001,brute,python,"import sys
+
+data = sys.stdin.read().split()
+n, t = int(data[0]), int(data[1])
+a = list(map(int, data[2:2 + n]))
+found = any(a[i] + a[j] == t for i in range(n) for j in range(i + 1, n))
+print(""YES"" if found else ""NO"")"
+CODE-ARR-0001,starter,python,"import sys
+
+
+def has_pair(a, t):
+    # Write your code here
+    return False
+
+
+data = sys.stdin.read().split()
+n, t = int(data[0]), int(data[1])
+a = list(map(int, data[2:2 + n]))
+print(""YES"" if has_pair(a, t) else ""NO"")"
+CODE-ARR-0001,starter,java,"import java.util.*;
+
+public class Main {
+    static boolean hasPair(long[] a, long t) {
+        // Write your code here
+        return false;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        long t = sc.nextLong();
+        long[] a = new long[n];
+        for (int i = 0; i < n; i++) a[i] = sc.nextLong();
+        System.out.println(hasPair(a, t) ? ""YES"" : ""NO"");
+    }
+}"

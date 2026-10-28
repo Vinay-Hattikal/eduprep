@@ -1,0 +1,3 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+DI-TBL-0001,data-interpretation,di-tables,,numeric,What is the percentage increase in units sold from 2023 to 2024?,,,,,,,,30,0,Increase $= 650 - 500 = 150$. Percentage increase $= \frac{150}{500} \times 100 = 30\%$.,easy,45,PSG-DI-0001,percentage-change,original,,
+DI-TBL-0002,data-interpretation,di-tables,,single,What is the average number of units sold per year over 2022–2024 (rounded to two decimals)?,,,500.00,516.67,525.00,550.00,,B,,Average $= \frac{400 + 500 + 650}{3} = \frac{1550}{3} \approx 516.67$.,easy,45,PSG-DI-0001,average,original,,

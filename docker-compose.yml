@@ -1,0 +1,69 @@
+# Production-like stack on one machine (D-047): PostgreSQL, Redis, the web app and the worker.
+#   cp .env.example .env.production   # fill in real values (see docs/deployment.md)
+#   docker compose up -d --build
+# Judge0 runs on its own VM (it needs privileged containers); point JUDGE0_URL at it.
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eduprep}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-eduprep}
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C.UTF-8
+    volumes: [postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-eduprep}"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes: [redis:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  migrate:
+    build: .
+    env_file: .env.production
+    command: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  web:
+    build: .
+    env_file: .env.production
+    environment:
+      QUEUE_DRIVER: bullmq
+      REDIS_URL: redis://redis:6379
+    ports: ["3000:3000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+    volumes: [storage:/app/.data]
+
+  worker:
+    build: .
+    env_file: .env.production
+    environment:
+      QUEUE_DRIVER: bullmq
+      REDIS_URL: redis://redis:6379
+      WORKER_CONCURRENCY: "4"
+    command: ["npm", "run", "worker"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+    volumes: [storage:/app/.data]
+
+volumes:
+  postgres:
+  redis:
+  storage:

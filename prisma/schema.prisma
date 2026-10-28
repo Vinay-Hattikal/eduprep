@@ -1,0 +1,1891 @@
+// Database schema. See docs/architecture.md section 4 for the full planned model.
+// User fields stay compatible with Better Auth, which replaces dev login in Phase 6 (D-020).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  STUDENT
+  INTERVIEWER
+  SUPER_ADMIN
+  CONTENT_AUTHOR
+  REVIEWER
+  OPS_ADMIN
+  SUPPORT_ADMIN
+}
+
+enum ProfileType {
+  FRESHER
+  EXPERIENCED
+}
+
+// ---------- Users ----------
+
+model User {
+  id                  String       @id @default(cuid())
+  name                String
+  email               String?      @unique
+  emailVerified       Boolean      @default(false) @map("email_verified")
+  phoneNumber         String?      @unique @map("phone_number")
+  phoneNumberVerified Boolean      @default(false) @map("phone_number_verified")
+  image               String?
+  roles               Role[]       @default([STUDENT])
+  profileType         ProfileType? @map("profile_type")
+  onboardedAt         DateTime?    @map("onboarded_at")
+  preferredLanguage   String?      @map("preferred_language") // c | cpp | java | python | javascript
+  // Marketing and engagement messages; transactional messages are always sent (PRD 8.14).
+  marketingOptIn      Boolean      @default(true) @map("marketing_opt_in")
+  // Set by a moderator: the user can read discussions but not post (D-048).
+  commentsBlockedAt   DateTime?    @map("comments_blocked_at")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+
+  fresherProfile     FresherProfile?
+  experiencedProfile ExperiencedProfile?
+  auditLogs          AuditLog[]
+  settingsUpdated    Setting[]
+  authoredQuestions  Question[]          @relation("QuestionAuthor")
+  reviewedQuestions  Question[]          @relation("QuestionReviewer")
+  importBatches      ImportBatch[]       @relation("ImportUploader")
+  confirmedImports   ImportBatch[]       @relation("ImportConfirmer")
+  contentVersions    ContentVersion[]
+  targetCompanies    TargetCompany[]
+  attempts           Attempt[]
+  mastery            Mastery[]
+  mistakes           Mistake[]
+  bookmarks          Bookmark[]
+  stats              UserStats?
+  errorReports       ErrorReport[]       @relation("ReportAuthor")
+  resolvedReports    ErrorReport[]       @relation("ReportResolver")
+  companyRequests    CompanyRequest[]
+  sittings           TestSitting[]
+  submissions        Submission[]
+  problemProgress    ProblemProgress[]
+  authoredProblems   Problem[]           @relation("ProblemAuthor")
+  reviewedProblems   Problem[]           @relation("ProblemReviewer")
+  interviewer        Interviewer?
+  password           PasswordCredential?
+  sessions           Session[]
+  verificationCodes  VerificationCode[]
+  bookings           Booking[]           @relation("BookingCandidate")
+  orders             Order[]
+  entitlements       Entitlement[]
+  credits            InterviewCredit[]
+  referralCode       ReferralCode?
+  notifications      Notification[]
+  experiences        Experience[]
+  driveReports       DriveReport[]
+  jobPostings        JobPosting[]        @relation("JobPostingAuthor")
+  jobSaves           JobSave[]
+  jobApplyClicks     JobApplyClick[]
+  comments           QuestionComment[]
+  commentVotes       CommentVote[]
+  commentFlags       CommentFlag[]
+  badges             UserBadge[]
+  shareCards         ShareCard[]
+
+  @@map("users")
+}
+
+model FresherProfile {
+  userId      String  @id @map("user_id")
+  college     String?
+  degree      String?
+  branch      String?
+  gradYear    Int?    @map("grad_year")
+  cgpaBand    String? @map("cgpa_band")
+  hasBacklogs Boolean @default(false) @map("has_backlogs")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("fresher_profiles")
+}
+
+model ExperiencedProfile {
+  userId          String   @id @map("user_id")
+  currentRole     String?  @map("current_role")
+  yearsExperience Int?     @map("years_experience")
+  currentCompany  String?  @map("current_company")
+  techStack       String[] @map("tech_stack")
+  targetRoles     String[] @map("target_roles")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("experienced_profiles")
+}
+
+// ---------- Settings and audit ----------
+
+// Admin-editable configuration: prices, free limits, commission (D-026).
+// Keys and value shapes are defined in src/server/services/settings/registry.ts.
+model Setting {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedById String?  @map("updated_by_id")
+
+  updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("settings")
+}
+
+// Who did what, and when. Written for every admin action.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?  @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ---------- Content enums ----------
+
+// Review workflow for questions and companies (PRD 9.4).
+enum ContentStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum QuestionType {
+  SINGLE
+  MULTIPLE
+  NUMERIC
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ContentSource {
+  ORIGINAL
+  MEMORY_BASED
+}
+
+enum CompanyLevel {
+  FULL
+  STANDARD
+  GENERIC
+}
+
+enum CompanyCategory {
+  SERVICE
+  PRODUCT
+  CONSULTING
+  STARTUP
+  OTHER
+}
+
+enum RoundType {
+  ONLINE_TEST
+  CODING_TEST
+  GROUP_DISCUSSION
+  TECHNICAL_INTERVIEW
+  HR_INTERVIEW
+  MANAGERIAL_INTERVIEW
+}
+
+enum SectionType {
+  MCQ
+  CODING
+}
+
+// ---------- Taxonomy ----------
+// Subject -> topic -> subtopic. Slugs are permanent identifiers used by imports (D-025).
+
+model Subject {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String
+  order Int    @default(0)
+
+  topics    Topic[]
+  questions Question[]
+
+  @@map("subjects")
+}
+
+model Topic {
+  id        String @id @default(cuid())
+  slug      String @unique // unique across all subjects
+  name      String
+  order     Int    @default(0)
+  subjectId String @map("subject_id")
+
+  subject   Subject          @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  subtopics Subtopic[]
+  questions Question[]
+  sections  CompanySection[]
+  mastery   Mastery[]
+  problems  Problem[]
+  rules     BlueprintRule[]
+  tracks    RoleTrack[]
+
+  @@index([subjectId, order])
+  @@map("topics")
+}
+
+model Subtopic {
+  id      String @id @default(cuid())
+  slug    String
+  name    String
+  order   Int    @default(0)
+  topicId String @map("topic_id")
+
+  topic     Topic      @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  questions Question[]
+
+  @@unique([topicId, slug])
+  @@map("subtopics")
+}
+
+// ---------- Questions ----------
+
+// Shared context (reading passage, data table) for several questions.
+model Passage {
+  id         String   @id @default(cuid())
+  externalId String   @unique @map("external_id")
+  title      String
+  body       String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  questions Question[]
+
+  @@map("passages")
+}
+
+model Question {
+  id              String        @id @default(cuid())
+  externalId      String        @unique @map("external_id")
+  subjectId       String        @map("subject_id")
+  topicId         String        @map("topic_id")
+  subtopicId      String?       @map("subtopic_id")
+  type            QuestionType
+  text            String
+  code            String?
+  codeLanguage    String?       @map("code_language")
+  options         String[] // option texts in order A, B, C...
+  correctOptions  String[]      @map("correct_options") // letters, e.g. ["A", "C"]
+  numericAnswer   Float?        @map("numeric_answer")
+  tolerance       Float?
+  explanation     String
+  difficulty      Difficulty
+  expectedTimeSec Int           @map("expected_time_sec")
+  passageId       String?       @map("passage_id")
+  tags            String[]
+  source          ContentSource @default(ORIGINAL)
+  status          ContentStatus @default(DRAFT)
+  version         Int           @default(1)
+  aiDrafted       Boolean       @default(false) @map("ai_drafted")
+  authorId        String?       @map("author_id")
+  reviewerId      String?       @map("reviewer_id")
+  reviewNote      String?       @map("review_note")
+  submittedAt     DateTime?     @map("submitted_at")
+  publishedAt     DateTime?     @map("published_at")
+  importBatchId   String?       @map("import_batch_id") // last import that created or changed it
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  subject      Subject           @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  topic        Topic             @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  subtopic     Subtopic?         @relation(fields: [subtopicId], references: [id], onDelete: Restrict)
+  passage      Passage?          @relation(fields: [passageId], references: [id], onDelete: Restrict)
+  author       User?             @relation("QuestionAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  reviewer     User?             @relation("QuestionReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  importBatch  ImportBatch?      @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  companies    CompanyItem[]
+  attempts     Attempt[]
+  mistakes     Mistake[]
+  bookmarks    Bookmark[]
+  errorReports ErrorReport[]
+  dailyPicks   DailyQuestion[]
+  sittingItems SittingItem[]
+  contestItems ContestItem[]
+  comments     QuestionComment[]
+
+  @@index([subjectId, topicId, status])
+  @@index([status, updatedAt])
+  // Trigram index for duplicate detection; the pg_trgm extension is created in the migration.
+  @@index([text(ops: raw("gin_trgm_ops"))], type: Gin, map: "questions_text_trgm_idx")
+  @@map("questions")
+}
+
+// ---------- Companies ----------
+
+model Company {
+  id             String          @id @default(cuid())
+  slug           String          @unique
+  name           String
+  level          CompanyLevel
+  category       CompanyCategory
+  hiringFor      ProfileType[]   @map("hiring_for")
+  overview       String
+  website        String?
+  careersUrl     String?         @map("careers_url")
+  ctcFresher     String?         @map("ctc_fresher")
+  ctcExperienced String?         @map("ctc_experienced")
+  minCgpa        Float?          @map("min_cgpa")
+  min10thPercent Int?            @map("min_10th_percent")
+  min12thPercent Int?            @map("min_12th_percent")
+  maxBacklogs    Int?            @map("max_backlogs")
+  maxGapYears    Int?            @map("max_gap_years")
+  branches       String[]
+  gradYears      Int[]           @map("grad_years")
+  lastVerifiedAt DateTime        @map("last_verified_at") @db.Date
+  status         ContentStatus   @default(DRAFT)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  rounds       CompanyRound[]
+  sources      CompanySource[]
+  items        CompanyItem[]
+  targets      TargetCompany[]
+  tests        TestBlueprint[]
+  bookings     Booking[]
+  entitlements Entitlement[]
+  experiences  Experience[]
+  driveReports DriveReport[]
+  jobPostings  JobPosting[]
+
+  @@map("companies")
+}
+
+model CompanyRound {
+  id            String    @id @default(cuid())
+  companyId     String    @map("company_id")
+  order         Int
+  name          String
+  type          RoundType
+  platform      String?
+  durationMin   Int?      @map("duration_min")
+  isElimination Boolean?  @map("is_elimination")
+  description   String?
+
+  company  Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sections CompanySection[]
+
+  @@unique([companyId, order])
+  @@map("company_rounds")
+}
+
+model CompanySection {
+  id            String      @id @default(cuid())
+  roundId       String      @map("round_id")
+  order         Int
+  name          String
+  type          SectionType
+  questionCount Int         @map("question_count")
+  minutes       Int
+  negativeMarks Float       @default(0) @map("negative_marks")
+  canGoBack     Boolean     @default(true) @map("can_go_back")
+
+  round  CompanyRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  topics Topic[]
+
+  @@unique([roundId, order])
+  @@map("company_sections")
+}
+
+model CompanySource {
+  id        String   @id @default(cuid())
+  companyId String   @map("company_id")
+  label     String
+  url       String
+  checkedOn DateTime @map("checked_on") @db.Date
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, url])
+  @@map("company_sources")
+}
+
+// Links a question to a company, so one question is reused across companies (D-025).
+// Coding problems join here in Phase 4.
+model CompanyItem {
+  id          String   @id @default(cuid())
+  companyId   String   @map("company_id")
+  questionId  String?  @map("question_id") // exactly one of questionId / problemId is set
+  problemId   String?  @map("problem_id")
+  roundOrder  Int?     @map("round_order")
+  askedIn     String[] @map("asked_in") // YYYY-MM
+  reportCount Int      @default(0) @map("report_count")
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  question Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  problem  Problem?  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, questionId])
+  @@unique([companyId, problemId])
+  @@index([questionId])
+  @@index([problemId])
+  @@map("company_items")
+}
+
+// ---------- Imports ----------
+
+enum ImportType {
+  TAXONOMY
+  PASSAGES
+  MCQ
+  COMPANIES
+  COMPANY_ROUNDS
+  COMPANY_SECTIONS
+  COMPANY_SOURCES
+  COMPANY_QUESTION_MAP
+  CODING_PROBLEMS
+  CODING_TESTCASES
+  CODING_SOLUTIONS
+  CODING_PACKAGE
+  CODING_BUNDLE // one row per problem: statement, solution, tests, companies (D-054)
+  COMPANY_PROCESS // one row per test section: rounds and sections together (D-054)
+  ROLE_TRACKS
+  DESIGN_QUESTIONS
+}
+
+// ADD_UPDATE: add new rows, update changed ones. REPLACE (super admin): the file becomes the
+// full set, and items missing from it are archived after a backup (D-054).
+enum ImportMode {
+  ADD_UPDATE
+  REPLACE
+}
+
+enum ImportStatus {
+  QUEUED
+  VALIDATING
+  PREVIEW_READY
+  COMMITTING
+  COMPLETED
+  FAILED
+  CANCELLED
+  ROLLED_BACK
+}
+
+enum ImportRowStatus {
+  VALID
+  WARNING
+  ERROR
+  IMPORTED
+  FAILED
+}
+
+enum ImportRowAction {
+  CREATE
+  UPDATE
+  UNCHANGED
+}
+
+// One uploaded file and what happened to it (data-import.md section 1).
+model ImportBatch {
+  id             String       @id @default(cuid())
+  type           ImportType
+  status         ImportStatus @default(QUEUED)
+  mode           ImportMode   @default(ADD_UPDATE)
+  fileName       String       @map("file_name")
+  fileKey        String       @map("file_key") // original file in storage
+  fileSize       Int          @map("file_size")
+  uploadedById   String?      @map("uploaded_by_id")
+  confirmedById  String?      @map("confirmed_by_id")
+  totalRows      Int          @default(0) @map("total_rows")
+  validRows      Int          @default(0) @map("valid_rows")
+  warningRows    Int          @default(0) @map("warning_rows")
+  errorRows      Int          @default(0) @map("error_rows")
+  createdCount   Int          @default(0) @map("created_count")
+  updatedCount   Int          @default(0) @map("updated_count")
+  unchangedCount Int          @default(0) @map("unchanged_count")
+  failedCount    Int          @default(0) @map("failed_count")
+  archiveCount   Int          @default(0) @map("archive_count") // REPLACE: items the preview will archive
+  archivePreview String[]     @map("archive_preview") // REPLACE: first few of them, for the preview
+  archivedCount  Int          @default(0) @map("archived_count") // REPLACE: items archived at commit
+  backupKey      String?      @map("backup_key") // REPLACE: export taken before archiving
+  error          String? // file-level problem: unreadable file, missing columns, crash
+  createdAt      DateTime     @default(now()) @map("created_at")
+  validatedAt    DateTime?    @map("validated_at")
+  confirmedAt    DateTime?    @map("confirmed_at")
+  completedAt    DateTime?    @map("completed_at")
+  rolledBackAt   DateTime?    @map("rolled_back_at")
+
+  uploadedBy  User?       @relation("ImportUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  confirmedBy User?       @relation("ImportConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
+  rows        ImportRow[]
+  questions   Question[]
+
+  @@index([status, createdAt])
+  @@map("import_batches")
+}
+
+model ImportRow {
+  id        String           @id @default(cuid())
+  batchId   String           @map("batch_id")
+  rowNumber Int              @map("row_number") // line in the file, header is line 1
+  data      Json // raw cells keyed by column name
+  status    ImportRowStatus
+  action    ImportRowAction?
+  messages  Json             @default("[]") // [{ level: "error" | "warning", column?, message }]
+  entityId  String?          @map("entity_id") // what the row created or updated
+  previous  Json? // snapshot before an update, used for rollback
+
+  batch ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, rowNumber])
+  @@index([batchId, status])
+  @@map("import_rows")
+}
+
+// Snapshot of a content item after each change, for history and rollback.
+model ContentVersion {
+  id          String   @id @default(cuid())
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  version     Int
+  snapshot    Json
+  reason      String
+  createdById String?  @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, version])
+  @@map("content_versions")
+}
+
+// ---------- Background jobs ----------
+// Postgres-backed queue (D-029): durable, retried with backoff, claimed with SKIP LOCKED.
+// Swapped for BullMQ + Redis in Phase 6 behind the same enqueue() interface.
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  type        String
+  payload     Json
+  status      JobStatus @default(QUEUED)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3) @map("max_attempts")
+  runAt       DateTime  @default(now()) @map("run_at")
+  lockedAt    DateTime? @map("locked_at")
+  lockedBy    String?   @map("locked_by")
+  lastError   String?   @map("last_error")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  finishedAt  DateTime? @map("finished_at")
+
+  @@index([status, runAt])
+  @@map("jobs")
+}
+
+// ---------- Student learning (Phase 3) ----------
+
+enum AttemptMode {
+  PRACTICE
+  RETRY // retrying a mistake
+  DAILY // question of the day (doesn't count toward the free limit)
+  TEST // answered inside a mock test (counts for mastery, not the free limit)
+}
+
+enum ReportReason {
+  WRONG_ANSWER
+  WRONG_EXPLANATION
+  TYPO
+  UNCLEAR
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  FIXED
+  REJECTED
+}
+
+// Up to 3 companies a student is preparing for (PRD 4.1).
+model TargetCompany {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  companyId  String    @map("company_id")
+  targetDate DateTime? @map("target_date") @db.Date
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyId])
+  @@map("target_companies")
+}
+
+// One answer to one question. Never updated; analytics and mastery are built from these.
+model Attempt {
+  id              String      @id @default(cuid())
+  userId          String      @map("user_id")
+  questionId      String      @map("question_id")
+  mode            AttemptMode @default(PRACTICE)
+  selectedOptions String[]    @map("selected_options")
+  numericAnswer   Float?      @map("numeric_answer")
+  isCorrect       Boolean     @map("is_correct")
+  timeSec         Int         @map("time_sec")
+  activityDate    DateTime    @map("activity_date") @db.Date // IST calendar day, for limits and streaks
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, activityDate])
+  @@index([userId, questionId])
+  @@index([questionId])
+  @@map("attempts")
+}
+
+// Per-topic mastery from recency-weighted, difficulty-weighted answers (src/lib/learning/mastery.ts).
+model Mastery {
+  userId     String   @map("user_id")
+  topicId    String   @map("topic_id")
+  weightSum  Float    @default(0) @map("weight_sum")
+  correctSum Float    @default(0) @map("correct_sum")
+  attempts   Int      @default(0)
+  correct    Int      @default(0)
+  score      Int      @default(0) // 0-100
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([userId, topicId])
+  @@map("mastery")
+}
+
+// A question the student got wrong and hasn't yet answered correctly since.
+model Mistake {
+  userId      String    @map("user_id")
+  questionId  String    @map("question_id")
+  lastWrongAt DateTime  @map("last_wrong_at")
+  resolvedAt  DateTime? @map("resolved_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, questionId])
+  @@index([userId, resolvedAt])
+  @@map("mistakes")
+}
+
+model Bookmark {
+  userId     String   @map("user_id")
+  questionId String   @map("question_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, questionId])
+  @@map("bookmarks")
+}
+
+// Running totals so dashboards don't scan every attempt.
+model UserStats {
+  userId         String    @id @map("user_id")
+  currentStreak  Int       @default(0) @map("current_streak")
+  longestStreak  Int       @default(0) @map("longest_streak")
+  lastActiveDate DateTime? @map("last_active_date") @db.Date // IST day
+  totalAttempts  Int       @default(0) @map("total_attempts")
+  totalCorrect   Int       @default(0) @map("total_correct")
+  // Earned by contributing (approved interview experiences, referrals); redeemable later.
+  points         Int       @default(0)
+  // Streak freezes (D-052): earned every few streak days, or bought with points. A freeze covers
+  // one missed day.
+  streakFreezes  Int       @default(0) @map("streak_freezes")
+  freezesUsed    Int       @default(0) @map("freezes_used")
+  lastFreezeOn   DateTime? @map("last_freeze_on") @db.Date // the last day a freeze covered
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_stats")
+}
+
+// "Report an error" on a question (PRD 4.4, 9.9).
+model ErrorReport {
+  id           String       @id @default(cuid())
+  questionId   String       @map("question_id")
+  userId       String?      @map("user_id")
+  reason       ReportReason
+  message      String
+  status       ReportStatus @default(OPEN)
+  reply        String?
+  resolvedById String?      @map("resolved_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  resolvedAt   DateTime?    @map("resolved_at")
+
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User?    @relation("ReportAuthor", fields: [userId], references: [id], onDelete: SetNull)
+  resolvedBy User?    @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@map("error_reports")
+}
+
+// Students asking for a company that isn't listed yet (PRD 4.7).
+model CompanyRequest {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  companyName String   @map("company_name")
+  normalized  String // lowercased, for counting duplicates
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, normalized])
+  @@index([normalized])
+  @@map("company_requests")
+}
+
+// Question of the day: one published question per IST day, picked on first request.
+model DailyQuestion {
+  date       DateTime @id @db.Date
+  questionId String   @map("question_id")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("daily_questions")
+}
+
+// ---------- Coding platform (Phase 4) ----------
+
+enum ScoringMode {
+  ALL_OR_NOTHING
+  PER_TEST // partial marks per passed test, as in some company assessments
+}
+
+enum SolutionKind {
+  REFERENCE // must pass every test
+  BRUTE // optional cross-check
+  STARTER // shown in the editor
+}
+
+enum SubmissionKind {
+  RUN // samples or custom input
+  SUBMIT // every test
+}
+
+enum Verdict {
+  PENDING
+  RUNNING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT
+  MEMORY_LIMIT
+  RUNTIME_ERROR
+  COMPILATION_ERROR
+  INTERNAL_ERROR
+}
+
+model Problem {
+  id             String        @id @default(cuid())
+  externalId     String        @unique @map("external_id")
+  slug           String        @unique
+  title          String
+  difficulty     Difficulty
+  statement      String
+  inputFormat    String        @map("input_format")
+  outputFormat   String        @map("output_format")
+  constraints    String
+  timeLimitMs    Int           @map("time_limit_ms")
+  memoryLimitMb  Int           @map("memory_limit_mb")
+  languages      String[]
+  scoring        ScoringMode   @default(ALL_OR_NOTHING)
+  checker        String        @default("exact") // exact | ignore_whitespace | float:<eps>
+  hints          String[]
+  editorial      String?
+  source         ContentSource @default(ORIGINAL)
+  status         ContentStatus @default(DRAFT)
+  version        Int           @default(1)
+  authorId       String?       @map("author_id")
+  reviewerId     String?       @map("reviewer_id")
+  reviewNote     String?       @map("review_note")
+  importBatchId  String?       @map("import_batch_id")
+  // Set when every reference solution passes every test; cleared when tests or solutions change.
+  validatedAt    DateTime?     @map("validated_at")
+  validationNote String?       @map("validation_note")
+  publishedAt    DateTime?     @map("published_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  topics       Topic[]
+  author       User?             @relation("ProblemAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  reviewer     User?             @relation("ProblemReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  testCases    ProblemTestCase[]
+  solutions    ProblemSolution[]
+  submissions  Submission[]
+  progress     ProblemProgress[]
+  companies    CompanyItem[]
+  sittingItems SittingItem[]
+  contestItems ContestItem[]
+
+  @@index([status, difficulty])
+  @@map("problems")
+}
+
+model ProblemTestCase {
+  id          String  @id @default(cuid())
+  problemId   String  @map("problem_id")
+  order       Int
+  isSample    Boolean @map("is_sample")
+  input       String
+  output      String
+  explanation String?
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, order])
+  @@map("problem_test_cases")
+}
+
+model ProblemSolution {
+  id        String       @id @default(cuid())
+  problemId String       @map("problem_id")
+  kind      SolutionKind
+  language  String
+  code      String
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, kind, language])
+  @@map("problem_solutions")
+}
+
+model Submission {
+  id            String         @id @default(cuid())
+  userId        String         @map("user_id")
+  problemId     String         @map("problem_id")
+  sittingItemId String?        @map("sitting_item_id") // when made inside a mock test
+  kind          SubmissionKind
+  language      String
+  code          String
+  customInput   String?        @map("custom_input")
+  verdict       Verdict        @default(PENDING)
+  testsPassed   Int            @default(0) @map("tests_passed")
+  testsTotal    Int            @default(0) @map("tests_total")
+  score         Float? // 0-1 share of tests passed (PER_TEST) or 0/1
+  runtimeMs     Int?           @map("runtime_ms")
+  compileOutput String?        @map("compile_output")
+  // Per-test results. Hidden tests only carry verdict and time, never data.
+  results       Json           @default("[]")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  finishedAt    DateTime?      @map("finished_at")
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem     Problem      @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  sittingItem SittingItem? @relation(fields: [sittingItemId], references: [id], onDelete: SetNull)
+
+  @@index([userId, problemId, createdAt])
+  @@index([userId, createdAt])
+  @@map("submissions")
+}
+
+// A student's state on one problem: solved, hints seen.
+model ProblemProgress {
+  userId        String    @map("user_id")
+  problemId     String    @map("problem_id")
+  hintsRevealed Int       @default(0) @map("hints_revealed")
+  attempts      Int       @default(0) // SUBMIT runs
+  solvedAt      DateTime? @map("solved_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@id([userId, problemId])
+  @@map("problem_progress")
+}
+
+// ---------- Mock tests (Phase 4) ----------
+
+enum TestKind {
+  TOPIC // short practice test
+  COMPANY_MOCK // full company test in the real format
+  OA // online-assessment coding round
+}
+
+enum PlatformStyle {
+  GENERIC
+  TCS_ION
+  HACKERRANK
+  AMCAT
+}
+
+enum SectionNavigation {
+  SEQUENTIAL // one section at a time, each with its own timer; no going back to earlier sections
+  FREE // move between sections; one overall timer
+}
+
+enum SittingStatus {
+  IN_PROGRESS
+  SUBMITTED
+}
+
+model TestBlueprint {
+  id            String            @id @default(cuid())
+  slug          String            @unique
+  title         String
+  description   String?
+  kind          TestKind
+  platformStyle PlatformStyle     @default(GENERIC) @map("platform_style")
+  navigation    SectionNavigation @default(FREE)
+  instructions  String?
+  companyId     String?           @map("company_id")
+  status        ContentStatus     @default(DRAFT)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  company  Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  sections BlueprintSection[]
+  sittings TestSitting[]
+  contests Contest[]
+
+  @@index([status, kind])
+  @@map("test_blueprints")
+}
+
+model BlueprintSection {
+  id            String      @id @default(cuid())
+  blueprintId   String      @map("blueprint_id")
+  order         Int
+  name          String
+  type          SectionType
+  minutes       Int
+  marksPerItem  Float       @default(1) @map("marks_per_item")
+  negativeMarks Float       @default(0) @map("negative_marks")
+  canGoBack     Boolean     @default(true) @map("can_go_back")
+
+  blueprint TestBlueprint   @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  rules     BlueprintRule[]
+
+  @@unique([blueprintId, order])
+  @@map("blueprint_sections")
+}
+
+// "Draw `count` published items from this topic (and difficulty)."
+model BlueprintRule {
+  id         String      @id @default(cuid())
+  sectionId  String      @map("section_id")
+  topicId    String      @map("topic_id")
+  difficulty Difficulty?
+  count      Int
+
+  section BlueprintSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  topic   Topic            @relation(fields: [topicId], references: [id], onDelete: Restrict)
+
+  @@map("blueprint_rules")
+}
+
+// One student's attempt at a test. Questions are drawn once, at start, and frozen.
+model TestSitting {
+  id              String        @id @default(cuid())
+  userId          String        @map("user_id")
+  blueprintId     String        @map("blueprint_id")
+  status          SittingStatus @default(IN_PROGRESS)
+  startedAt       DateTime      @map("started_at")
+  // Section timing snapshot: [{ name, type, minutes, marksPerItem, negativeMarks, canGoBack }]
+  sections        Json
+  // When each section started (sequential navigation); index = section order - 1.
+  sectionStarts   Json          @default("[]") @map("section_starts")
+  endsAt          DateTime      @map("ends_at") // latest possible end; the server timer is the source of truth
+  submittedAt     DateTime?     @map("submitted_at")
+  autoSubmitted   Boolean       @default(false) @map("auto_submitted")
+  score           Float?
+  maxScore        Float?        @map("max_score")
+  tabSwitches     Int           @default(0) @map("tab_switches")
+  // All-India mocks (D-049): one sitting per student per contest; rank and percentile are
+  // frozen when the contest's results are final.
+  contestId       String?       @map("contest_id")
+  finalRank       Int?          @map("final_rank")
+  finalPercentile Float?        @map("final_percentile")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blueprint TestBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  contest   Contest?      @relation(fields: [contestId], references: [id], onDelete: Restrict)
+  items     SittingItem[]
+
+  @@unique([contestId, userId])
+  @@index([userId, createdAt])
+  @@index([blueprintId, status])
+  @@index([contestId, status, score])
+  @@map("test_sittings")
+}
+
+model SittingItem {
+  id              String   @id @default(cuid())
+  sittingId       String   @map("sitting_id")
+  sectionIndex    Int      @map("section_index") // 0-based
+  position        Int // 0-based within the section
+  questionId      String?  @map("question_id")
+  problemId       String?  @map("problem_id")
+  selectedOptions String[] @map("selected_options")
+  numericAnswer   Float?   @map("numeric_answer")
+  markedForReview Boolean  @default(false) @map("marked_for_review")
+  visited         Boolean  @default(false)
+  timeSec         Int      @default(0) @map("time_sec")
+  // Filled when the sitting is scored.
+  isCorrect       Boolean? @map("is_correct")
+  marks           Float?
+
+  sitting     TestSitting  @relation(fields: [sittingId], references: [id], onDelete: Cascade)
+  question    Question?    @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  problem     Problem?     @relation(fields: [problemId], references: [id], onDelete: Restrict)
+  submissions Submission[]
+
+  @@unique([sittingId, sectionIndex, position])
+  @@map("sitting_items")
+}
+
+// ---------- Mock interviews (Phase 5) ----------
+
+enum InterviewerStatus {
+  APPLIED
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum InterviewAudience {
+  FRESHER
+  EXPERIENCED
+  BOTH
+}
+
+// The kinds of interview sold (PRD 8.7). Prices live in settings (`priceSetting` names the key).
+model InterviewType {
+  id           String            @id @default(cuid())
+  slug         String            @unique
+  name         String
+  description  String
+  audience     InterviewAudience
+  durationMin  Int               @map("duration_min")
+  priceSetting String            @map("price_setting")
+  // Scorecard rubric: [{ key, label, description }], each scored 1-5.
+  rubric       Json
+  active       Boolean           @default(true)
+  order        Int               @default(0)
+
+  interviewers Interviewer[]
+  bookings     Booking[]
+  credits      InterviewCredit[]
+
+  @@map("interview_types")
+}
+
+model Interviewer {
+  userId          String            @id @map("user_id")
+  status          InterviewerStatus @default(APPLIED)
+  headline        String
+  currentCompany  String            @map("current_company")
+  currentRole     String            @map("current_role")
+  yearsExperience Int               @map("years_experience")
+  pastCompanies   String[]          @map("past_companies")
+  languages       String[]
+  linkedinUrl     String            @map("linkedin_url")
+  bio             String
+  timeZone        String            @default("Asia/Kolkata") @map("time_zone")
+  bufferMin       Int               @default(15) @map("buffer_min")
+  ratingSum       Int               @default(0) @map("rating_sum")
+  ratingCount     Int               @default(0) @map("rating_count")
+  noShows         Int               @default(0) @map("no_shows")
+  // Set when quality checks put the interviewer under review (low rating, no-shows).
+  flaggedAt       DateTime?         @map("flagged_at")
+  reviewNote      String?           @map("review_note")
+  appliedAt       DateTime          @default(now()) @map("applied_at")
+  approvedAt      DateTime?         @map("approved_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  types    InterviewType[]
+  rules    AvailabilityRule[]
+  blocks   AvailabilityBlock[]
+  bookings Booking[]
+  ledger   PayoutEntry[]
+  payouts  Payout[]
+
+  @@index([status])
+  @@map("interviewers")
+}
+
+// Weekly availability in the interviewer's own time zone, minutes from midnight.
+model AvailabilityRule {
+  id            String @id @default(cuid())
+  interviewerId String @map("interviewer_id")
+  weekday       Int // 0 = Sunday
+  startMinute   Int    @map("start_minute")
+  endMinute     Int    @map("end_minute")
+
+  interviewer Interviewer @relation(fields: [interviewerId], references: [userId], onDelete: Cascade)
+
+  @@index([interviewerId])
+  @@map("availability_rules")
+}
+
+// A day off, in the interviewer's time zone.
+model AvailabilityBlock {
+  id            String   @id @default(cuid())
+  interviewerId String   @map("interviewer_id")
+  date          DateTime @db.Date
+  note          String?
+
+  interviewer Interviewer @relation(fields: [interviewerId], references: [userId], onDelete: Cascade)
+
+  @@unique([interviewerId, date])
+  @@map("availability_blocks")
+}
+
+enum BookingStatus {
+  HELD // slot reserved while the candidate pays; expires at holdExpiresAt
+  CONFIRMED
+  COMPLETED // scorecard submitted
+  CANCELLED
+  EXPIRED // hold ran out
+  NO_SHOW_CANDIDATE
+  NO_SHOW_INTERVIEWER
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  candidateId     String        @map("candidate_id")
+  interviewerId   String        @map("interviewer_id")
+  typeId          String        @map("type_id")
+  companyId       String?       @map("company_id")
+  startsAt        DateTime      @map("starts_at")
+  endsAt          DateTime      @map("ends_at")
+  status          BookingStatus @default(HELD)
+  holdExpiresAt   DateTime?     @map("hold_expires_at")
+  candidateNotes  String?       @map("candidate_notes")
+  meetingProvider String?       @map("meeting_provider")
+  meetingId       String?       @map("meeting_id")
+  meetUrl         String?       @map("meet_url")
+  rescheduleCount Int           @default(0) @map("reschedule_count")
+  cancelledAt     DateTime?     @map("cancelled_at")
+  cancelledById   String?       @map("cancelled_by_id")
+  cancelReason    String?       @map("cancel_reason")
+  // An order made just for this booking (pay now, instead of using an existing credit).
+  orderId         String?       @unique @map("order_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  candidate   User               @relation("BookingCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
+  interviewer Interviewer        @relation(fields: [interviewerId], references: [userId], onDelete: Restrict)
+  type        InterviewType      @relation(fields: [typeId], references: [id], onDelete: Restrict)
+  company     Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  order       Order?             @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  credit      InterviewCredit?
+  scorecard   Scorecard?
+  rating      InterviewerRating?
+  ledger      PayoutEntry[]
+
+  @@index([interviewerId, startsAt])
+  @@index([candidateId, startsAt])
+  @@index([status, startsAt])
+  @@map("bookings")
+}
+
+enum Recommendation {
+  HIRE
+  BORDERLINE
+  NOT_YET
+}
+
+model Scorecard {
+  bookingId         String         @id @map("booking_id")
+  // [{ key, score (1-5), comment }] following the type's rubric
+  scores            Json
+  strengths         String
+  improvements      String
+  recommendation    Recommendation
+  // Topic slugs linked to practice.
+  recommendedTopics String[]       @map("recommended_topics")
+  submittedAt       DateTime       @map("submitted_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("scorecards")
+}
+
+model InterviewerRating {
+  bookingId String   @id @map("booking_id")
+  stars     Int
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("interviewer_ratings")
+}
+
+enum LedgerKind {
+  EARNING // interviewer's share once the scorecard is in
+  PENALTY // interviewer no-show
+  ADJUSTMENT
+  PAYOUT // money sent (negative)
+}
+
+// What the platform owes each interviewer. Balance = sum of amounts.
+model PayoutEntry {
+  id            String     @id @default(cuid())
+  interviewerId String     @map("interviewer_id")
+  bookingId     String?    @map("booking_id")
+  payoutId      String?    @map("payout_id")
+  kind          LedgerKind
+  amountPaise   Int        @map("amount_paise")
+  note          String?
+  createdAt     DateTime   @default(now()) @map("created_at")
+
+  interviewer Interviewer @relation(fields: [interviewerId], references: [userId], onDelete: Restrict)
+  booking     Booking?    @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  payout      Payout?     @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+
+  @@unique([bookingId, kind])
+  @@index([interviewerId, createdAt])
+  @@map("payout_entries")
+}
+
+// A transfer to an interviewer (recorded by ops in Phase 5; Razorpay Route in Phase 6).
+model Payout {
+  id            String   @id @default(cuid())
+  interviewerId String   @map("interviewer_id")
+  amountPaise   Int      @map("amount_paise")
+  reference     String?
+  createdById   String?  @map("created_by_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  interviewer Interviewer   @relation(fields: [interviewerId], references: [userId], onDelete: Restrict)
+  entries     PayoutEntry[]
+
+  @@map("payouts")
+}
+
+// ---------- Commerce (Phase 5, D-040) ----------
+
+enum ProductKind {
+  PRO
+  COMPANY_PACK
+  INTERVIEW_CREDITS
+}
+
+enum OrderStatus {
+  CREATED
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Order {
+  id                String      @id @default(cuid())
+  userId            String      @map("user_id")
+  kind              ProductKind
+  // PRO: "monthly" | "half-yearly"; COMPANY_PACK: company id; INTERVIEW_CREDITS: interview type id
+  productRef        String      @map("product_ref")
+  quantity          Int         @default(1)
+  label             String
+  listPaise         Int         @map("list_paise")
+  discountPaise     Int         @default(0) @map("discount_paise")
+  totalPaise        Int         @map("total_paise")
+  couponId          String?     @map("coupon_id")
+  referralCodeId    String?     @map("referral_code_id")
+  status            OrderStatus @default(CREATED)
+  provider          String
+  providerOrderId   String      @unique @map("provider_order_id")
+  providerPaymentId String?     @unique @map("provider_payment_id")
+  invoiceNo         String?     @unique @map("invoice_no")
+  failureReason     String?     @map("failure_reason")
+  paidAt            DateTime?   @map("paid_at")
+  refundedAt        DateTime?   @map("refunded_at")
+  refundPaise       Int?        @map("refund_paise")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  coupon       Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  referralCode ReferralCode?     @relation(fields: [referralCodeId], references: [id], onDelete: SetNull)
+  entitlements Entitlement[]
+  credits      InterviewCredit[]
+  booking      Booking?
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+// Every payment provider event, once (webhooks are retried; handling must be idempotent).
+model PaymentEvent {
+  id        String   @id @default(cuid())
+  provider  String
+  eventId   String   @map("event_id")
+  type      String
+  payload   Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([provider, eventId])
+  @@map("payment_events")
+}
+
+enum EntitlementKind {
+  PRO
+  COMPANY_PACK
+}
+
+// Time-boxed access: Pro, or one company's pack. From an order, or granted by support.
+model Entitlement {
+  id          String          @id @default(cuid())
+  userId      String          @map("user_id")
+  kind        EntitlementKind
+  companyId   String?         @map("company_id")
+  startsAt    DateTime        @map("starts_at")
+  endsAt      DateTime        @map("ends_at")
+  orderId     String?         @map("order_id")
+  grantedById String?         @map("granted_by_id")
+  note        String?
+  revokedAt   DateTime?       @map("revoked_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  order   Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, endsAt])
+  @@map("entitlements")
+}
+
+enum CreditStatus {
+  AVAILABLE
+  USED
+  REVOKED
+}
+
+// One mock interview of a type. Used by a booking; returned when the platform or interviewer cancels.
+model InterviewCredit {
+  id          String       @id @default(cuid())
+  userId      String       @map("user_id")
+  typeId      String       @map("type_id")
+  status      CreditStatus @default(AVAILABLE)
+  bookingId   String?      @unique @map("booking_id")
+  orderId     String?      @map("order_id")
+  grantedById String?      @map("granted_by_id")
+  note        String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  usedAt      DateTime?    @map("used_at")
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type    InterviewType @relation(fields: [typeId], references: [id], onDelete: Restrict)
+  booking Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  order   Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, typeId, status])
+  @@map("interview_credits")
+}
+
+model Coupon {
+  id             String        @id @default(cuid())
+  code           String        @unique
+  description    String?
+  percentOff     Int?          @map("percent_off")
+  amountOffPaise Int?          @map("amount_off_paise")
+  // Empty = every product.
+  kinds          ProductKind[]
+  maxRedemptions Int?          @map("max_redemptions")
+  redemptions    Int           @default(0)
+  validUntil     DateTime?     @map("valid_until")
+  active         Boolean       @default(true)
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  orders Order[]
+
+  @@map("coupons")
+}
+
+// Each user's code to share; the buyer gets a discount (setting), the owner earns points.
+model ReferralCode {
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+  code   String @unique
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@map("referral_codes")
+}
+
+// ---------- Notifications (Phase 5, D-041) ----------
+
+enum NotificationChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED // e.g. no phone number for WhatsApp
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String?             @map("user_id")
+  channel   NotificationChannel
+  template  String
+  to        String
+  subject   String
+  body      String // plain text; email HTML is rendered from it
+  status    NotificationStatus  @default(QUEUED)
+  transport String?
+  error     String?
+  createdAt DateTime            @default(now()) @map("created_at")
+  sentAt    DateTime?           @map("sent_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ---------- Experienced track (Phase 5) ----------
+
+model RoleTrack {
+  id          String            @id @default(cuid())
+  slug        String            @unique
+  name        String
+  description String
+  // Markdown roadmap, e.g. "service to product switch".
+  roadmap     String
+  audience    InterviewAudience @default(EXPERIENCED)
+  order       Int               @default(0)
+  status      ContentStatus     @default(PUBLISHED)
+
+  topics         Topic[]
+  interviewTypes String[] @map("interview_types") // interview type slugs
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("role_tracks")
+}
+
+enum DesignKind {
+  SYSTEM_DESIGN
+  LOW_LEVEL_DESIGN
+}
+
+// System design and low-level design questions: prompt, then approach and trade-offs.
+model DesignQuestion {
+  id            String        @id @default(cuid())
+  externalId    String        @unique @map("external_id")
+  slug          String        @unique
+  kind          DesignKind
+  title         String
+  difficulty    Difficulty
+  prompt        String
+  requirements  String
+  approach      String
+  tradeoffs     String
+  followUps     String?       @map("follow_ups")
+  companies     String[] // company slugs where it was asked
+  tracks        String[] // role track slugs
+  status        ContentStatus @default(DRAFT)
+  importBatchId String?       @map("import_batch_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@index([status, kind])
+  @@map("design_questions")
+}
+
+// ---------- Interview experiences (Phase 5) ----------
+
+enum ExperienceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ExperienceResult {
+  SELECTED
+  REJECTED
+  WAITING
+  WITHDREW
+}
+
+model Experience {
+  id              String           @id @default(cuid())
+  userId          String           @map("user_id")
+  companyId       String           @map("company_id")
+  role            String
+  profileType     ProfileType      @map("profile_type")
+  yearsExperience Int?             @map("years_experience")
+  year            Int
+  rounds          String // Markdown: each round and what happened
+  questions       String // Markdown
+  tips            String?
+  result          ExperienceResult
+  anonymous       Boolean          @default(true)
+  status          ExperienceStatus @default(PENDING)
+  moderatorNote   String?          @map("moderator_note")
+  moderatedById   String?          @map("moderated_by_id")
+  approvedAt      DateTime?        @map("approved_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status, year])
+  @@index([status, createdAt])
+  @@map("experiences")
+}
+
+// ---------- Accounts (Phase 6, D-043) ----------
+
+// Kept apart from User so a password hash is never selected by accident.
+model PasswordCredential {
+  userId       String   @id @map("user_id")
+  // scrypt$N$r$p$salt$hash
+  passwordHash String   @map("password_hash")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_credentials")
+}
+
+// A signed-in device. The cookie carries a signed token naming this row; signing out (or a
+// password reset) revokes it, which takes effect on the next request.
+model Session {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  userAgent  String?   @map("user_agent")
+  ip         String?
+  method     String // password | phone-otp | email-otp | dev
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@map("sessions")
+}
+
+enum CodePurpose {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+  PHONE_LOGIN
+}
+
+// One-time codes sent by email or SMS. Only a hash is stored; a few wrong tries burn the code.
+model VerificationCode {
+  id         String      @id @default(cuid())
+  purpose    CodePurpose
+  // Normalised email address or +91 phone number.
+  target     String
+  userId     String?     @map("user_id")
+  codeHash   String      @map("code_hash")
+  attempts   Int         @default(0)
+  expiresAt  DateTime    @map("expires_at")
+  consumedAt DateTime?   @map("consumed_at")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([purpose, target, createdAt])
+  @@map("verification_codes")
+}
+
+// Fixed-window counters for rate limits (sign-in tries, codes sent), shared by every server.
+model RateLimit {
+  key         String
+  windowStart DateTime @map("window_start")
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@map("rate_limits")
+}
+
+// ---------- Jobs board (D-050) ----------
+
+enum JobPostingStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum JobType {
+  FULL_TIME
+  INTERNSHIP
+  CONTRACT
+}
+
+enum WorkMode {
+  ONSITE
+  HYBRID
+  REMOTE
+}
+
+// A job posted by the team. Students apply on the employer's own site (applyUrl).
+model JobPosting {
+  id            String           @id @default(cuid())
+  slug          String           @unique
+  title         String
+  companyId     String?          @map("company_id") // when the employer has a company page
+  companyName   String           @map("company_name")
+  locations     String[]
+  workMode      WorkMode         @map("work_mode")
+  jobType       JobType          @map("job_type")
+  audience      ProfileType[]
+  minExperience Int?             @map("min_experience") // years
+  maxExperience Int?             @map("max_experience")
+  salary        String? // free text: "4–6 LPA", "₹25,000 a month"
+  skills        String[]
+  description   String // Markdown
+  // Eligibility, same rules as company pages.
+  branches      String[]
+  gradYears     Int[]            @map("grad_years")
+  minCgpa       Float?           @map("min_cgpa")
+  maxBacklogs   Int?             @map("max_backlogs")
+  applyUrl      String           @map("apply_url")
+  applyBy       DateTime?        @map("apply_by") @db.Date // last day to apply (IST)
+  status        JobPostingStatus @default(DRAFT)
+  publishedAt   DateTime?        @map("published_at")
+  applyClicks   Int              @default(0) @map("apply_clicks")
+  createdById   String?          @map("created_by_id")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  company      Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdBy    User?           @relation("JobPostingAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  saves        JobSave[]
+  applyRecords JobApplyClick[]
+
+  @@index([status, publishedAt])
+  @@map("job_postings")
+}
+
+model JobSave {
+  userId    String   @map("user_id")
+  jobId     String   @map("job_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  JobPosting @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@id([userId, jobId])
+  @@map("job_saves")
+}
+
+// A signed-in student opened the employer's application page (shown as "Applied on ...").
+model JobApplyClick {
+  userId    String   @map("user_id")
+  jobId     String   @map("job_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  JobPosting @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@id([userId, jobId])
+  @@map("job_apply_clicks")
+}
+
+// ---------- All-India mock tests (D-049) ----------
+
+// A scheduled test everyone takes with the same questions, ranked together.
+model Contest {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  title       String
+  description String?
+  blueprintId String        @map("blueprint_id") // the format: sections, timers, marking
+  startsAt    DateTime      @map("starts_at")
+  endsAt      DateTime      @map("ends_at") // last moment to start
+  // Frozen when published: section snapshot (like a sitting's) and the question set.
+  sections    Json          @default("[]")
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?     @map("published_at")
+  finalizedAt DateTime?     @map("finalized_at") // ranks frozen, badges awarded
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  blueprint TestBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Restrict)
+  items     ContestItem[]
+  sittings  TestSitting[]
+
+  @@index([status, startsAt])
+  @@map("contests")
+}
+
+model ContestItem {
+  id           String  @id @default(cuid())
+  contestId    String  @map("contest_id")
+  sectionIndex Int     @map("section_index")
+  position     Int
+  questionId   String? @map("question_id")
+  problemId    String? @map("problem_id")
+
+  contest  Contest   @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  question Question? @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  problem  Problem?  @relation(fields: [problemId], references: [id], onDelete: Restrict)
+
+  @@unique([contestId, sectionIndex, position])
+  @@map("contest_items")
+}
+
+// ---------- "Asked today" drive reports (D-051) ----------
+
+// A short report filed right after a hiring drive: what was asked, while it's fresh.
+model DriveReport {
+  id            String           @id @default(cuid())
+  userId        String           @map("user_id")
+  companyId     String           @map("company_id")
+  driveDate     DateTime         @map("drive_date") @db.Date
+  roundType     RoundType        @map("round_type")
+  platform      String?
+  topics        String? // sections and topics, free text
+  questions     String // what was asked (Markdown)
+  difficulty    Difficulty
+  location      String? // city or "online"
+  status        ExperienceStatus @default(PENDING)
+  moderatorNote String?          @map("moderator_note")
+  moderatedById String?          @map("moderated_by_id")
+  approvedAt    DateTime?        @map("approved_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status, driveDate])
+  @@index([status, createdAt])
+  @@map("drive_reports")
+}
+
+// ---------- Question discussions (D-048) ----------
+
+enum CommentStatus {
+  VISIBLE
+  HIDDEN
+}
+
+// Shown only to students who have answered the question. Posted live; hidden automatically
+// after enough flags, then reviewed by a moderator.
+model QuestionComment {
+  id            String        @id @default(cuid())
+  questionId    String        @map("question_id")
+  userId        String        @map("user_id")
+  parentId      String?       @map("parent_id") // replies are one level deep
+  body          String
+  status        CommentStatus @default(VISIBLE)
+  voteCount     Int           @default(0) @map("vote_count")
+  flagCount     Int           @default(0) @map("flag_count") // open flags since the last review
+  hiddenReason  String?       @map("hidden_reason")
+  moderatedById String?       @map("moderated_by_id")
+  moderatedAt   DateTime?     @map("moderated_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  question Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   QuestionComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  QuestionComment[] @relation("CommentReplies")
+  votes    CommentVote[]
+  flags    CommentFlag[]
+
+  @@index([questionId, status, createdAt])
+  @@index([status, flagCount])
+  @@index([userId, createdAt])
+  @@map("question_comments")
+}
+
+model CommentVote {
+  commentId String   @map("comment_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comment QuestionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([commentId, userId])
+  @@map("comment_votes")
+}
+
+model CommentFlag {
+  commentId String   @map("comment_id")
+  userId    String   @map("user_id")
+  reason    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comment QuestionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([commentId, userId])
+  @@map("comment_flags")
+}
+
+// ---------- Badges and share cards (D-052, D-053) ----------
+
+// Badge ids are defined in src/lib/engagement/badges.ts.
+model UserBadge {
+  userId   String    @map("user_id")
+  badge    String
+  earnedAt DateTime  @default(now()) @map("earned_at")
+  seenAt   DateTime? @map("seen_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, badge])
+  @@index([userId, earnedAt])
+  @@map("user_badges")
+}
+
+enum ShareKind {
+  TEST_RESULT
+  CONTEST
+  BADGE
+}
+
+// A public, opt-in snapshot of an achievement. The link is unguessable and can be revoked.
+model ShareCard {
+  id        String    @id // random, URL-safe
+  userId    String    @map("user_id")
+  kind      ShareKind
+  refId     String    @map("ref_id") // sitting id or badge id
+  data      Json // what the card shows, frozen at creation
+  createdAt DateTime  @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, refId])
+  @@map("share_cards")
+}

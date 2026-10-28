@@ -1,0 +1,16 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+PRG-C-0001,programming-languages,lang-c,pointers,single,What is the output of this program?,"#include <stdio.h>
+
+int main() {
+    int a[] = {10, 20, 30, 40};
+    int *p = a;
+    printf(""%d"", *(p + 2));
+    return 0;
+}",c,10,20,30,Garbage value,,C,,"`p` points to `a[0]`. `p + 2` points to `a[2]`, and dereferencing it gives 30.",easy,40,,output-prediction|pointer-arithmetic,original,,
+PRG-PY-0001,programming-languages,lang-python,data-types,single,What is the output of this code?,"x = [1, 2, 3]
+y = x
+y.append(4)
+print(len(x))",python,3,4,Error,None,,B,,"`y = x` does not copy the list; both names refer to the same list object. Appending through `y` changes the list that `x` refers to, so its length is 4.",easy,30,,output-prediction|mutability,original,,
+PRG-JAVA-0001,programming-languages,lang-java,strings,single,What is the output of this code?,"String s1 = ""hello"";
+String s2 = ""hello"";
+System.out.println(s1 == s2);",java,true,false,Compilation error,Runtime error,,A,,"String literals are stored in the string pool, so both variables refer to the same object and `==` (reference comparison) is true. `new String(""hello"")` would create a different object.",medium,35,,output-prediction|string-pool,original,,

@@ -1,0 +1,6 @@
+slug,name,description,audience,topics,interview_types,order,roadmap
+data-engineer,Data Engineer,"SQL depth, data modelling, Python and the system design basics data teams ask about.",experienced,sql|normalization|transactions|indexing|nosql|lang-python|hashing|sorting,sde-experienced|system-design,4,"**Weeks 1-3: SQL.** Joins, window functions, query plans; 5 queries a day.
+**Weeks 4-5: Modelling.** Normalisation vs star schemas; slowly changing dimensions.
+**Weeks 6-7: Python.** Data structures, generators, writing clean ETL code.
+**Weeks 8-9: Design.** Batch vs streaming pipelines, partitioning, idempotent loads.
+**Then:** an SDE mock and a system design mock."

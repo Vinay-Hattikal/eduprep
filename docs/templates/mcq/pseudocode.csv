@@ -1,0 +1,8 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+PSC-LOOP-0001,pseudocode,pseudo-loops,,numeric,What will be printed by the following pseudocode?,"Integer a = 0
+for (each i from 1 to 5)
+    a = a + i
+end for
+Print a",pseudocode,,,,,,15,0,"The loop adds 1 + 2 + 3 + 4 + 5 to `a`, giving 15.",easy,30,,loop-trace,original,,
+PSC-BIT-0001,pseudocode,pseudo-bitwise,,single,"What will be printed by the following pseudocode? (`&` is bitwise AND, `^` is bitwise XOR.)","Integer p = 12, q = 10
+Print (p & q) + (p ^ q)",pseudocode,8,14,18,22,,B,,"12 = 1100 and 10 = 1010 in binary. `p & q` = 1000 = 8 and `p ^ q` = 0110 = 6, so the result is 8 + 6 = 14. (In general, `(p & q) + (p ^ q)` equals `p | q`.)",medium,60,,bitwise,original,acme-tech,

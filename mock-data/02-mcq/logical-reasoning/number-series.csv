@@ -1,0 +1,4 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+LR-NS-0101,logical-reasoning,number-series,,numeric,"Find the next number: 3, 7, 15, 31, 63, ?",,,,,,,,127,0,Each term is double the previous plus 1: $63 \times 2 + 1 = 127$.,easy,45,,x2-plus-1,original,,
+LR-NS-0102,logical-reasoning,number-series,,single,"Find the next number: 4, 6, 9, 13.5, ?",,,18,20.25,19.5,21,,B,,Each term is multiplied by 1.5: $13.5 \times 1.5 = 20.25$.,medium,60,,geometric,original,,
+LR-NS-0103,logical-reasoning,number-series,,single,"Find the wrong number: 2, 5, 10, 17, 26, 38, 50",,,17,26,38,50,,C,,"The pattern is $n^2 + 1$: 2, 5, 10, 17, 26, **37**, 50. So 38 is wrong.",medium,60,,odd-one-out,original,,

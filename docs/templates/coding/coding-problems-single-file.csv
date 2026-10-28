@@ -1,0 +1,59 @@
+external_id,title,slug,difficulty,topics,statement,input_format,output_format,constraints,time_limit_ms,memory_limit_mb,languages,scoring,checker,source,hint_1,hint_2,hint_3,editorial,solution_language,solution_code,brute_language,brute_code,starter_c,starter_cpp,starter_java,starter_python,starter_javascript,sample_1_input,sample_1_output,sample_1_explanation,sample_2_input,sample_2_output,sample_2_explanation,sample_3_input,sample_3_output,sample_3_explanation,test_1_input,test_1_output,test_2_input,test_2_output,test_3_input,test_3_output,test_4_input,test_4_output,test_5_input,test_5_output,test_6_input,test_6_output,test_7_input,test_7_output,test_8_input,test_8_output,test_9_input,test_9_output,test_10_input,test_10_output,test_11_input,test_11_output,test_12_input,test_12_output,test_13_input,test_13_output,test_14_input,test_14_output,test_15_input,test_15_output,test_16_input,test_16_output,test_17_input,test_17_output,test_18_input,test_18_output,test_19_input,test_19_output,test_20_input,test_20_output,companies,asked_in
+CODE-ARR-0001,Pair With Target Sum,pair-with-target-sum,easy,arrays|hashing,You are given an array of $n$ integers and a target value $t$. Find out whether there are two elements at **different positions** whose sum is exactly $t$.,"The first line contains two integers $n$ and $t$.
+The second line contains $n$ space-separated integers $a_1, a_2, \dots, a_n$.","Print `YES` if such a pair exists, otherwise print `NO`.","$1 \le n \le 10^5$
+$-10^9 \le a_i, t \le 10^9$",2000,256,c|cpp|java|python|javascript,all_or_nothing,exact,original,Checking every pair works but is $O(n^2)$. Can you do better?,"For each element $x$, the partner you need is $t - x$.",Store the elements seen so far in a hash set and check whether $t - x$ is already in it.,"Scan the array once, keeping a hash set of values seen so far. For each $x$, if $t - x$ is in the set, a pair exists. Otherwise add $x$. This is $O(n)$ time and $O(n)$ memory.",python,"import sys
+
+
+def main():
+    data = sys.stdin.read().split()
+    n, t = int(data[0]), int(data[1])
+    a = list(map(int, data[2:2 + n]))
+    seen = set()
+    for x in a:
+        if t - x in seen:
+            print(""YES"")
+            return
+        seen.add(x)
+    print(""NO"")
+
+
+main()",python,"import sys
+
+data = sys.stdin.read().split()
+n, t = int(data[0]), int(data[1])
+a = list(map(int, data[2:2 + n]))
+found = any(a[i] + a[j] == t for i in range(n) for j in range(i + 1, n))
+print(""YES"" if found else ""NO"")",,,"import java.util.*;
+
+public class Main {
+    static boolean hasPair(long[] a, long t) {
+        // Write your code here
+        return false;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        long t = sc.nextLong();
+        long[] a = new long[n];
+        for (int i = 0; i < n; i++) a[i] = sc.nextLong();
+        System.out.println(hasPair(a, t) ? ""YES"" : ""NO"");
+    }
+}","import sys
+
+
+def has_pair(a, t):
+    # Write your code here
+    return False
+
+
+data = sys.stdin.read().split()
+n, t = int(data[0]), int(data[1])
+a = list(map(int, data[2:2 + n]))
+print(""YES"" if has_pair(a, t) else ""NO"")",,"5 9
+2 7 11 15 1",YES,2 + 7 = 9,,,,,,,"3 10
+1 2 3",NO,"2 4
+2 2",YES,"1 5
+5",NO,"4 0
+-1 1 3 5",YES,"6 100
+10 20 30 40 50 60",YES,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,acme-tech,2026-09

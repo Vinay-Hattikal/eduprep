@@ -1,0 +1,4 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+DI-CSL-0101,data-interpretation,di-caselets,,numeric,How many students are in ECE?,,,,,,,,195,0,"Let ME = $x$: CSE = $2x$, ECE = $x + 60$. $4x + 60 = 600$, so $x = 135$ and ECE = 195.",medium,90,PSG-DI-0102,,original,,
+DI-CSL-0102,data-interpretation,di-caselets,,numeric,How many girls are there in the college?,,,,,,,,174,0,"CSE 270 × 40% = 108, ECE 195 × 20% = 39, ME 135 × 20% = 27. Total 174.",medium,120,PSG-DI-0102,,original,,
+DI-CSL-0103,data-interpretation,di-caselets,,single,What percentage of all students are in CSE?,,,40%,45%,50%,35%,,B,,$\frac{270}{600} \times 100 = 45\%$.,easy,60,PSG-DI-0102,,original,,

@@ -1,0 +1,6 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+DB-NF-0001,dbms,normalization,,single,A relation is in Second Normal Form (2NF) if it is in 1NF and:,,,It has no transitive dependencies,No non-prime attribute is partially dependent on any candidate key,Every determinant is a candidate key,It has no multi-valued dependencies,,B,,"2NF removes partial dependencies: every non-prime attribute must depend on the whole of each candidate key. Option A describes 3NF, C describes BCNF and D describes 4NF.",medium,45,,normal-forms,original,,
+DB-SQL-0001,dbms,sql,aggregation,single,What does this query return?,"SELECT dept, COUNT(*)
+FROM employees
+GROUP BY dept
+HAVING COUNT(*) > 2;",sql,All departments with their employee count,Departments that have more than 2 employees,Employees who belong to more than 2 departments,An error because HAVING needs WHERE,,B,,"GROUP BY makes one group per department, and HAVING filters those groups after counting, keeping only departments with more than 2 employees. HAVING does not need a WHERE clause.",easy,45,,having,original,,

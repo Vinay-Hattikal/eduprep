@@ -1,0 +1,7 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+DB-SQL-0101,dbms,sql,aggregation,single,What does this query return?,"SELECT dept, COUNT(*)
+FROM emp
+GROUP BY dept
+HAVING COUNT(*) > 2;",sql,"Each department with more than 2 employees, and its employee count",Every department and its employee count,Employees in departments with more than 2 people,An error: HAVING needs a WHERE,,A,,GROUP BY makes one row per department; HAVING keeps only the groups whose count is above 2.,easy,60,,having,original,,
+DB-SQL-0102,dbms,sql,joins,single,"Which join returns every row of the left table, with matching rows from the right table where they exist?",,,INNER JOIN,LEFT JOIN,RIGHT JOIN,CROSS JOIN,,B,,A LEFT (OUTER) JOIN keeps all left rows and fills missing right-side columns with NULL.,easy,30,,,original,,
+DB-SQL-0103,dbms,sql,joins,numeric,Table T has 4 rows and table U has 5 rows. How many rows does `SELECT * FROM T CROSS JOIN U` return?,,,,,,,,20,0,A cross join pairs every row of T with every row of U: $4 \times 5 = 20$.,easy,30,,,original,,

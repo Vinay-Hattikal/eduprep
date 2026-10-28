@@ -1,0 +1,8 @@
+external_id,subject,topic,subtopic,type,question,code,code_language,option_a,option_b,option_c,option_d,option_e,correct,tolerance,explanation,difficulty,expected_time_sec,passage_id,tags,source,companies,asked_in
+PRG-C-0101,programming-languages,lang-c,pointers,single,What does this C code print?,"int a[] = {10, 20, 30};
+int *p = a;
+printf(""%d"", *(p + 2));",c,10,20,30,A garbage value,,C,,"p points to a[0], so *(p + 2) is a[2] = 30.",easy,45,,output-prediction,original,,
+PRG-C-0102,programming-languages,lang-c,,single,What does this C code print?,"int x = 5;
+int y = x++ + 2;
+printf(""%d %d"", x, y);",c,5 7,6 7,6 8,5 8,,B,,"x++ yields 5 and then increments x to 6, so y = 5 + 2 = 7.",medium,45,,output-prediction|post-increment,original,,
+PRG-C-0103,programming-languages,lang-c,,single,"In C, sizeof(char) is always:",,,1,2,It depends on the compiler,4,,A,,"The C standard defines sizeof(char) as 1 (one byte, whatever its width).",easy,20,,,original,,

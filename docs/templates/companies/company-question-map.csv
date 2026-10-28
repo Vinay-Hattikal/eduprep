@@ -1,0 +1,5 @@
+company,item_type,item_id,round_order,asked_in,report_count
+acme-tech,mcq,QA-PCT-0001,1,2026-08|2025-09,12
+acme-tech,mcq,LR-BR-0001,1,2026-08,5
+acme-tech,mcq,PSC-BIT-0001,1,,
+acme-tech,coding,CODE-ARR-0001,2,2026-09,8
