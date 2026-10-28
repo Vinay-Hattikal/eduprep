@@ -62,8 +62,8 @@ const FILES: [ImportType, string][] = [
 ];
 
 async function main() {
-  const admin = await db.user.findFirst({ where: { roles: { has: "SUPER_ADMIN" } } });
-  if (!admin) throw new Error("No super admin found. Run `npm run db:seed` first.");
+  const admin = await db.user.findFirst({ where: { roles: { has: "ADMIN" } } });
+  if (!admin) throw new Error("No admin found. Run `npm run db:seed` first.");
 
   if ((PUBLISH || RESET_STUDENTS) && process.env.APP_ENV === "production") {
     throw new Error("--publish and --reset-students are for development and tests only.");
@@ -134,7 +134,7 @@ main().catch(async (error) => {
 
 /** Publishes the questions and companies from the sample files through the review workflow. */
 async function publishSampleContent(adminId: string, batchIds: string[]) {
-  const actor = { id: adminId, roles: ["SUPER_ADMIN" as const] };
+  const actor = { id: adminId, roles: ["ADMIN" as const] };
   const questionIds = (
     await db.importRow.findMany({
       where: { batchId: { in: batchIds }, status: "IMPORTED", batch: { type: "MCQ" } },
@@ -146,8 +146,7 @@ async function publishSampleContent(adminId: string, batchIds: string[]) {
   for (const question of await db.question.findMany({ where: { id: { in: questionIds } } })) {
     if (question.status === "PUBLISHED") continue;
     if (question.status === "ARCHIVED") await transitionQuestion(question.id, "restore", actor);
-    if (question.status !== "IN_REVIEW") await transitionQuestion(question.id, "submit", actor);
-    const result = await transitionQuestion(question.id, "approve", actor);
+    const result = await transitionQuestion(question.id, "publish", actor);
     if (result.ok) published += 1;
     else console.warn(`    could not publish ${question.externalId}: ${result.error}`);
   }
@@ -181,8 +180,7 @@ async function publishSampleContent(adminId: string, batchIds: string[]) {
       continue;
     }
     if (problem.status === "ARCHIVED") await transitionProblem(problem.id, "restore", actor);
-    if (problem.status !== "IN_REVIEW") await transitionProblem(problem.id, "submit", actor);
-    if ((await transitionProblem(problem.id, "approve", actor)).ok) problems += 1;
+    if ((await transitionProblem(problem.id, "publish", actor)).ok) problems += 1;
   }
   const design = await db.designQuestion.updateMany({
     where: { status: "DRAFT" },
@@ -198,7 +196,7 @@ async function publishSampleContent(adminId: string, batchIds: string[]) {
  * capped to what can really be drawn (every item once per sitting) and empty sections dropped.
  */
 async function publishSampleTests(adminId: string) {
-  const actor = { id: adminId, roles: ["SUPER_ADMIN" as const] };
+  const actor = { id: adminId, roles: ["ADMIN" as const] };
   const topicIds = async (slugs: string[]) =>
     (await db.topic.findMany({ where: { slug: { in: slugs } }, select: { id: true } })).map(
       (t) => t.id,

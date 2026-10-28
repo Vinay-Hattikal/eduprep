@@ -9,6 +9,7 @@ import {
   addTestCase,
   deleteSolution,
   deleteTestCase,
+  getAdminProblem,
   requestValidation,
   saveProblem,
   saveSolution,
@@ -27,19 +28,20 @@ export async function validateProblemAction(formData: FormData) {
   back(problemId, "validating=1");
 }
 
-const actionSchema = z.enum(["submit", "approve", "reject", "archive", "restore"]);
+const actionSchema = z.enum(["publish", "unpublish", "archive", "restore"]);
 
 export async function transitionProblemAction(formData: FormData) {
-  const user = await requirePermission("content.view");
+  const user = await requirePermission("content.publish");
   const problemId = id.parse(formData.get("id"));
   const action = actionSchema.safeParse(formData.get("action"));
   if (!action.success) back(problemId, "");
-  const result = await transitionProblem(
-    problemId,
-    action.data!,
-    user,
-    String(formData.get("note") ?? ""),
-  );
+  // Not checked in the judge yet: run the check now and publish if it passes (D-056).
+  if (action.data === "publish" && formData.get("afterCheck") === "1") {
+    await requestValidation(problemId, user.id);
+    revalidatePath(`/admin/problems/${problemId}`);
+    back(problemId, "validating=1&publishing=1");
+  }
+  const result = await transitionProblem(problemId, action.data!, user);
   revalidatePath("/admin/problems");
   revalidatePath(`/admin/problems/${problemId}`);
   back(problemId, result.ok ? `done=${action.data}` : `error=${encodeURIComponent(result.error)}`);
@@ -64,6 +66,21 @@ export async function saveProblemAction(
     };
   revalidatePath("/admin/problems");
   if (result.created) back(result.id, "created=1");
+  // "Save and publish" (D-056): publish now if the judge check still holds, else check first.
+  if (formData.get("intent") === "publish") {
+    const problem = await getAdminProblem(result.id);
+    if (problem && problem.status !== "PUBLISHED") {
+      if (problem.validatedAt && !result.revalidating) {
+        const published = await transitionProblem(result.id, "publish", user);
+        back(
+          result.id,
+          published.ok ? "saved=1&done=publish" : `error=${encodeURIComponent(published.error)}`,
+        );
+      }
+      await requestValidation(result.id, user.id);
+      back(result.id, "saved=1&validating=1&publishing=1");
+    }
+  }
   back(
     result.id,
     `saved=1${result.movedToDraft ? "&draft=1" : ""}${result.revalidating ? "&validating=1" : ""}`,

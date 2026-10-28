@@ -19,7 +19,7 @@ import { createUser, importFile, resetDatabase, template } from "./helpers";
 
 let adminId: string;
 let student: CurrentUser;
-const admin = () => ({ id: adminId, roles: ["SUPER_ADMIN" as const] });
+const admin = () => ({ id: adminId, roles: ["ADMIN" as const] });
 
 const CPP_SOLUTION = `#include <bits/stdc++.h>
 using namespace std;
@@ -51,7 +51,7 @@ async function submit(
 
 beforeAll(async () => {
   await resetDatabase();
-  adminId = (await createUser(["SUPER_ADMIN"], "admin@test.example")).id;
+  adminId = (await createUser(["ADMIN"], "admin@test.example")).id;
   await importFile("TAXONOMY", "taxonomy.csv", await template("taxonomy.csv"), adminId);
   for (const [type, file] of [
     ["CODING_PROBLEMS", "coding/coding-problems.csv"],
@@ -166,8 +166,7 @@ describe("solving problems", () => {
   beforeAll(async () => {
     const p = await problem();
     if (p.status !== "PUBLISHED") {
-      expect(await transitionProblem(p.id, "submit", admin())).toEqual({ ok: true });
-      expect(await transitionProblem(p.id, "approve", admin())).toEqual({ ok: true });
+      expect(await transitionProblem(p.id, "publish", admin())).toEqual({ ok: true });
     }
   });
 
@@ -187,8 +186,8 @@ describe("solving problems", () => {
         languages: ["python"],
       },
     });
-    const result = await transitionProblem(p.id, "submit", admin());
-    expect(result).toMatchObject({ ok: false, error: expect.stringMatching(/Validate/) });
+    const result = await transitionProblem(p.id, "publish", admin());
+    expect(result).toMatchObject({ ok: false, error: expect.stringMatching(/judge/) });
     await db.problem.delete({ where: { id: p.id } });
   });
 

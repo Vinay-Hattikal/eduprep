@@ -10,8 +10,13 @@ import { TableSkeleton } from "@/components/shared/skeletons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import type { ContentStatus, Difficulty, QuestionType } from "@/generated/prisma/enums";
-import { STATUS_LABELS, type QuestionAction } from "@/lib/content/workflow";
+import type { Difficulty, QuestionType } from "@/generated/prisma/enums";
+import {
+  CONTENT_ACTIONS,
+  STATUS_CHOICES,
+  STATUS_LABELS,
+  type ContentAction,
+} from "@/lib/content/workflow";
 import { formatDate, plainExcerpt } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
@@ -19,7 +24,7 @@ import { getTaxonomyTree, listQuestions } from "@/server/services/questions";
 
 export const metadata: Metadata = { title: "Questions" };
 
-const STATUSES = Object.keys(STATUS_LABELS) as ContentStatus[];
+const STATUSES = STATUS_CHOICES;
 
 function pick<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
   return typeof value === "string" && (allowed as readonly string[]).includes(value)
@@ -65,10 +70,9 @@ async function QuestionBank({
   };
   const [result, taxonomy] = await Promise.all([listQuestions(filters), getTaxonomyTree()]);
 
-  const bulkActions: QuestionAction[] = [
-    ...(can(user.roles, "content.edit") ? (["submit"] as const) : []),
-    ...(can(user.roles, "content.publish") ? (["approve", "archive", "restore"] as const) : []),
-  ];
+  const bulkActions: ContentAction[] = can(user.roles, "content.publish")
+    ? [...CONTENT_ACTIONS]
+    : [];
 
   return (
     <div className="space-y-4">

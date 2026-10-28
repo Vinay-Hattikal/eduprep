@@ -7,7 +7,12 @@ import { z } from "zod";
 import { companyFormFromData } from "@/schemas/company";
 import { requirePermission } from "@/server/auth";
 import { todayUtc } from "@/server/imports/definitions/companies";
-import { markCompanyVerified, saveCompany, setCompanyStatus } from "@/server/services/companies";
+import {
+  getCompanyBySlug,
+  markCompanyVerified,
+  saveCompany,
+  setCompanyStatus,
+} from "@/server/services/companies";
 
 export type CompanyFormState = { fieldErrors?: Record<string, string>; formError?: string };
 
@@ -29,9 +34,20 @@ export async function saveCompanyAction(
       fieldErrors: result.fieldErrors,
       formError: result.formError ?? "Fix the highlighted fields.",
     };
+  // "Save and publish" (D-056). Publishing still needs at least one source.
+  let query = "saved=1";
+  if (formData.get("intent") === "publish") {
+    const company = await getCompanyBySlug(result.slug);
+    if (company && company.status !== "PUBLISHED") {
+      const published = await setCompanyStatus(company.id, "publish", user);
+      query = published.ok
+        ? "saved=1&published=1"
+        : `saved=1&error=${encodeURIComponent(published.error)}`;
+    }
+  }
   revalidatePath("/admin/companies");
   updateTag(COMPANIES_TAG);
-  redirect(`/admin/companies/${result.slug}?saved=1`);
+  redirect(`/admin/companies/${result.slug}?${query}`);
 }
 
 const statusAction = z.enum(["publish", "unpublish", "archive", "restore"]);

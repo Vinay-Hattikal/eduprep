@@ -287,17 +287,9 @@ export function passageFormFromData(formData: FormData) {
   });
 }
 
-// ---------- admin roles ----------
+// ---------- admin access ----------
 
-export const ASSIGNABLE_ROLES = [
-  "SUPER_ADMIN",
-  "CONTENT_AUTHOR",
-  "REVIEWER",
-  "OPS_ADMIN",
-  "SUPPORT_ADMIN",
-] as const;
-
-export const rolesFormSchema = z.object({
+export const adminAccessSchema = z.object({
   userId: z.string().min(1).max(40),
-  roles: z.array(z.enum(ASSIGNABLE_ROLES)),
+  admin: z.enum(["on", "off"]),
 });

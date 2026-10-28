@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { ImportMode, ImportType } from "@/generated/prisma/enums";
+import type { ImportMode, ImportType, Role } from "@/generated/prisma/enums";
 import { db } from "@/server/db";
 import { confirmBatch, createImportBatch } from "@/server/imports/pipeline";
 import { drainJobs } from "@/server/jobs/runner";
@@ -16,10 +16,7 @@ export async function resetDatabase() {
   }
 }
 
-export async function createUser(
-  roles: ("SUPER_ADMIN" | "CONTENT_AUTHOR" | "REVIEWER")[],
-  email: string,
-) {
+export async function createUser(roles: Role[], email: string) {
   return db.user.create({ data: { name: email.split("@")[0]!, email, roles } });
 }
 
@@ -33,13 +30,13 @@ export async function importFile(
   fileName: string,
   data: Uint8Array,
   actorId: string,
-  { confirm = true, mode = "ADD_UPDATE" as ImportMode } = {},
+  { confirm = true, mode = "ADD_UPDATE" as ImportMode, publish = false } = {},
 ) {
   const batchId = await createImportBatch({ type, fileName, data, actorId, mode });
   await drainJobs();
   let batch = await db.importBatch.findUniqueOrThrow({ where: { id: batchId } });
   if (confirm && batch.status === "PREVIEW_READY") {
-    await confirmBatch(batchId, actorId);
+    await confirmBatch(batchId, actorId, { publish });
     await drainJobs();
     batch = await db.importBatch.findUniqueOrThrow({ where: { id: batchId } });
   }

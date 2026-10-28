@@ -17,8 +17,8 @@ async function main() {
   if (!folder) throw new Error("Usage: npm run content:import -- <folder>");
   const root = path.resolve(folder);
 
-  const admin = await db.user.findFirst({ where: { roles: { has: "SUPER_ADMIN" } } });
-  if (!admin) throw new Error("No super admin found. Run `npm run db:seed` first.");
+  const admin = await db.user.findFirst({ where: { roles: { has: "ADMIN" } } });
+  if (!admin) throw new Error("No admin found. Run `npm run db:seed` first.");
 
   const { files, unknown } = await importFolder(root, admin.id, (result) => {
     const mark = { imported: "✓", failed: "✗", skipped: "–" }[result.outcome];

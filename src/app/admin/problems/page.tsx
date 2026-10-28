@@ -10,15 +10,15 @@ import { ContentStatusBadge, DifficultyLabel } from "@/components/shared/status-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import type { ContentStatus, Difficulty } from "@/generated/prisma/enums";
-import { STATUS_LABELS } from "@/lib/content/workflow";
+import type { Difficulty } from "@/generated/prisma/enums";
+import { STATUS_CHOICES, STATUS_LABELS } from "@/lib/content/workflow";
 import { formatDate } from "@/lib/format";
 import { requirePermission } from "@/server/auth";
 import { listAdminProblems, PROBLEM_PAGE_SIZE } from "@/server/services/problems";
 
 export const metadata: Metadata = { title: "Coding problems" };
 
-const STATUSES = Object.keys(STATUS_LABELS) as ContentStatus[];
+const STATUSES = STATUS_CHOICES;
 
 function pick<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
   return typeof value === "string" && (allowed as readonly string[]).includes(value)

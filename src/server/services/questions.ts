@@ -7,7 +7,7 @@ import {
   nextStatus,
   transitionBlocker,
   type Actor,
-  type QuestionAction,
+  type ContentAction,
 } from "@/lib/content/workflow";
 import type { QuestionFormValues } from "@/schemas/question";
 import { db } from "@/server/db";
@@ -241,7 +241,7 @@ export async function saveQuestion(values: QuestionFormValues, actor: Actor): Pr
   const changes = changedFields(pickContent(before), content);
   if (changes.length === 0) return { ok: true, id: before.id, movedToDraft: false };
 
-  // Edits never stay published: the changed question goes back to draft for review (D-010).
+  // A plain save unpublishes a changed question; "Save and publish" puts it back (D-056).
   const movedToDraft = before.status !== "DRAFT";
   await db.$transaction(async (tx) => {
     const question = await tx.question.update({
@@ -279,45 +279,37 @@ export async function saveQuestion(values: QuestionFormValues, actor: Actor): Pr
 
 export type TransitionResult = { ok: true } | { ok: false; error: string };
 
-const HISTORY_REASONS: Record<QuestionAction, string> = {
-  submit: "submitted for review",
-  approve: "published",
-  reject: "sent back",
+const HISTORY_REASONS: Record<ContentAction, string> = {
+  publish: "published",
+  unpublish: "unpublished",
   archive: "archived",
   restore: "restored",
 };
 
-/** Moves a question through the review workflow. Submitting runs the automatic checks again. */
+/** Publishes, unpublishes, archives or restores a question. Publishing runs the automatic checks. */
 export async function transitionQuestion(
   id: string,
-  action: QuestionAction,
+  action: ContentAction,
   actor: Actor,
-  note?: string,
 ): Promise<TransitionResult> {
   const question = await db.question.findUnique({ where: { id } });
   if (!question) return { ok: false, error: "This question no longer exists." };
 
-  const blocker = transitionBlocker(action, question.status, actor, question.authorId);
+  const blocker = transitionBlocker(action, question.status, actor);
   if (blocker) return { ok: false, error: `${question.externalId}: ${blocker}` };
-  if (action === "submit" && hasErrors(checkQuestion(question))) {
+  if (action === "publish" && hasErrors(checkQuestion(question))) {
     return {
       ok: false,
       error: `${question.externalId} fails the automatic checks. Open it and fix the errors.`,
     };
   }
-  if (action === "reject" && !note?.trim())
-    return { ok: false, error: "Say what needs to change." };
 
   const status = nextStatus(action);
   const now = new Date();
   const data: Prisma.QuestionUpdateInput = {
     status,
-    ...(action === "submit" ? { submittedAt: now, reviewNote: null } : {}),
-    ...(action === "approve"
+    ...(action === "publish"
       ? { publishedAt: now, reviewer: { connect: { id: actor.id } }, reviewNote: null }
-      : {}),
-    ...(action === "reject"
-      ? { reviewNote: note!.trim(), reviewer: { connect: { id: actor.id } } }
       : {}),
   };
 
@@ -340,7 +332,7 @@ export async function transitionQuestion(
         entityType: "question",
         entityId: id,
         before: { status: question.status },
-        after: { status, ...(note ? { note } : {}) },
+        after: { status },
       },
       tx,
     );
@@ -348,7 +340,7 @@ export async function transitionQuestion(
   return { ok: true };
 }
 
-export async function bulkTransition(ids: string[], action: QuestionAction, actor: Actor) {
+export async function bulkTransition(ids: string[], action: ContentAction, actor: Actor) {
   let done = 0;
   const errors: string[] = [];
   for (const id of ids.slice(0, 200)) {

@@ -7,11 +7,11 @@ import { transitionQuestion } from "@/server/services/questions";
 import { createUser, importFile, resetDatabase, template } from "./helpers";
 
 let adminId: string;
-const admin = () => ({ id: adminId, roles: ["SUPER_ADMIN" as const] });
+const admin = () => ({ id: adminId, roles: ["ADMIN" as const] });
 
 beforeAll(async () => {
   await resetDatabase();
-  adminId = (await createUser(["SUPER_ADMIN"], "admin@test.example")).id;
+  adminId = (await createUser(["ADMIN"], "admin@test.example")).id;
   const taxonomy = await importFile(
     "TAXONOMY",
     "taxonomy.csv",
@@ -68,8 +68,7 @@ describe("MCQ import", () => {
 
   it("updates changed rows, sends published questions back to draft, and can be undone", async () => {
     const original = await db.question.findUniqueOrThrow({ where: { externalId: "QA-PCT-0001" } });
-    await transitionQuestion(original.id, "submit", admin());
-    await transitionQuestion(original.id, "approve", admin());
+    await transitionQuestion(original.id, "publish", admin());
     const published = await db.question.findUniqueOrThrow({ where: { id: original.id } });
     expect(published.status).toBe("PUBLISHED");
 
@@ -115,7 +114,7 @@ describe("MCQ import", () => {
       'QA-NEW-0002,quantitative-aptitude,percentages,,single,"Another?",,,Yes,No,,,,A,,"Because it is correct, clearly.",easy,30,,,original\n';
     const batch = await importFile("MCQ", "qa-v3.csv", strToU8(csv), adminId);
     const created = await db.question.findUniqueOrThrow({ where: { externalId: "QA-NEW-0002" } });
-    await transitionQuestion(created.id, "submit", admin());
+    await transitionQuestion(created.id, "publish", admin());
 
     expect(await rollbackBlocker(batch.id)).toMatch(/QA-NEW-0002 has changed/);
     await expect(rollbackBatch(batch.id, adminId)).rejects.toThrow(/changed/);

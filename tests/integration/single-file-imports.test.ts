@@ -35,7 +35,7 @@ const rowsOf = async (batchId: string) =>
 
 beforeAll(async () => {
   await resetDatabase();
-  adminId = (await createUser(["SUPER_ADMIN"], "admin@test.example")).id;
+  adminId = (await createUser(["ADMIN"], "admin@test.example")).id;
   for (const [type, file] of [
     ["TAXONOMY", "taxonomy.csv"],
     ["PASSAGES", "passages.csv"],

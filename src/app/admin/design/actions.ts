@@ -23,10 +23,13 @@ export async function saveDesignAction(
       fieldErrors: result.fieldErrors,
       formError: result.formError ?? "Fix the highlighted fields.",
     };
+  const publish = formData.get("intent") === "publish";
+  if (publish) await setDesignStatus(result.id, "PUBLISHED", user);
   revalidatePath("/admin/design");
-  redirect(
-    `/admin/design/${result.id}?${result.created ? "created=1" : `saved=1${result.movedToDraft ? "&draft=1" : ""}`}`,
-  );
+  const query = result.created
+    ? "created=1"
+    : `saved=1${result.movedToDraft && !publish ? "&draft=1" : ""}`;
+  redirect(`/admin/design/${result.id}?${query}${publish ? "&published=1" : ""}`);
 }
 
 export async function setDesignStatusAction(formData: FormData) {

@@ -34,7 +34,7 @@ let adminId: string;
 let candidate: CurrentUser;
 let other: CurrentUser;
 let interviewerId: string;
-const admin = () => ({ id: adminId, roles: ["SUPER_ADMIN" as const] });
+const admin = () => ({ id: adminId, roles: ["ADMIN" as const] });
 
 async function student(email: string): Promise<CurrentUser> {
   const user = await db.user.create({
@@ -91,7 +91,7 @@ async function book(user: CurrentUser, index = 0) {
 
 beforeAll(async () => {
   await resetDatabase();
-  adminId = (await createUser(["SUPER_ADMIN"], "admin@test.example")).id;
+  adminId = (await createUser(["ADMIN"], "admin@test.example")).id;
   await db.topic.create({
     data: { slug: "arrays", name: "Arrays", subject: { create: { slug: "dsa", name: "DSA" } } },
   });

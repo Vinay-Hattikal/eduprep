@@ -20,7 +20,7 @@ export default function DesignAdminPage() {
     <div className="space-y-6">
       <PageHeader
         title="Design questions"
-        description="System design and low-level design questions. New and edited questions are drafts until a reviewer publishes them."
+        description="System design and low-level design questions. Drafts are hidden from students until you publish them."
         actions={
           <>
             <Button asChild variant="outline">

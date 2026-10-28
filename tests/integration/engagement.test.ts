@@ -53,7 +53,7 @@ import { getSittingResult, saveItem, submitSitting } from "@/server/services/tes
 import { createUser, importFile, resetDatabase, template } from "./helpers";
 
 let adminId: string;
-const admin = () => ({ id: adminId, roles: ["SUPER_ADMIN" as const] });
+const admin = () => ({ id: adminId, roles: ["ADMIN" as const] });
 const students: CurrentUser[] = [];
 const questionIds: string[] = [];
 
@@ -78,7 +78,7 @@ async function student(name: string): Promise<CurrentUser> {
 
 beforeAll(async () => {
   await resetDatabase();
-  adminId = (await createUser(["SUPER_ADMIN"], "admin@test.example")).id;
+  adminId = (await createUser(["ADMIN"], "admin@test.example")).id;
   await importFile("TAXONOMY", "taxonomy.csv", await template("taxonomy.csv"), adminId);
   await importFile(
     "COMPANIES",

@@ -13,7 +13,7 @@ describe("mock-data folder", () => {
   });
 
   it("imports every file as drafts, and again with nothing changed", async () => {
-    const admin = await createUser(["SUPER_ADMIN"], "admin@example.com");
+    const admin = await createUser(["ADMIN"], "admin@example.com");
     const root = path.resolve("mock-data");
 
     const first = await importFolder(root, admin.id);

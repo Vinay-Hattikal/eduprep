@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { ContentStatus, Difficulty, QuestionType } from "@/generated/prisma/enums";
-import { ACTION_LABELS, type QuestionAction } from "@/lib/content/workflow";
+import { ACTION_LABELS, type ContentAction } from "@/lib/content/workflow";
 
 export type QuestionRow = {
   id: string;
@@ -35,7 +35,7 @@ export function QuestionsTable({
   bulkActions,
 }: {
   rows: QuestionRow[];
-  bulkActions: QuestionAction[];
+  bulkActions: ContentAction[];
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [state, formAction, pending] = useActionState(bulkQuestionAction, initialState);

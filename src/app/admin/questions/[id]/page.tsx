@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { AlertTriangle, ArrowLeft, CheckCircle2, MessageSquareWarning } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { taxonomyOptions, toEditorValues } from "@/app/admin/questions/editor-data";
 import { QuestionEditor } from "@/app/admin/questions/question-editor";
 import { WorkflowActions } from "@/app/admin/questions/[id]/workflow-actions";
@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { checkQuestion } from "@/lib/content/question-rules";
-import { ACTION_LABELS, availableActions, type QuestionAction } from "@/lib/content/workflow";
+import { ACTION_LABELS, availableActions, type ContentAction } from "@/lib/content/workflow";
 import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
@@ -56,10 +56,10 @@ async function QuestionDetail({ params, searchParams }: PageProps<"/admin/questi
   if (!question) notFound();
 
   const [taxonomy, history] = await Promise.all([taxonomyOptions(), getQuestionHistory(id)]);
-  const actions = availableActions(question.status, user, question.authorId);
+  const actions = availableActions(question.status, user);
   const issues = checkQuestion(question);
   const canEdit = can(user.roles, "content.edit") && question.status !== "ARCHIVED";
-  const done = typeof query.done === "string" ? (query.done as QuestionAction) : null;
+  const done = typeof query.done === "string" ? (query.done as ContentAction) : null;
   const error = typeof query.error === "string" ? query.error : null;
 
   return (
@@ -73,10 +73,11 @@ async function QuestionDetail({ params, searchParams }: PageProps<"/admin/questi
       {query.saved ? (
         <Alert>
           <CheckCircle2 />
-          <AlertTitle>Saved</AlertTitle>
+          <AlertTitle>{query.published ? "Saved and published" : "Saved"}</AlertTitle>
           {query.draft ? (
             <AlertDescription>
-              The question went back to draft. Submit it for review again.
+              The question went back to draft and is hidden from students. Publish it again when
+              it&apos;s ready.
             </AlertDescription>
           ) : null}
         </Alert>
@@ -93,23 +94,13 @@ async function QuestionDetail({ params, searchParams }: PageProps<"/admin/questi
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
-      {question.reviewNote && question.status === "DRAFT" ? (
-        <Alert>
-          <MessageSquareWarning />
-          <AlertTitle>
-            Reviewer note{question.reviewer ? ` from ${question.reviewer.name}` : ""}
-          </AlertTitle>
-          <AlertDescription className="whitespace-pre-line">{question.reviewNote}</AlertDescription>
-        </Alert>
-      ) : null}
-
       <Card>
         <CardContent className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-1 text-sm">
             <p>
               <span className="text-muted-foreground">Automatic checks: </span>
               {issues.some((i) => i.level === "error") ? (
-                <span className="font-medium text-destructive">fails, fix before review</span>
+                <span className="font-medium text-destructive">fails, fix before publishing</span>
               ) : issues.length ? (
                 <span className="font-medium text-warning">passes with warnings</span>
               ) : (
@@ -126,7 +117,7 @@ async function QuestionDetail({ params, searchParams }: PageProps<"/admin/questi
             <p className="text-muted-foreground">
               {question.author ? `Written by ${question.author.name}` : "Imported"}
               {question.reviewer && question.status === "PUBLISHED"
-                ? ` · approved by ${question.reviewer.name}`
+                ? ` · published by ${question.reviewer.name}`
                 : ""}
               {question.companies.length
                 ? ` · used by ${question.companies.map((c) => c.company.name).join(", ")}`

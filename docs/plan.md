@@ -228,6 +228,20 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 
 ---
 
+## Company-wise content entry (owner's plan, 2026-10-28)
+
+**Goal:** one admin builds each company's content by hand from the company's page: profile, hiring process, MCQs, coding problems with tests and solutions, mocks (D-056, D-057).
+
+| # | Task | Status |
+|---|---|---|
+| B.1 | One admin role; no review step; Save and publish in editors; Drafts page; Publish after import (D-056) | ✅ |
+| B.2 | Hiring process (rounds, sections) and sources editors on the company page | ⬜ |
+| B.3 | Company tabs; MCQ tab with Add question (company pre-tagged), Save and add another, link existing, unlink; "Asked at" field in the question editor | ⬜ |
+| B.4 | Coding tab: add problem pre-tagged, link and unlink; "Asked at" in the problem editor; problem checklist | ⬜ |
+| B.5 | "+ New topic" from the question and problem editors | ⬜ |
+
+---
+
 ## After launch (not scheduled)
 
 College leaderboards and ambassadors, AI resume–JD match, AI mock interviews, college (TPO) dashboards, Hindi explanations, mobile app.

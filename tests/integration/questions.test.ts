@@ -4,20 +4,20 @@ import type { QuestionFormValues } from "@/schemas/question";
 import { saveQuestion, transitionQuestion } from "@/server/services/questions";
 import { createUser, importFile, resetDatabase, template } from "./helpers";
 
-let author: { id: string; roles: ["CONTENT_AUTHOR"] };
-let reviewer: { id: string; roles: ["REVIEWER"] };
+let author: { id: string; roles: ["ADMIN"] };
+let reviewer: { id: string; roles: ["ADMIN"] };
 let form: QuestionFormValues;
 
 beforeAll(async () => {
   await resetDatabase();
-  const admin = await createUser(["SUPER_ADMIN"], "admin@test.example");
+  const admin = await createUser(["ADMIN"], "admin@test.example");
   author = {
-    id: (await createUser(["CONTENT_AUTHOR"], "author@test.example")).id,
-    roles: ["CONTENT_AUTHOR"],
+    id: (await createUser(["ADMIN"], "author@test.example")).id,
+    roles: ["ADMIN"],
   };
   reviewer = {
-    id: (await createUser(["REVIEWER"], "reviewer@test.example")).id,
-    roles: ["REVIEWER"],
+    id: (await createUser(["ADMIN"], "reviewer@test.example")).id,
+    roles: ["ADMIN"],
   };
   await importFile("TAXONOMY", "taxonomy.csv", await template("taxonomy.csv"), admin.id);
 
@@ -74,38 +74,27 @@ describe("question editing and review", () => {
     });
   });
 
-  it("runs the review workflow with blind review and notes", async () => {
+  it("publishes, unpublishes, archives and restores without a review step", async () => {
     const question = await db.question.findUniqueOrThrow({ where: { externalId: "QA-AVG-9001" } });
 
-    expect(await transitionQuestion(question.id, "approve", reviewer)).toMatchObject({ ok: false });
-    expect(await transitionQuestion(question.id, "submit", author)).toEqual({ ok: true });
-    expect(await transitionQuestion(question.id, "approve", author)).toMatchObject({
-      ok: false,
-      error: expect.stringMatching(/reviewers/),
-    });
-    expect(await transitionQuestion(question.id, "reject", reviewer)).toMatchObject({
-      ok: false,
-      error: /Say what/,
-    });
-    expect(
-      await transitionQuestion(question.id, "reject", reviewer, "Option C is ambiguous"),
-    ).toEqual({ ok: true });
-    expect(await db.question.findUniqueOrThrow({ where: { id: question.id } })).toMatchObject({
-      status: "DRAFT",
-      reviewNote: "Option C is ambiguous",
-    });
-
-    await transitionQuestion(question.id, "submit", author);
-    expect(await transitionQuestion(question.id, "approve", reviewer)).toEqual({ ok: true });
+    // The author publishes their own question (D-056: one admin role, no review).
+    expect(await transitionQuestion(question.id, "publish", author)).toEqual({ ok: true });
     const published = await db.question.findUniqueOrThrow({ where: { id: question.id } });
-    expect(published).toMatchObject({
-      status: "PUBLISHED",
-      reviewerId: reviewer.id,
-      reviewNote: null,
-    });
+    expect(published).toMatchObject({ status: "PUBLISHED", reviewerId: author.id });
     expect(published.publishedAt).toBeInstanceOf(Date);
+    expect(await transitionQuestion(question.id, "publish", author)).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/Can't publish/),
+    });
 
-    // Editing a published question sends it back to draft.
+    // Students can't publish.
+    const student = { id: author.id, roles: ["STUDENT" as const] };
+    expect(await transitionQuestion(question.id, "unpublish", student)).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/Only admins/),
+    });
+
+    // A plain save of a published question unpublishes it.
     const edited = await saveQuestion(
       { ...form, id: question.id, text: "Average of 2, 4, 6?" },
       author,
@@ -115,6 +104,9 @@ describe("question editing and review", () => {
       "DRAFT",
     );
 
+    expect(await transitionQuestion(question.id, "archive", reviewer)).toEqual({ ok: true });
+    expect(await transitionQuestion(question.id, "restore", reviewer)).toEqual({ ok: true });
+
     const audit = await db.auditLog.findMany({
       where: { entityId: question.id },
       orderBy: { createdAt: "asc" },
@@ -122,11 +114,33 @@ describe("question editing and review", () => {
     expect(audit.map((a) => a.action)).toEqual(
       expect.arrayContaining([
         "question.create",
-        "question.submit",
-        "question.reject",
-        "question.approve",
+        "question.publish",
         "question.update",
+        "question.archive",
+        "question.restore",
       ]),
     );
+  });
+
+  it("won't publish a question that fails the automatic checks", async () => {
+    const topic = await db.topic.findUniqueOrThrow({ where: { slug: "averages" } });
+    const broken = await db.question.create({
+      data: {
+        externalId: "QA-AVG-9002",
+        subjectId: topic.subjectId,
+        topicId: topic.id,
+        type: "SINGLE",
+        text: "Pick one",
+        options: ["1", "2"],
+        correctOptions: ["C"],
+        explanation: "",
+        difficulty: "EASY",
+        expectedTimeSec: 30,
+      },
+    });
+    expect(await transitionQuestion(broken.id, "publish", author)).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/automatic checks/),
+    });
   });
 });

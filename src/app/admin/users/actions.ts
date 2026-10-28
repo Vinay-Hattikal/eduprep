@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { rolesFormSchema } from "@/schemas/admin-content";
+import { adminAccessSchema } from "@/schemas/admin-content";
 import { requirePermission } from "@/server/auth";
 import {
   grantAccess,
@@ -11,7 +11,7 @@ import {
   revokeEntitlement,
   type Grant,
 } from "@/server/services/commerce";
-import { setAdminRoles } from "@/server/services/user-roles";
+import { setAdminAccess } from "@/server/services/user-roles";
 
 const id = z.string().min(1).max(40);
 const back = (userId: string, query: string) => redirect(`/admin/users/${userId}?${query}`);
@@ -57,15 +57,15 @@ export async function revokeAction(formData: FormData) {
   back(userId, "done=revoked");
 }
 
-export async function setRolesAction(formData: FormData) {
+export async function setAdminAccessAction(formData: FormData) {
   const actor = await requirePermission("users.roles");
-  const parsed = rolesFormSchema.safeParse({
+  const parsed = adminAccessSchema.safeParse({
     userId: formData.get("userId"),
-    roles: formData.getAll("roles"),
+    admin: formData.get("admin"),
   });
   if (!parsed.success) redirect("/admin/users");
-  const { userId, roles } = parsed.data;
-  const result = await setAdminRoles(userId, [...roles], actor);
+  const { userId, admin } = parsed.data;
+  const result = await setAdminAccess(userId, admin === "on", actor);
   revalidatePath(`/admin/users/${userId}`);
   revalidatePath("/admin/users");
   back(userId, result.ok ? "done=roles" : `error=${encodeURIComponent(result.error)}`);

@@ -31,7 +31,7 @@ import { createUser, importFile, resetDatabase, template } from "./helpers";
 let adminId: string;
 let student: CurrentUser;
 let blueprintId: string;
-const admin = () => ({ id: adminId, roles: ["SUPER_ADMIN" as const] });
+const admin = () => ({ id: adminId, roles: ["ADMIN" as const] });
 
 const CPP = `#include <bits/stdc++.h>
 using namespace std;
@@ -76,7 +76,7 @@ async function blueprint(overrides: Partial<BlueprintForm> = {}): Promise<Bluepr
 
 beforeAll(async () => {
   await resetDatabase();
-  adminId = (await createUser(["SUPER_ADMIN"], "admin@test.example")).id;
+  adminId = (await createUser(["ADMIN"], "admin@test.example")).id;
   await importFile("TAXONOMY", "taxonomy.csv", await template("taxonomy.csv"), adminId);
   for (const file of [
     "coding/coding-problems.csv",
@@ -92,8 +92,7 @@ beforeAll(async () => {
   }
   await drainJobs();
   const problem = await db.problem.findUniqueOrThrow({ where: { externalId: "CODE-ARR-0001" } });
-  await transitionProblem(problem.id, "submit", admin());
-  await transitionProblem(problem.id, "approve", admin());
+  await transitionProblem(problem.id, "publish", admin());
 
   // Six published questions: option A is right for every one.
   const topic = await db.topic.findUniqueOrThrow({ where: { slug: "percentages" } });

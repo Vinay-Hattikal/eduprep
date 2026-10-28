@@ -3,51 +3,47 @@
 
 import type { Role } from "@/generated/prisma/enums";
 
-export const ADMIN_ROLES = [
-  "SUPER_ADMIN",
-  "CONTENT_AUTHOR",
-  "REVIEWER",
-  "OPS_ADMIN",
-  "SUPPORT_ADMIN",
-] as const satisfies readonly Role[];
+/**
+ * One admin role that can do everything (D-056). The permission names stay, so splitting the
+ * work across roles later (content, ops, support) only means editing this table.
+ */
+export const ADMIN_ROLES = ["ADMIN"] as const satisfies readonly Role[];
 
 export const ROLE_LABELS: Record<Role, string> = {
   STUDENT: "Student",
   INTERVIEWER: "Interviewer",
-  SUPER_ADMIN: "Super admin",
-  CONTENT_AUTHOR: "Content author",
-  REVIEWER: "Reviewer",
-  OPS_ADMIN: "Ops admin",
-  SUPPORT_ADMIN: "Support admin",
+  ADMIN: "Admin",
 };
 
-/** Which roles may do what. Super admin can do everything. */
+const ADMIN = ["ADMIN"] as const;
+
+/** Which roles may do what. */
 export const PERMISSIONS = {
   "student.access": ["STUDENT"],
   "interviewer.access": ["INTERVIEWER"],
-  "admin.access": [...ADMIN_ROLES],
-  "content.view": ["CONTENT_AUTHOR", "REVIEWER"],
-  "content.edit": ["CONTENT_AUTHOR", "REVIEWER"],
-  "content.publish": ["REVIEWER"],
-  "taxonomy.manage": ["REVIEWER"],
-  "companies.manage": ["CONTENT_AUTHOR", "OPS_ADMIN"],
-  "companies.publish": ["REVIEWER", "OPS_ADMIN"],
-  "imports.view": ["CONTENT_AUTHOR", "REVIEWER", "OPS_ADMIN"],
-  "users.view": ["SUPPORT_ADMIN"],
-  "jobs.view": ["OPS_ADMIN"],
-  "interviews.manage": ["OPS_ADMIN"],
-  "users.grant": ["SUPPORT_ADMIN"],
-  "payments.refund": ["SUPPORT_ADMIN"],
-  "coupons.manage": ["SUPPORT_ADMIN", "OPS_ADMIN"],
-  "experiences.moderate": ["REVIEWER", "OPS_ADMIN"],
-  "discussions.moderate": ["REVIEWER", "SUPPORT_ADMIN"],
-  "postings.manage": ["OPS_ADMIN", "CONTENT_AUTHOR"],
-  "contests.manage": ["REVIEWER", "OPS_ADMIN"],
-  "notifications.view": ["OPS_ADMIN", "SUPPORT_ADMIN"],
-  "settings.view": [...ADMIN_ROLES],
-  "settings.manage": [],
-  "users.roles": [],
-  "audit.view": [],
+  "admin.access": ADMIN,
+  "content.view": ADMIN,
+  "content.edit": ADMIN,
+  "content.publish": ADMIN,
+  "taxonomy.manage": ADMIN,
+  "companies.manage": ADMIN,
+  "companies.publish": ADMIN,
+  "imports.view": ADMIN,
+  "users.view": ADMIN,
+  "jobs.view": ADMIN,
+  "interviews.manage": ADMIN,
+  "users.grant": ADMIN,
+  "payments.refund": ADMIN,
+  "coupons.manage": ADMIN,
+  "experiences.moderate": ADMIN,
+  "discussions.moderate": ADMIN,
+  "postings.manage": ADMIN,
+  "contests.manage": ADMIN,
+  "notifications.view": ADMIN,
+  "settings.view": ADMIN,
+  "settings.manage": ADMIN,
+  "users.roles": ADMIN,
+  "audit.view": ADMIN,
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -57,7 +53,6 @@ export function hasAnyRole(roles: readonly Role[], allowed: readonly Role[]): bo
 }
 
 export function can(roles: readonly Role[], permission: Permission): boolean {
-  if (roles.includes("SUPER_ADMIN")) return true;
   return hasAnyRole(roles, PERMISSIONS[permission]);
 }
 

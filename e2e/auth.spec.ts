@@ -40,18 +40,13 @@ test("an interviewer lands on the interviewer portal", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Hello, Ananya" })).toBeVisible();
 });
 
-test("a content author sees only the admin sections their role allows", async ({
-  page,
-}, testInfo) => {
+test("the admin sees every admin section (D-056)", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Sidebar is in the drawer on phones");
-  await signInAs(page, accounts.author);
+  await signInAs(page, accounts.admin);
   await expect(page).toHaveURL("/admin");
 
   const nav = page.getByRole("navigation", { name: "Admin" });
-  await expect(nav.getByRole("link", { name: "Questions", exact: true })).toBeVisible();
-  await expect(nav.getByRole("link", { name: "Users" })).toHaveCount(0);
-  await expect(nav.getByRole("link", { name: "Audit log" })).toHaveCount(0);
-
-  await page.goto("/admin/users");
-  await expect(page).toHaveURL("/access-denied");
+  for (const name of ["Questions", "Drafts", "Users", "Settings", "Audit log", "Payouts"]) {
+    await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  }
 });

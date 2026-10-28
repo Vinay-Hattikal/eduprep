@@ -86,7 +86,13 @@ async function Detail({ params, searchParams }: PageProps<"/admin/design/[id]">)
       {query.created || query.saved ? (
         <Alert>
           <CheckCircle2 />
-          <AlertTitle>{query.created ? "Created as a draft" : "Saved"}</AlertTitle>
+          <AlertTitle>
+            {query.published
+              ? "Saved and published"
+              : query.created
+                ? "Created as a draft"
+                : "Saved"}
+          </AlertTitle>
           {query.draft ? (
             <AlertDescription>
               The question went back to draft and is hidden from students until it&apos;s published

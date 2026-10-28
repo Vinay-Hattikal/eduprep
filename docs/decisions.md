@@ -507,3 +507,15 @@ Every significant product or technical decision is recorded here, so humans and 
   - **Passages:** list, create and edit with a live preview. Edits reach every question using the passage straight away, as a passage re-import already does. The form warns how many published questions that affects. The ID is fixed. Only passages no question uses can be deleted.
   - **Admin roles:** super admins only (`users.roles`), on the user page. Only admin roles change: student and interviewer roles stay, and interviewers are still approved on the Interviewers page. You can't remove your own super admin role or the last super admin. Anyone left with no role keeps a student account. Changes are audited and apply on the next request, because roles are read from the database each time.
 - Alternatives: putting passage edits through review, by sending linked published questions back to draft. That's safer for wrong passages, but one typo fix would pull many questions out of practice. Revisit if passage mistakes show up.
+
+## D-056: One admin role, no review step
+- Date: 2026-10-28
+- Status: Accepted (supersedes the role split in PRD 7 and the review flow of D-010/D-031 for publishing)
+- Context: the owner adds all content alone. Five admin roles and a Draft → In review → Published flow meant approving their own work through extra screens.
+- Decision:
+  - **Roles:** `Role` is now `STUDENT`, `INTERVIEWER`, `ADMIN`. A migration turned every super admin, content author, reviewer, ops admin and support admin into `ADMIN`. Every admin permission maps to `ADMIN`. The permission names stay in code, so splitting roles again later means editing one table.
+  - **Admin access:** a "Make admin / Remove admin access" button on the user page. You can't remove your own access, and the last admin can't be removed. Changes are audited.
+  - **Publishing:** content is Draft → Published → Archived. `IN_REVIEW` stays in the database enum, because removing it would rebuild every content table, but nothing sets it and old rows became drafts. Question, coding problem, design and company editors have "Save as draft" and "Save and publish". A plain save of a published item unpublishes it (D-031 still holds for that). Publishing runs the automatic question checks. Coding problems still need the judge check (D-034): "Check and publish" runs it and publishes when it passes (`problem.validate` with `publishBy`). Companies still need a source.
+  - **Drafts page** (`/admin/drafts`, was the review queue): draft questions with bulk publish, draft coding problems with their judge state, and draft design questions.
+  - **Publish after import:** a tick box on the import preview (MCQ, companies, design questions, coding). Items go through the same publish rules; ones that fail stay drafts. The batch records `publishAfterImport` and `publishedCount`. Coding problems publish from their judge-check job.
+- Consequences: the old seeded accounts (author, reviewer, ops, support) are admins in existing local databases; the seed now creates one admin. Blind review is gone; mistakes are caught by the automatic checks, the judge, student error reports and content analytics.

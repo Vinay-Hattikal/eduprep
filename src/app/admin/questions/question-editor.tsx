@@ -1,6 +1,6 @@
 "use client";
 
-import { Save } from "lucide-react";
+import { Save, Send } from "lucide-react";
 import { useState } from "react";
 import { useFormSubmit } from "@/hooks/use-form-submit";
 import { saveQuestionAction, type QuestionFormState } from "@/app/admin/questions/actions";
@@ -433,14 +433,29 @@ export function QuestionEditor({ taxonomy, initial, passage, readOnly = false }:
         </fieldset>
 
         {readOnly ? null : (
-          <div className="sticky bottom-0 z-10 -mx-4 flex items-center gap-3 border-t bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
-            <Button type="submit" disabled={pending} data-testid="save-question">
-              <Save /> {pending ? "Saving…" : v.id ? "Save changes" : "Create draft"}
+          <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
+            <Button
+              type="submit"
+              name="intent"
+              value="publish"
+              disabled={pending}
+              data-testid="save-publish-question"
+            >
+              <Send /> {pending ? "Saving…" : "Save and publish"}
+            </Button>
+            <Button
+              type="submit"
+              name="intent"
+              value="draft"
+              variant="outline"
+              disabled={pending}
+              data-testid="save-question"
+            >
+              <Save /> Save as draft
             </Button>
             <p className="text-xs text-muted-foreground">
-              {v.id
-                ? "Saving a published question sends it back to draft for review."
-                : "New questions start as drafts."}
+              Drafts are hidden from students. Saving a published question as a draft unpublishes
+              it.
             </p>
           </div>
         )}

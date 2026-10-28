@@ -21,10 +21,9 @@ let student: CurrentUser;
 let adminId: string;
 
 async function publishAll() {
-  const actor = { id: adminId, roles: ["SUPER_ADMIN" as const] };
+  const actor = { id: adminId, roles: ["ADMIN" as const] };
   for (const q of await db.question.findMany({ where: { status: "DRAFT" } })) {
-    await transitionQuestion(q.id, "submit", actor);
-    await transitionQuestion(q.id, "approve", actor);
+    await transitionQuestion(q.id, "publish", actor);
   }
 }
 
@@ -45,7 +44,7 @@ async function answer(
 
 beforeAll(async () => {
   await resetDatabase();
-  adminId = (await createUser(["SUPER_ADMIN"], "admin@test.example")).id;
+  adminId = (await createUser(["ADMIN"], "admin@test.example")).id;
   for (const [type, file] of [
     ["TAXONOMY", "taxonomy.csv"],
     ["PASSAGES", "passages.csv"],
@@ -63,7 +62,7 @@ beforeAll(async () => {
   await publishAll();
   const admin = await db.user.findUniqueOrThrow({ where: { id: adminId } });
   const company = await db.company.findUniqueOrThrow({ where: { slug: "acme-tech" } });
-  await setCompanyStatus(company.id, "publish", { ...admin, onboarded: true });
+  await setCompanyStatus(company.id, "publish", admin);
 });
 
 beforeEach(async () => {
@@ -182,12 +181,12 @@ describe("answering", () => {
     expect(await practiceUsage(student)).toEqual({ used: 2, limit: 2 });
 
     // Admins previewing the student app aren't limited.
-    expect((await practiceUsage({ id: adminId, roles: ["SUPER_ADMIN"] })).limit).toBeNull();
+    expect((await practiceUsage({ id: adminId, roles: ["ADMIN"] })).limit).toBeNull();
   });
 
   it("rejects unpublished questions", async () => {
     const q = await db.question.findUniqueOrThrow({ where: { externalId: "LR-NS-0001" } });
-    await transitionQuestion(q.id, "archive", { id: adminId, roles: ["SUPER_ADMIN"] });
+    await transitionQuestion(q.id, "archive", { id: adminId, roles: ["ADMIN"] });
     expect(await answer("LR-NS-0001", { numeric: 42 })).toEqual({ status: "not-found" });
     expect(
       await nextQuestion(student.id, { topic: "number-series", source: "all" }, []),

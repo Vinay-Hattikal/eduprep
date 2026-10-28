@@ -12,7 +12,8 @@ export type AdminOverviewStats = {
   auditThisWeek: number;
   questions: { published: number; total: number };
   queues: {
-    inReview: number;
+    /** Questions, coding problems and design questions not yet published. */
+    drafts: number;
     importsAwaitingConfirmation: number;
     failedImports: number;
     staleCompanies: number;
@@ -35,7 +36,9 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
     auditThisWeek,
     published,
     total,
-    inReview,
+    draftQuestions,
+    draftProblems,
+    draftDesign,
     awaiting,
     failed,
     stale,
@@ -49,7 +52,9 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
     db.auditLog.count({ where: { createdAt: { gte: weekAgo } } }),
     db.question.count({ where: { status: "PUBLISHED" } }),
     db.question.count({ where: { status: { not: "ARCHIVED" } } }),
-    db.question.count({ where: { status: "IN_REVIEW" } }),
+    db.question.count({ where: { status: { in: ["DRAFT", "IN_REVIEW"] } } }),
+    db.problem.count({ where: { status: { in: ["DRAFT", "IN_REVIEW"] } } }),
+    db.designQuestion.count({ where: { status: { in: ["DRAFT", "IN_REVIEW"] } } }),
     db.importBatch.count({ where: { status: "PREVIEW_READY" } }),
     db.importBatch.count({ where: { status: "FAILED", createdAt: { gte: weekAgo } } }),
     db.company.count({
@@ -74,7 +79,7 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
     auditThisWeek,
     questions: { published, total },
     queues: {
-      inReview,
+      drafts: draftQuestions + draftProblems + draftDesign,
       importsAwaitingConfirmation: awaiting,
       failedImports: failed,
       staleCompanies: stale,

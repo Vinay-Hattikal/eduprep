@@ -3,7 +3,6 @@ import { expect, type Page } from "@playwright/test";
 /** Seeded accounts from prisma/seed.ts. */
 export const accounts = {
   admin: "admin@example.com",
-  author: "author@example.com",
   fresher: "fresher@example.com",
   experienced: "experienced@example.com",
   interviewer: "interviewer@example.com",

@@ -82,8 +82,8 @@ export const adminNav: NavSection[] = [
         permission: "content.view",
       },
       {
-        title: "Review queue",
-        href: "/admin/review",
+        title: "Drafts",
+        href: "/admin/drafts",
         icon: "review",
         permission: "content.publish",
       },

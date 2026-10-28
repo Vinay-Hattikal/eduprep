@@ -98,8 +98,8 @@ cheap next step.
    `npm run content:import`. Failing rows print with the row number and the reason.
 5. **Import** to production (admin › Imports, or the script on the server). Items arrive as
    drafts with the batch recorded; a bad batch can be rolled back from admin.
-6. **Review and publish** in admin: reviewers approve questions (the review queue), publish
-   companies, and check coding problems against the judge.
+6. **Publish** in admin: tick "Publish after import", or publish from admin › Drafts (several
+   questions at once). Coding problems publish once they pass the judge check (D-056).
 7. **Keep companies fresh.** `last_verified` on each company and `checked_on` on each source say
    when facts were confirmed. Re-verify every `full` company before each placement season
    (around June) and after students report a changed pattern.

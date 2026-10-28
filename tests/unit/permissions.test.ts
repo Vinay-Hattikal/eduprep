@@ -12,33 +12,29 @@ import {
 } from "@/lib/permissions";
 
 describe("can", () => {
-  it("lets super admins do everything", () => {
-    for (const permission of Object.keys(PERMISSIONS) as (keyof typeof PERMISSIONS)[]) {
-      expect(can(["SUPER_ADMIN"], permission)).toBe(true);
+  it("lets the admin role do everything in the admin panel (D-056)", () => {
+    const areas = ["student.access", "interviewer.access"];
+    for (const permission of (Object.keys(PERMISSIONS) as (keyof typeof PERMISSIONS)[]).filter(
+      (p) => !areas.includes(p),
+    )) {
+      expect(can(["ADMIN"], permission), permission).toBe(true);
     }
+    expect(ADMIN_ROLES).toEqual(["ADMIN"]);
   });
 
-  it("keeps students out of the admin panel", () => {
-    expect(can(["STUDENT"], "admin.access")).toBe(false);
+  it("keeps students and interviewers out of the admin panel", () => {
+    for (const role of ["STUDENT", "INTERVIEWER"] as const) {
+      expect(can([role], "admin.access")).toBe(false);
+      expect(can([role], "users.view")).toBe(false);
+      expect(can([role], "content.publish")).toBe(false);
+    }
     expect(can(["STUDENT"], "student.access")).toBe(true);
   });
 
-  it("only lets support and super admins see users' contact details", () => {
+  it("only lets admins see users' contact details", () => {
+    expect(can(["ADMIN"], "student.access")).toBe(false);
     const allowed = Object.values(RoleEnum).filter((role) => can([role], "users.view"));
-    expect(allowed.sort()).toEqual(["SUPER_ADMIN", "SUPPORT_ADMIN"]);
-  });
-
-  it("only lets reviewers and super admins publish content", () => {
-    expect(can(["CONTENT_AUTHOR"], "content.publish")).toBe(false);
-    expect(can(["REVIEWER"], "content.publish")).toBe(true);
-  });
-
-  it("reserves settings changes and the audit log for super admins", () => {
-    for (const role of ADMIN_ROLES.filter((r) => r !== "SUPER_ADMIN")) {
-      expect(can([role], "settings.manage")).toBe(false);
-      expect(can([role], "audit.view")).toBe(false);
-      expect(can([role], "settings.view")).toBe(true);
-    }
+    expect(allowed).toEqual(["ADMIN"]);
   });
 
   it("combines multiple roles", () => {
@@ -50,8 +46,8 @@ describe("homePathFor", () => {
   it.each<[Role[], string]>([
     [["STUDENT"], "/dashboard"],
     [["INTERVIEWER"], "/interviewer"],
-    [["REVIEWER"], "/admin"],
-    [["STUDENT", "SUPER_ADMIN"], "/admin"],
+    [["ADMIN"], "/admin"],
+    [["STUDENT", "ADMIN"], "/admin"],
     [["STUDENT", "INTERVIEWER"], "/interviewer"],
   ])("sends %j to %s", (roles, path) => {
     expect(homePathFor(roles)).toBe(path);

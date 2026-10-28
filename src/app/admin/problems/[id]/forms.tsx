@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   addTestCaseAction,
   saveProblemAction,
@@ -12,69 +11,49 @@ import { CheckboxGroup } from "@/components/shared/checkbox-group";
 import { FormField } from "@/components/shared/form-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { CODING_LANGUAGE_IDS, CODING_LANGUAGES } from "@/lib/coding/languages";
-import { ACTION_LABELS, type QuestionAction } from "@/lib/content/workflow";
+import { ACTION_LABELS, type ContentAction } from "@/lib/content/workflow";
 import type { ProblemFormValues } from "@/app/admin/problems/problem-defaults";
 import { useFormSubmit } from "@/hooks/use-form-submit";
 
-export function ProblemWorkflow({ id, actions }: { id: string; actions: QuestionAction[] }) {
-  const [open, setOpen] = useState(false);
+/**
+ * Publish, unpublish, archive and restore. When the judge check hasn't passed yet, "Publish"
+ * runs it and publishes the problem if it passes.
+ */
+export function ProblemWorkflow({
+  id,
+  actions,
+  validated,
+}: {
+  id: string;
+  actions: ContentAction[];
+  validated: boolean;
+}) {
   if (!actions.length) return null;
   return (
     <div className="flex flex-wrap gap-2">
-      {actions.map((action) =>
-        action === "reject" ? (
-          <Dialog key={action} open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">{ACTION_LABELS[action]}</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <form action={transitionProblemAction} className="space-y-4">
-                <DialogHeader>
-                  <DialogTitle>Send back to draft</DialogTitle>
-                  <DialogDescription>Tell the author what to fix.</DialogDescription>
-                </DialogHeader>
-                <input type="hidden" name="id" value={id} />
-                <input type="hidden" name="action" value="reject" />
-                <div className="space-y-1.5">
-                  <Label htmlFor="review-note">What needs to change?</Label>
-                  <Textarea id="review-note" name="note" rows={4} required />
-                </div>
-                <DialogFooter>
-                  <Button type="submit">Send back</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        ) : (
-          <form key={action} action={transitionProblemAction}>
-            <input type="hidden" name="id" value={id} />
-            <input type="hidden" name="action" value={action} />
-            <Button
-              type="submit"
-              variant={
-                action === "archive" ? "destructive" : action === "restore" ? "outline" : "default"
-              }
-              data-testid={`problem-${action}`}
-            >
-              {ACTION_LABELS[action]}
-            </Button>
-          </form>
-        ),
-      )}
+      {actions.map((action) => (
+        <form key={action} action={transitionProblemAction}>
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="action" value={action} />
+          {action === "publish" && !validated ? (
+            <input type="hidden" name="afterCheck" value="1" />
+          ) : null}
+          <Button
+            type="submit"
+            variant={
+              action === "archive" ? "destructive" : action === "publish" ? "default" : "outline"
+            }
+            data-testid={`problem-${action}`}
+          >
+            {action === "publish" && !validated ? "Check and publish" : ACTION_LABELS[action]}
+          </Button>
+        </form>
+      ))}
     </div>
   );
 }
@@ -270,11 +249,31 @@ export function ProblemForm({
       <p className="text-xs text-muted-foreground">
         {creating
           ? "Saved as a draft. Next, add tests and a reference solution, then check it in the judge."
-          : "Saving sends a published problem back to draft. Changing limits or the checker re-runs the judge check."}
+          : "Save as draft hides a published problem from students. Save and publish keeps it live once it passes the judge check. Changing limits or the checker re-runs the check."}
       </p>
-      <Button type="submit" disabled={pending} data-testid="save-problem">
-        {pending ? "Saving…" : creating ? "Create problem" : "Save changes"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        {creating ? null : (
+          <Button
+            type="submit"
+            name="intent"
+            value="publish"
+            disabled={pending}
+            data-testid="save-publish-problem"
+          >
+            {pending ? "Saving…" : "Save and publish"}
+          </Button>
+        )}
+        <Button
+          type="submit"
+          name="intent"
+          value="draft"
+          variant={creating ? "default" : "outline"}
+          disabled={pending}
+          data-testid="save-problem"
+        >
+          {pending ? "Saving…" : creating ? "Create problem" : "Save as draft"}
+        </Button>
+      </div>
     </form>
   );
 }

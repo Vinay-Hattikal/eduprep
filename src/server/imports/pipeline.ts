@@ -9,6 +9,11 @@ import { db } from "@/server/db";
 import { enqueueJob } from "@/server/jobs/queue";
 import { storage } from "@/server/integrations/storage";
 import { ImportFileError, parseImportFile, toCsv, type ParsedFile } from "@/server/imports/parse";
+import {
+  PUBLISHABLE_IMPORTS,
+  publishImported,
+  publishesThroughJudge,
+} from "@/server/imports/publish";
 import { getImportDefinition } from "@/server/imports/registry";
 import type { CommitOutcome, RowMessage, ValidatedRow } from "@/server/imports/types";
 import { recordAudit } from "@/server/services/audit";
@@ -158,14 +163,23 @@ export async function validateBatch(batchId: string): Promise<void> {
 }
 
 /** Admin confirmed the preview: queue the commit. */
-export async function confirmBatch(batchId: string, actorId: string): Promise<void> {
+export async function confirmBatch(
+  batchId: string,
+  actorId: string,
+  { publish = false } = {},
+): Promise<void> {
   const updated = await db.importBatch.updateMany({
     where: {
       id: batchId,
       status: "PREVIEW_READY",
       OR: [{ validRows: { gt: 0 } }, { warningRows: { gt: 0 } }],
     },
-    data: { status: "COMMITTING", confirmedById: actorId, confirmedAt: new Date() },
+    data: {
+      status: "COMMITTING",
+      confirmedById: actorId,
+      confirmedAt: new Date(),
+      publishAfterImport: publish,
+    },
   });
   if (updated.count === 0)
     throw new ImportActionError("This import can't be confirmed in its current state.");
@@ -274,8 +288,15 @@ export async function commitBatch(batchId: string): Promise<void> {
     }
   }
 
+  const publishBy =
+    batch.publishAfterImport && batch.confirmedById && PUBLISHABLE_IMPORTS.includes(batch.type)
+      ? batch.confirmedById
+      : null;
   for (const job of allOutcomes.length ? (definition.followUpJobs?.(allOutcomes) ?? []) : []) {
-    await enqueueJob(job.type, job.payload as never);
+    // Coding problems publish once the judge check passes (D-056).
+    const payload =
+      publishBy && job.type === "problem.validate" ? { ...job.payload, publishBy } : job.payload;
+    await enqueueJob(job.type, payload as never);
   }
 
   const counts = await db.importRow.groupBy({
@@ -324,6 +345,10 @@ export async function commitBatch(batchId: string): Promise<void> {
         imported === 0 && failed > 0
           ? "No rows could be imported. Download the failed rows to see why."
           : null,
+      publishedCount:
+        publishBy && !publishesThroughJudge(batch.type) && imported > 0
+          ? await publishImported(batchId, batch.type, publishBy)
+          : 0,
       createdCount: count("IMPORTED", "CREATE"),
       updatedCount: count("IMPORTED", "UPDATE"),
       unchangedCount: count("IMPORTED", "UNCHANGED"),

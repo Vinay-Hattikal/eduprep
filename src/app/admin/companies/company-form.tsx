@@ -1,6 +1,6 @@
 "use client";
 
-import { Save } from "lucide-react";
+import { Save, Send } from "lucide-react";
 import { useFormSubmit } from "@/hooks/use-form-submit";
 import { saveCompanyAction, type CompanyFormState } from "@/app/admin/companies/actions";
 import { FormField } from "@/components/shared/form-field";
@@ -217,12 +217,15 @@ export function CompanyForm({ values, canEdit }: { values: CompanyFormValues; ca
       </fieldset>
 
       {canEdit ? (
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={pending}>
-            <Save /> {pending ? "Saving…" : values.id ? "Save changes" : "Create company"}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" name="intent" value="publish" disabled={pending}>
+            <Send /> {pending ? "Saving…" : "Save and publish"}
+          </Button>
+          <Button type="submit" name="intent" value="draft" variant="outline" disabled={pending}>
+            <Save /> {values.id ? "Save as draft" : "Create company"}
           </Button>
           <p className="text-xs text-muted-foreground">
-            Saving a published company sends it back to draft.
+            Publishing needs at least one source. Saving as a draft hides a published company.
           </p>
         </div>
       ) : null}

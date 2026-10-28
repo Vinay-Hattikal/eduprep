@@ -17,6 +17,7 @@ import { isAdmin } from "@/lib/permissions";
 import { evaluate, type EvalTest, type TestResult } from "@/server/coding/evaluate";
 import type { CurrentUser } from "@/server/auth";
 import { db } from "@/server/db";
+import { recordAudit } from "@/server/services/audit";
 import { getJudge } from "@/server/integrations/judge";
 import { enqueueJob } from "@/server/jobs/queue";
 import { isPro } from "@/lib/commerce/access";
@@ -528,8 +529,16 @@ async function recordSubmit(
 
 // ---------- Problem validation (D-034) ----------
 
-/** Job "problem.validate": every reference (and brute) solution must pass every test. */
-export async function validateProblem(problemId: string, now = () => new Date()): Promise<void> {
+/**
+ * Job "problem.validate": every reference (and brute) solution must pass every test. With
+ * `publishBy`, a draft that passes is published straight away: an admin pressed "Publish"
+ * before the check had run (D-056).
+ */
+export async function validateProblem(
+  problemId: string,
+  now = () => new Date(),
+  publishBy?: string,
+): Promise<void> {
   const problem = await db.problem.findUnique({
     where: { id: problemId },
     include: {
@@ -539,9 +548,31 @@ export async function validateProblem(problemId: string, now = () => new Date())
   });
   if (!problem) return;
   const report = await checkProblem(problem);
-  await db.problem.update({
-    where: { id: problem.id },
-    data: { validatedAt: report.ok ? now() : null, validationNote: report.lines.join("\n") },
+  const publish =
+    report.ok &&
+    Boolean(publishBy) &&
+    (problem.status === "DRAFT" || problem.status === "IN_REVIEW");
+  await db.$transaction(async (tx) => {
+    await tx.problem.update({
+      where: { id: problem.id },
+      data: {
+        validatedAt: report.ok ? now() : null,
+        validationNote: report.lines.join("\n"),
+        ...(publish && { status: "PUBLISHED", publishedAt: now(), reviewerId: publishBy }),
+      },
+    });
+    if (publish)
+      await recordAudit(
+        {
+          actorId: publishBy!,
+          action: "problem.publish",
+          entityType: "problem",
+          entityId: problem.id,
+          before: { status: problem.status },
+          after: { status: "PUBLISHED", afterJudgeCheck: true },
+        },
+        tx,
+      );
   });
 }
 

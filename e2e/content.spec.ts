@@ -100,7 +100,7 @@ test.describe("content engine", () => {
     await expect(page.getByRole("link", { name: "Download rows with errors" })).toBeVisible();
   });
 
-  test("writes a question, submits it and publishes it", async ({ page }) => {
+  test("writes a question as a draft, then publishes and unpublishes it", async ({ page }) => {
     await signInAs(page, accounts.admin, "/admin/questions/new");
     const id = `QA-E2E-${Date.now()}`;
 
@@ -122,19 +122,20 @@ test.describe("content engine", () => {
     await page.getByTestId("save-question").click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: id })).toBeVisible();
+    await expect(page.getByText("Draft", { exact: true }).first()).toBeVisible();
 
-    await page.getByTestId("question-submit").click();
-    await expect(page.getByText("Done: Submit for review")).toBeVisible();
-    await expect(page.getByText("In review", { exact: true }).first()).toBeVisible();
-
-    // Solo mode: the founder (super admin) may approve their own question.
-    await page.getByTestId("question-approve").click();
+    // One admin publishes directly: no review step (D-056).
+    await page.getByTestId("question-publish").click();
+    await expect(page.getByText("Done: Publish")).toBeVisible();
     await expect(page.getByText("Published", { exact: true }).first()).toBeVisible();
+
+    await page.getByTestId("question-unpublish").click();
+    await expect(page.getByText("Draft", { exact: true }).first()).toBeVisible();
   });
 
-  test("a reviewer sends a question back with a note", async ({ page }) => {
-    await signInAs(page, accounts.author, "/admin/questions/new");
-    const id = `QA-E2E-R-${Date.now()}`;
+  test("save and publish puts a new question live in one step", async ({ page }) => {
+    await signInAs(page, accounts.admin, "/admin/questions/new");
+    const id = `QA-E2E-P-${Date.now()}`;
     await page.getByLabel("Question ID").fill(id);
     await page.getByLabel("Subject").selectOption({ label: "Quantitative Aptitude" });
     await page.getByLabel("Topic", { exact: true }).selectOption({ label: "Percentages" });
@@ -143,20 +144,13 @@ test.describe("content engine", () => {
     await page.getByLabel("Option B", { exact: true }).fill("10");
     await page.getByLabel("Option A is correct").click();
     await page.getByLabel("Explanation").fill("10% means one tenth, and one tenth of 50 is 5.");
-    await page.getByTestId("save-question").click();
-    await page.getByTestId("question-submit").click();
-    await expect(page.getByText("Done: Submit for review")).toBeVisible();
-    // Authors can't approve.
-    await expect(page.getByTestId("question-approve")).toHaveCount(0);
+    await page.getByTestId("save-publish-question").click();
+    await expect(page.getByText("Saved and published")).toBeVisible();
+    await expect(page.getByText("Published", { exact: true }).first()).toBeVisible();
 
-    await page.context().clearCookies();
-    await signInAs(page, "reviewer@example.com", "/admin/review");
-    await page.getByRole("link", { name: id }).click();
-    await page.getByRole("button", { name: "Send back to draft" }).click();
-    await page.getByLabel("What needs to change?").fill("Add a third option.");
-    await page.getByRole("button", { name: "Send back" }).click();
-    await expect(page.getByText("Reviewer note from Riya Reviewer")).toBeVisible();
-    await expect(page.getByText("Add a third option.")).toBeVisible();
+    await page.goto("/admin/drafts");
+    await expect(page.getByRole("heading", { level: 1, name: "Drafts" })).toBeVisible();
+    await expect(page.getByRole("link", { name: id })).toHaveCount(0);
   });
 
   test("taxonomy and companies pages list imported content", async ({ page }) => {
@@ -182,7 +176,7 @@ test.describe("content engine", () => {
 
     await page.waitForURL(`/admin/companies/${slug}?saved=1`);
     await expect(page.getByRole("heading", { level: 1, name: "E2E Test Company" })).toBeVisible();
-    await page.getByRole("button", { name: "Publish" }).click();
+    await page.getByRole("button", { name: "Publish", exact: true }).click();
     await expect(page.getByText("Add at least one source before publishing.")).toBeVisible();
   });
 });
@@ -196,7 +190,7 @@ test("content pages fit a 360 px phone", async ({ page }, testInfo) => {
     "/admin/questions/new",
     "/admin/taxonomy",
     "/admin/companies",
-    "/admin/review",
+    "/admin/drafts",
   ]) {
     await page.goto(route);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();

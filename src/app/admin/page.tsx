@@ -57,10 +57,10 @@ async function AdminOverview() {
   // Work queues from PRD 9.1.
   const allQueues: Queue[] = [
     {
-      label: "Questions waiting for review",
+      label: "Drafts not yet published",
       icon: ListChecks,
-      count: stats.queues.inReview,
-      href: "/admin/review",
+      count: stats.queues.drafts,
+      href: "/admin/drafts",
       permission: "content.publish",
     },
     {

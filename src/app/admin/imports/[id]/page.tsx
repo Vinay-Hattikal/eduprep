@@ -28,6 +28,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ImportRowStatus } from "@/generated/prisma/enums";
@@ -36,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { requirePermission } from "@/server/auth";
 import { db } from "@/server/db";
 import { rollbackBlocker } from "@/server/imports/pipeline";
+import { PUBLISHABLE_IMPORTS, publishesThroughJudge } from "@/server/imports/publish";
 import { getImportDefinition } from "@/server/imports/registry";
 import { REPLACE_CONFIRMATION, type RowMessage } from "@/server/imports/types";
 
@@ -170,6 +172,13 @@ async function BatchDetail({ params, searchParams }: PageProps<"/admin/imports/[
               {batch.mode === "REPLACE" ? (
                 <StatCard label="Archived" value={batch.archivedCount} hint="Not in the file" />
               ) : null}
+              {batch.publishAfterImport && !publishesThroughJudge(batch.type) ? (
+                <StatCard
+                  label="Published"
+                  value={batch.publishedCount}
+                  hint="Others failed a check and stayed drafts"
+                />
+              ) : null}
             </>
           ) : (
             <>
@@ -228,11 +237,21 @@ async function BatchDetail({ params, searchParams }: PageProps<"/admin/imports/[
                   />
                 </div>
               ) : null}
+              {PUBLISHABLE_IMPORTS.includes(batch.type) ? (
+                <div className="flex items-center gap-2 self-center">
+                  <Checkbox id="publish" name="publish" data-testid="publish-after-import" />
+                  <Label htmlFor="publish" className="font-normal">
+                    {publishesThroughJudge(batch.type)
+                      ? "Publish each problem once it passes the judge check"
+                      : "Publish after import"}
+                  </Label>
+                </div>
+              ) : null}
               <Button type="submit" disabled={importable === 0} data-testid="confirm-import">
                 <CheckCircle2 />{" "}
                 {batch.mode === "REPLACE"
                   ? `Replace: import ${importable} row${importable === 1 ? "" : "s"}`
-                  : `Import ${importable} row${importable === 1 ? "" : "s"} as drafts`}
+                  : `Import ${importable} row${importable === 1 ? "" : "s"}`}
               </Button>
             </form>
             <form action={cancelImportAction}>

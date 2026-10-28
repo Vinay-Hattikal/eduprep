@@ -141,14 +141,17 @@ export function DesignForm({
           emptyText="No role tracks yet."
         />
         <p className="text-xs text-muted-foreground">
-          {creating
-            ? "Saved as a draft. A reviewer publishes it."
-            : "Saving a published question sends it back to draft until a reviewer publishes it again."}
+          Drafts are hidden from students. Saving a published question as a draft unpublishes it.
         </p>
         {canEdit ? (
-          <Button type="submit" disabled={pending}>
-            {pending ? "Saving…" : creating ? "Create question" : "Save changes"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" name="intent" value="publish" disabled={pending}>
+              {pending ? "Saving…" : "Save and publish"}
+            </Button>
+            <Button type="submit" name="intent" value="draft" variant="outline" disabled={pending}>
+              Save as draft
+            </Button>
+          </div>
         ) : null}
       </fieldset>
     </form>

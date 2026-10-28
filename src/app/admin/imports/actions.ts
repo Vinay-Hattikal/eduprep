@@ -47,7 +47,7 @@ export async function uploadImportAction(
 
   // Replace all (D-054): super admins only, and only for types that support it.
   const mode = formData.get("mode") === "REPLACE" ? "REPLACE" : "ADD_UPDATE";
-  if (mode === "REPLACE" && !user.roles.includes("SUPER_ADMIN"))
+  if (mode === "REPLACE" && !user.roles.includes("ADMIN"))
     return { error: "Only a super admin can replace all content." };
   if (mode === "REPLACE" && !definition.replace)
     return { error: `${definition.label} can't be imported in replace mode.` };
@@ -80,8 +80,8 @@ async function runBatchAction(
   let error: string | null = null;
   try {
     if (confirming && batch.mode === "REPLACE") {
-      if (!user.roles.includes("SUPER_ADMIN"))
-        throw new ImportActionError("Only a super admin can confirm a replace.");
+      if (!user.roles.includes("ADMIN"))
+        throw new ImportActionError("Only an admin can confirm a replace.");
       if (String(formData.get("confirmation") ?? "").trim() !== REPLACE_CONFIRMATION)
         throw new ImportActionError(`Type ${REPLACE_CONFIRMATION} to confirm the replace.`);
     }
@@ -95,7 +95,14 @@ async function runBatchAction(
 }
 
 export async function confirmImportAction(formData: FormData) {
-  await runBatchAction(formData, confirmBatch, { confirming: true });
+  const publish = formData.get("publish") === "on";
+  await runBatchAction(
+    formData,
+    (batchId, actorId) => confirmBatch(batchId, actorId, { publish }),
+    {
+      confirming: true,
+    },
+  );
 }
 
 export async function cancelImportAction(formData: FormData) {

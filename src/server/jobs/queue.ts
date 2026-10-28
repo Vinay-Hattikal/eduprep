@@ -26,7 +26,8 @@ export type JobPayloads = {
   "import.validate": { batchId: string };
   "import.commit": { batchId: string };
   "code.judge": { submissionId: string };
-  "problem.validate": { problemId: string };
+  /** publishBy: an admin asked to publish once the check passes (D-056). */
+  "problem.validate": { problemId: string; publishBy?: string };
   "test.autosubmit": { sittingId: string };
   "notification.send": { notificationId: string };
   "booking.meeting": { bookingId: string; action: "create" | "update" | "cancel" };

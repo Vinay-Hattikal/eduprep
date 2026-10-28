@@ -21,7 +21,7 @@ export default function NewQuestionPage() {
       </Button>
       <PageHeader
         title="New question"
-        description="Saved as a draft. Submit it for review when it's ready."
+        description="Save it as a draft, or publish it straight away."
       />
       <Suspense fallback={<PageSkeleton />}>
         <NewQuestion />

@@ -3,8 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowLeft, CheckCircle2, CircleAlert } from "lucide-react";
-import { grantAction, refundAction, revokeAction, setRolesAction } from "@/app/admin/users/actions";
-import { CheckboxGroup } from "@/components/shared/checkbox-group";
+import {
+  grantAction,
+  refundAction,
+  revokeAction,
+  setAdminAccessAction,
+} from "@/app/admin/users/actions";
 import { DataTable } from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageSkeleton } from "@/components/shared/skeletons";
@@ -18,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { formatRupees } from "@/lib/commerce/pricing";
 import { formatDate } from "@/lib/format";
-import { ADMIN_ROLES, can, ROLE_LABELS } from "@/lib/permissions";
+import { can, ROLE_LABELS } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
 import { db } from "@/server/db";
 
@@ -28,7 +32,7 @@ const DONE = {
   granted: "Access granted.",
   refunded: "Refunded. What the order bought was revoked.",
   revoked: "Access revoked.",
-  roles: "Roles saved. They apply on the user's next page load.",
+  roles: "Admin access changed. It applies on the user's next page load.",
 } as const;
 
 export default function UserPage({ params, searchParams }: PageProps<"/admin/users/[id]">) {
@@ -123,25 +127,32 @@ async function User({ params, searchParams }: PageProps<"/admin/users/[id]">) {
         <Card>
           <CardHeader>
             <CardTitle>
-              <h2>Admin roles</h2>
+              <h2>Admin access</h2>
             </CardTitle>
             <CardDescription>
-              What this person can do in the admin area. Interviewer access is given by approving an
-              application on the Interviewers page.
+              Admins can use every part of the admin panel. Interviewer access is given by approving
+              an application on the Interviewers page.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form action={setRolesAction} className="space-y-4" aria-label="Admin roles">
+          <CardContent className="flex flex-wrap items-center gap-3">
+            <p className="text-sm">
+              {user.roles.includes("ADMIN")
+                ? "This person is an admin."
+                : "This person is not an admin."}
+            </p>
+            <form action={setAdminAccessAction}>
               <input type="hidden" name="userId" value={user.id} />
-              <CheckboxGroup
-                id="roles"
-                name="roles"
-                legend="Roles"
-                options={ADMIN_ROLES.map((role) => ({ value: role, label: ROLE_LABELS[role] }))}
-                defaultValues={user.roles}
+              <input
+                type="hidden"
+                name="admin"
+                value={user.roles.includes("ADMIN") ? "off" : "on"}
               />
-              <Button type="submit" variant="secondary" data-testid="save-roles">
-                Save roles
+              <Button
+                type="submit"
+                variant={user.roles.includes("ADMIN") ? "outline" : "secondary"}
+                data-testid="toggle-admin"
+              >
+                {user.roles.includes("ADMIN") ? "Remove admin access" : "Make admin"}
               </Button>
             </form>
           </CardContent>

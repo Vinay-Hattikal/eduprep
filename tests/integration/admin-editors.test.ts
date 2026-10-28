@@ -20,11 +20,11 @@ import {
   type ProblemValues,
 } from "@/server/services/problems";
 import { saveTrack } from "@/server/services/role-tracks";
-import { setAdminRoles } from "@/server/services/user-roles";
+import { setAdminAccess } from "@/server/services/user-roles";
 import { createUser, importFile, resetDatabase, template } from "./helpers";
 
 let adminId: string;
-const admin = () => ({ id: adminId, roles: ["SUPER_ADMIN" as const] });
+const admin = () => ({ id: adminId, roles: ["ADMIN" as const] });
 let dsaTopicId: string;
 let otherTopicId: string;
 
@@ -41,7 +41,7 @@ print("YES" if ok else "NO")
 
 beforeAll(async () => {
   await resetDatabase();
-  adminId = (await createUser(["SUPER_ADMIN"], "admin@test.example")).id;
+  adminId = (await createUser(["ADMIN"], "admin@test.example")).id;
   await importFile("TAXONOMY", "taxonomy.csv", await template("taxonomy.csv"), adminId);
   dsaTopicId = (await db.topic.findUniqueOrThrow({ where: { slug: "arrays" } })).id;
   otherTopicId = (await db.topic.findUniqueOrThrow({ where: { slug: "averages" } })).id;
@@ -118,8 +118,7 @@ describe("coding problem editor", () => {
     expect(checked.validationNote).not.toMatch(/✗/);
     expect(checked.validatedAt).not.toBeNull();
 
-    expect(await transitionProblem(problemId, "submit", admin())).toEqual({ ok: true });
-    expect(await transitionProblem(problemId, "approve", admin())).toEqual({ ok: true });
+    expect(await transitionProblem(problemId, "publish", admin())).toEqual({ ok: true });
   });
 
   it("starter code needs an allowed language, sends the problem to draft, keeps the judge check", async () => {
@@ -314,33 +313,30 @@ describe("passage editor", () => {
   });
 });
 
-describe("admin roles", () => {
-  it("changes admin roles and protects the last super admin", async () => {
-    const other = await createUser(["CONTENT_AUTHOR"], "author@test.example");
-    expect(await setAdminRoles(other.id, ["REVIEWER", "OPS_ADMIN"], admin())).toEqual({ ok: true });
+describe("admin access", () => {
+  it("turns admin access on and off and protects the last admin", async () => {
+    const other = await createUser(["STUDENT"], "student@test.example");
+    expect(await setAdminAccess(other.id, true, admin())).toEqual({ ok: true });
     expect((await db.user.findUniqueOrThrow({ where: { id: other.id } })).roles).toEqual([
-      "REVIEWER",
-      "OPS_ADMIN",
+      "STUDENT",
+      "ADMIN",
     ]);
 
-    const own = await setAdminRoles(adminId, ["REVIEWER"], admin());
+    const own = await setAdminAccess(adminId, false, admin());
     expect(own).toMatchObject({ ok: false, error: expect.stringMatching(/your own/) });
 
-    expect(await setAdminRoles(other.id, ["SUPER_ADMIN"], admin())).toEqual({ ok: true });
-    // Two super admins now: the other one can remove the first, but not the last.
-    const otherActor = { id: other.id };
-    expect(await setAdminRoles(adminId, [], otherActor)).toEqual({ ok: true });
+    // Two admins now: the other one can remove the first, but not the last.
+    expect(await setAdminAccess(adminId, false, { id: other.id })).toEqual({ ok: true });
     expect((await db.user.findUniqueOrThrow({ where: { id: adminId } })).roles).toEqual([
       "STUDENT",
     ]);
-    const third = await createUser(["SUPER_ADMIN"], "third@test.example");
-    await db.user.update({ where: { id: third.id }, data: { roles: ["STUDENT"] } });
-    expect(await setAdminRoles(other.id, [], { id: third.id })).toMatchObject({
+    const outsider = await createUser(["STUDENT"], "outsider@test.example");
+    expect(await setAdminAccess(other.id, false, { id: outsider.id })).toMatchObject({
       ok: false,
       error: expect.stringMatching(/at least one/),
     });
 
     const log = await db.auditLog.findMany({ where: { action: "user.roles" } });
-    expect(log.length).toBe(3);
+    expect(log.length).toBe(2);
   });
 });

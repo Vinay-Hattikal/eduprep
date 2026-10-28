@@ -17,29 +17,11 @@ if (!connectionString) throw new Error("DATABASE_URL is not set");
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
 const users: Prisma.UserCreateInput[] = [
+  // One admin does everything (D-056).
   {
     name: "Asha Admin",
     email: "admin@example.com",
-    roles: ["SUPER_ADMIN"],
-    onboardedAt: new Date(),
-  },
-  {
-    name: "Carl Content",
-    email: "author@example.com",
-    roles: ["CONTENT_AUTHOR"],
-    onboardedAt: new Date(),
-  },
-  {
-    name: "Riya Reviewer",
-    email: "reviewer@example.com",
-    roles: ["REVIEWER"],
-    onboardedAt: new Date(),
-  },
-  { name: "Omar Ops", email: "ops@example.com", roles: ["OPS_ADMIN"], onboardedAt: new Date() },
-  {
-    name: "Sana Support",
-    email: "support@example.com",
-    roles: ["SUPPORT_ADMIN"],
+    roles: ["ADMIN"],
     onboardedAt: new Date(),
   },
   {

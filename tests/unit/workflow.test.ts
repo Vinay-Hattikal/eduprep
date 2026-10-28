@@ -1,42 +1,41 @@
 import { describe, expect, it } from "vitest";
-import { availableActions, nextStatus, transitionBlocker } from "@/lib/content/workflow";
+import {
+  availableActions,
+  nextStatus,
+  STATUS_CHOICES,
+  transitionBlocker,
+} from "@/lib/content/workflow";
 
-const author = { id: "u-author", roles: ["CONTENT_AUTHOR"] as const };
-const reviewer = { id: "u-reviewer", roles: ["REVIEWER"] as const };
-const founder = { id: "u-founder", roles: ["SUPER_ADMIN"] as const };
+const admin = { id: "u-admin", roles: ["ADMIN"] as const };
+const student = { id: "u-student", roles: ["STUDENT"] as const };
 
-describe("question workflow", () => {
-  it("follows draft → review → published", () => {
-    expect(nextStatus("submit")).toBe("IN_REVIEW");
-    expect(nextStatus("approve")).toBe("PUBLISHED");
-    expect(nextStatus("reject")).toBe("DRAFT");
+describe("content publishing (D-056: no review step)", () => {
+  it("follows draft → published → archived", () => {
+    expect(nextStatus("publish")).toBe("PUBLISHED");
+    expect(nextStatus("unpublish")).toBe("DRAFT");
     expect(nextStatus("archive")).toBe("ARCHIVED");
     expect(nextStatus("restore")).toBe("DRAFT");
   });
 
-  it("lets authors submit drafts but not publish", () => {
-    expect(availableActions("DRAFT", author, author.id)).toEqual(["submit"]);
-    expect(availableActions("IN_REVIEW", author, author.id)).toEqual([]);
+  it("offers the right buttons for each status", () => {
+    expect(availableActions("DRAFT", admin)).toEqual(["publish", "archive"]);
+    expect(availableActions("PUBLISHED", admin)).toEqual(["unpublish", "archive"]);
+    expect(availableActions("ARCHIVED", admin)).toEqual(["restore"]);
   });
 
-  it("lets reviewers approve or send back other people's questions", () => {
-    expect(availableActions("IN_REVIEW", reviewer, author.id)).toEqual([
-      "approve",
-      "reject",
-      "archive",
-    ]);
+  it("treats old in-review items as drafts", () => {
+    expect(availableActions("IN_REVIEW", admin)).toEqual(["publish", "archive"]);
+    expect(STATUS_CHOICES).not.toContain("IN_REVIEW");
   });
 
-  it("stops reviewers approving their own questions (blind review)", () => {
-    expect(transitionBlocker("approve", "IN_REVIEW", reviewer, reviewer.id)).toMatch(/you wrote/);
-  });
-
-  it("lets the founder approve their own questions in solo mode", () => {
-    expect(transitionBlocker("approve", "IN_REVIEW", founder, founder.id)).toBeNull();
+  it("lets an admin publish their own content but not students", () => {
+    expect(transitionBlocker("publish", "DRAFT", admin)).toBeNull();
+    expect(transitionBlocker("publish", "DRAFT", student)).toMatch(/Only admins/);
+    expect(availableActions("DRAFT", student)).toEqual([]);
   });
 
   it("rejects transitions from the wrong status", () => {
-    expect(transitionBlocker("approve", "DRAFT", reviewer, author.id)).toMatch(/Can't/);
-    expect(transitionBlocker("restore", "PUBLISHED", reviewer, author.id)).toMatch(/Can't/);
+    expect(transitionBlocker("publish", "PUBLISHED", admin)).toMatch(/Can't/);
+    expect(transitionBlocker("restore", "PUBLISHED", admin)).toMatch(/Can't/);
   });
 });

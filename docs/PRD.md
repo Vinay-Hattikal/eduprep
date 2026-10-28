@@ -36,7 +36,7 @@ All content (MCQs, coding problems, company data, tests) is created and uploaded
 
 ### 3.2 Secondary
 - **Interviewers:** working engineers and HR professionals who run paid mock interviews and earn a share.
-- **Admins:** the founder at first, later content authors, reviewers, ops and support staff.
+- **Admins:** the founder at first. One admin role does everything (D-056); separate admin roles can come back if a team joins.
 - **Colleges (later):** placement officers (TPOs) who want batch readiness reports.
 
 ### 3.3 Personas
@@ -88,13 +88,9 @@ All content (MCQs, coding problems, company data, tests) is created and uploaded
 | Student / Candidate (Free) | Limited practice, limited coding, 1 mock test per company, drive alerts |
 | Student / Candidate (Paid) | Unlocked according to purchases (pack, Pro, interview credits) |
 | Interviewer | Manage availability, see upcoming interviews and candidate summary, submit scorecards, see earnings |
-| Content author | Create, import and edit drafts. Cannot publish. |
-| Reviewer | Review and publish or reject content |
-| Ops admin | Companies, drives, interview operations, interviewer approval, notifications |
-| Support admin | View users, grant access, process refunds. No content editing. |
-| Super admin | Everything, including roles, pricing and settings |
+| Admin | Everything in the admin panel: content, publishing, companies, imports, interviews, users, payments, settings and admin access (D-056) |
 
-The founder holds all admin roles at launch. Every admin action is written to the audit log.
+There is one admin role and no review step: an admin writes or imports content and publishes it. The last admin can't be removed. Every admin action is written to the audit log.
 
 ## 8. Features
 
@@ -182,7 +178,7 @@ Public, SEO-friendly page per company:
 **Scorecard:** a fixed rubric per interview type. Example for technical: problem solving, coding, CS fundamentals, communication, each scored 1–5 with comments. Also strengths, areas to improve, recommended topics (linked to practice), and an overall "hire / borderline / not yet".
 
 **Interviewer side:**
-- Apply with LinkedIn, current company, experience and interview types. An ops admin approves.
+- Apply with LinkedIn, current company, experience and interview types. An admin approves.
 - Set weekly availability and blocked dates. Slots are shown in the candidate's time zone (IST by default).
 - Dashboard with upcoming interviews, candidate summary (profile, target company, resume if shared), scorecards due, earnings.
 - Payouts through Razorpay Route after the scorecard is submitted (ledger in Phase 5, real transfers in Phase 6). Interviewer share is 70% at launch, configurable.
@@ -265,7 +261,7 @@ See [data-import.md](data-import.md) for the exact formats.
 
 ### 9.4 Content editor and review — Phase 2
 - A form editor for single MCQs and coding problems, with Markdown and LaTeX preview.
-- Status flow: **Draft → In review → Published → Archived.** Only reviewers and super admins can publish.
+- Status flow: **Draft → Published → Archived** (D-056). Editors have "Save as draft" and "Save and publish"; imports can publish what they bring in. Publishing runs the automatic checks; coding problems publish only after the judge check passes.
 - Automatic checks before review: answer key valid, options not duplicated, explanation present, topic set. For coding problems, the reference solution must pass every test case.
 - Version history for every item.
 
@@ -314,7 +310,7 @@ Rules: no copying from competitor sites. Recalled company questions are labelled
 | Reliability | A test in progress survives a refresh or network loss (answers saved at least every 10 s and on every change). |
 | Scale target | 10,000 concurrent test-takers during peak season without slowdown (phase 4 target). |
 | Security | Paid access checked on the server on every request. Code runs only in the isolated judge. Rate limiting on OTP, login, submissions. OWASP top 10 covered. |
-| Privacy | Phone, email and resumes visible only to the user, super admins, support admins, and (resume only, if shared) their booked interviewer. Compliant with India's DPDP Act: consent, deletion on request. |
+| Privacy | Phone, email and resumes visible only to the user, admins, and (resume only, if shared) their booked interviewer. Compliant with India's DPDP Act: consent, deletion on request. |
 | Backups | Daily database backups kept for 30 days, and a tested restore. |
 | SEO | Server-rendered company and topic pages, sitemap, structured data, clean URLs. |
 | Accessibility | Keyboard navigable, sufficient contrast, labelled form fields. |

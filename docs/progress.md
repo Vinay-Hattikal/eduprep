@@ -5,7 +5,7 @@ Where the project stands right now. **Update at the end of every work session.**
 - Task list and status for every phase: [plan.md](plan.md)
 - This file: current focus, known issues, session log
 
-Last updated: 2026-10-28 (admin editors, D-055)
+Last updated: 2026-10-28 (one admin role, no review step, D-056)
 
 ---
 
@@ -13,6 +13,7 @@ Last updated: 2026-10-28 (admin editors, D-055)
 
 - **Phases 1–5 are done; Phase 6 integrations are built.** Real accounts work; Razorpay, Resend, MSG91, WhatsApp, Google Meet, Redis/BullMQ and Docker are built behind switches and tested with development drivers and faked provider responses.
 - **Phase 7 (engagement) is built:** jobs board, weekly All-India mocks, "asked today" drive reports, question discussions, badges and streak freezes, share cards.
+- **One admin role, no review step (D-056):** a single Admin role does everything. Content is Draft → Published → Archived. Editors have "Save and publish", imports have "Publish after import", and admin › Drafts lists everything not yet live. Next: company workspace (plan B.2–B.5).
 - **Admin panel completion (D-055):** coding problems, design questions, role tracks, interview types, passages and admin roles can now be created and edited in the admin panel, not only imported.
 - **Owner's order (2026-10-28):** finish building and testing the application first. API keys, payments, domain and hosting are undecided and come last.
 - **Later, after the build:** the owner gets the accounts and keys; then each service gets one real test on staging, following [deployment.md](deployment.md). Remaining Phase 6 work: hosting choice and staging, monitoring and backups, Razorpay Route payouts, CSP, load test, legal review, content load, beta.
@@ -115,6 +116,8 @@ See PRD section 14.
 ## Session log
 
 Newest first. One line per session: date, who, what changed, what's next.
+
+- 2026-10-28 · Claude · **B.1 One admin role (D-056):** migration folds the five admin roles into `ADMIN`, and in-review content becomes drafts. Publish, unpublish, archive and restore replace submit, approve and reject. "Save and publish" in the question, problem, design and company editors. "Check and publish" for coding problems (publishes when the judge check passes). Drafts page replaces the review queue. "Publish after import" (new `import_batches` columns). The admin access button replaces role checkboxes. Seed creates one admin. Verified: `npm run check` (281 unit), 117/117 integration (new `publishing` file), full e2e 80 passed (34 skipped by design; one locator fixed and its file re-run). Next: B.2 hiring process and sources editors.
 
 - 2026-10-28 · Claude · **Admin editors (A.1–A.6, D-055):** everything that was import-only can now be created and edited in the admin panel: coding problems and their code, design questions, role tracks, interview types with rubrics, passages, and admin roles. No schema change. Scorecards now show scores for rubric items that were later removed. Fixed while here: `commerce` and `practice` integration tests imported questions before companies and broke on the company-tagged sample question (D-054 order). Verified: `npm run check` (284 unit), 111/111 integration (new `admin-editors`: a problem built in the panel passes the real judge and publishes), e2e `admin-editors` (desktop and 360 px phone), `admin` and `content` specs. The full e2e suite wasn't re-run. Next: A.7 ZIP content pack, or more admin polish.
 

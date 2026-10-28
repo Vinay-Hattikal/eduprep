@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { nextRoles, roleChangeBlocker } from "@/lib/admin-roles";
 import { scorecardItems } from "@/lib/interviews/policies";
-import { ADMIN_ROLES, can } from "@/lib/permissions";
+import { can } from "@/lib/permissions";
 import {
   interviewTypeFormFromData,
   problemFormFromData,
@@ -188,41 +188,35 @@ describe("scorecards after a rubric edit", () => {
   });
 });
 
-describe("admin roles", () => {
-  it("lets only super admins change roles", () => {
-    for (const role of ADMIN_ROLES.filter((r) => r !== "SUPER_ADMIN"))
-      expect(can([role], "users.roles")).toBe(false);
-    expect(can(["SUPER_ADMIN"], "users.roles")).toBe(true);
+describe("admin access", () => {
+  it("lets only admins change admin access", () => {
+    expect(can(["ADMIN"], "users.roles")).toBe(true);
+    expect(can(["STUDENT", "INTERVIEWER"], "users.roles")).toBe(false);
   });
 
-  it("changes admin roles only and keeps everyone signed-in-able", () => {
-    expect(nextRoles(["STUDENT", "REVIEWER"], ["OPS_ADMIN"])).toEqual(["STUDENT", "OPS_ADMIN"]);
-    expect(nextRoles(["INTERVIEWER", "REVIEWER"], [])).toEqual(["INTERVIEWER"]);
-    expect(nextRoles(["REVIEWER"], [])).toEqual(["STUDENT"]);
-    expect(nextRoles(["STUDENT"], ["STUDENT", "INTERVIEWER"])).toEqual(["STUDENT"]);
+  it("turns admin access on and off and keeps everyone able to sign in", () => {
+    expect(nextRoles(["STUDENT"], true)).toEqual(["STUDENT", "ADMIN"]);
+    expect(nextRoles(["INTERVIEWER", "ADMIN"], false)).toEqual(["INTERVIEWER"]);
+    expect(nextRoles(["ADMIN"], false)).toEqual(["STUDENT"]);
+    expect(nextRoles(["STUDENT", "ADMIN"], true)).toEqual(["STUDENT", "ADMIN"]);
   });
 
-  it("protects the last super admin and your own super admin role", () => {
-    const change = {
-      before: ["SUPER_ADMIN"] as const,
-      after: ["STUDENT"] as const,
-    };
-    expect(roleChangeBlocker({ ...change, actorId: "a", targetId: "a", superAdmins: 3 })).toMatch(
+  it("protects the last admin and your own admin access", () => {
+    const change = { before: ["ADMIN"] as const, after: ["STUDENT"] as const };
+    expect(roleChangeBlocker({ ...change, actorId: "a", targetId: "a", admins: 3 })).toMatch(
       /your own/,
     );
-    expect(roleChangeBlocker({ ...change, actorId: "a", targetId: "b", superAdmins: 1 })).toMatch(
+    expect(roleChangeBlocker({ ...change, actorId: "a", targetId: "b", admins: 1 })).toMatch(
       /at least one/,
     );
-    expect(
-      roleChangeBlocker({ ...change, actorId: "a", targetId: "b", superAdmins: 2 }),
-    ).toBeNull();
+    expect(roleChangeBlocker({ ...change, actorId: "a", targetId: "b", admins: 2 })).toBeNull();
     expect(
       roleChangeBlocker({
         actorId: "a",
         targetId: "a",
-        before: ["SUPER_ADMIN"],
-        after: ["SUPER_ADMIN", "REVIEWER"],
-        superAdmins: 1,
+        before: ["STUDENT"],
+        after: ["STUDENT", "ADMIN"],
+        admins: 1,
       }),
     ).toBeNull();
   });

@@ -111,7 +111,7 @@ export function companyActions(
 export async function setCompanyStatus(
   id: string,
   action: CompanyStatusAction,
-  actor: CurrentUser,
+  actor: Pick<CurrentUser, "id" | "roles">,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const company = await db.company.findUnique({
     where: { id },

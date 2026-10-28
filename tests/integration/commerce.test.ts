@@ -25,7 +25,7 @@ import { createUser, importFile, resetDatabase, template } from "./helpers";
 let adminId: string;
 let buyer: CurrentUser;
 let friend: CurrentUser;
-const admin = () => ({ id: adminId, roles: ["SUPER_ADMIN" as const] });
+const admin = () => ({ id: adminId, roles: ["ADMIN" as const] });
 
 async function student(email: string): Promise<CurrentUser> {
   const user = await db.user.create({
@@ -57,7 +57,7 @@ async function pay(
 
 beforeAll(async () => {
   await resetDatabase();
-  adminId = (await createUser(["SUPER_ADMIN"], "admin@test.example")).id;
+  adminId = (await createUser(["ADMIN"], "admin@test.example")).id;
   for (const [type, file] of [
     ["TAXONOMY", "taxonomy.csv"],
     // Companies first: question files tag questions with companies (D-054 import order).

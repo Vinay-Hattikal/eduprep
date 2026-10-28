@@ -101,7 +101,7 @@ The bar is a modern, polished product that is clearly better than existing prep 
 - Public pages (company, topic, pricing) are server-rendered with proper titles, descriptions and structured data.
 
 ## 5. Content rules
-- Imported or AI-drafted content is always a **draft**. Only reviewers or super admins publish.
+- Imported or AI-drafted content is a **draft** unless an admin publishes it (editor "Save and publish", or "Publish after import"). Only admins publish, and publishing always runs the automatic checks (D-056).
 - No copying from other prep sites (D-019). Recalled questions are rewritten and labelled "memory-based".
 - Every company fact has a source and the company page has a last-verified date.
 - Questions must have an explanation. Coding problems must have a reference solution that passes every test.

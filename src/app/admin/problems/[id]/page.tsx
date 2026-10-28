@@ -22,7 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { availableActions, ACTION_LABELS, type QuestionAction } from "@/lib/content/workflow";
+import { availableActions, ACTION_LABELS, type ContentAction } from "@/lib/content/workflow";
 import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
@@ -55,8 +55,8 @@ async function Detail({ params, searchParams }: PageProps<"/admin/problems/[id]"
   if (!problem) notFound();
 
   const canEdit = can(user.roles, "content.edit") && problem.status !== "ARCHIVED";
-  const actions = availableActions(problem.status, user, problem.authorId);
-  const done = typeof query.done === "string" ? (query.done as QuestionAction) : null;
+  const actions = availableActions(problem.status, user);
+  const done = typeof query.done === "string" ? (query.done as ContentAction) : null;
   const error = typeof query.error === "string" ? query.error : null;
   const samples = problem.testCases.filter((t) => t.isSample).length;
 
@@ -100,7 +100,8 @@ async function Detail({ params, searchParams }: PageProps<"/admin/problems/[id]"
           <AlertTitle>Saved</AlertTitle>
           {query.draft ? (
             <AlertDescription>
-              The problem went back to draft. Submit it for review again.
+              The problem went back to draft and is hidden from students. Publish it again when
+              it&apos;s ready.
             </AlertDescription>
           ) : null}
         </Alert>
@@ -117,10 +118,14 @@ async function Detail({ params, searchParams }: PageProps<"/admin/problems/[id]"
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
-      {problem.reviewNote && problem.status === "DRAFT" ? (
+      {query.publishing && problem.status !== "PUBLISHED" ? (
         <Alert>
-          <AlertTitle>Reviewer note</AlertTitle>
-          <AlertDescription>{problem.reviewNote}</AlertDescription>
+          <CheckCircle2 />
+          <AlertTitle>Publishing after the judge check</AlertTitle>
+          <AlertDescription>
+            The problem is published as soon as every solution passes every test. If the check
+            fails, it stays a draft and the report below says why.
+          </AlertDescription>
         </Alert>
       ) : null}
 
@@ -171,7 +176,11 @@ async function Detail({ params, searchParams }: PageProps<"/admin/problems/[id]"
                 </Button>
               </form>
             ) : null}
-            <ProblemWorkflow id={problem.id} actions={actions} />
+            <ProblemWorkflow
+              id={problem.id}
+              actions={actions}
+              validated={Boolean(problem.validatedAt)}
+            />
           </div>
           <p className="text-xs text-muted-foreground">
             {problem.stats.submissions} student submissions · {problem.stats.accepted} accepted

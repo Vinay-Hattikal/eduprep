@@ -13,7 +13,7 @@ import {
   nextStatus,
   transitionBlocker,
   type Actor,
-  type QuestionAction,
+  type ContentAction,
 } from "@/lib/content/workflow";
 import { db } from "@/server/db";
 import { enqueueJob } from "@/server/jobs/queue";
@@ -390,33 +390,29 @@ async function markChanged(
   });
 }
 
-export async function requestValidation(problemId: string) {
+export async function requestValidation(problemId: string, publishBy?: string) {
   await db.problem.update({ where: { id: problemId }, data: { validationNote: null } });
-  await enqueueJob("problem.validate", { problemId });
+  await enqueueJob("problem.validate", { problemId, ...(publishBy && { publishBy }) });
 }
 
 // ---------- Workflow ----------
 
 export async function transitionProblem(
   id: string,
-  action: QuestionAction,
+  action: ContentAction,
   actor: Actor,
-  note?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const problem = await db.problem.findUnique({ where: { id } });
   if (!problem) return { ok: false, error: "This problem no longer exists." };
-  const blocker = transitionBlocker(action, problem.status, actor, problem.authorId);
-  if (blocker) return { ok: false, error: blocker.replace("a question", "a problem") };
+  const blocker = transitionBlocker(action, problem.status, actor);
+  if (blocker) return { ok: false, error: blocker };
   // D-034: only problems whose reference solutions pass every test reach students.
-  if ((action === "submit" || action === "approve") && !problem.validatedAt) {
+  if (action === "publish" && !problem.validatedAt) {
     return {
       ok: false,
-      error:
-        "Validate the problem in the judge first: every reference solution must pass every test.",
+      error: "Check the problem in the judge first: every reference solution must pass every test.",
     };
   }
-  if (action === "reject" && !note?.trim())
-    return { ok: false, error: "Say what needs to change." };
 
   const status = nextStatus(action);
   await db.$transaction(async (tx) => {
@@ -424,13 +420,11 @@ export async function transitionProblem(
       where: { id },
       data: {
         status,
-        ...(action === "approve" && {
+        ...(action === "publish" && {
           publishedAt: new Date(),
           reviewerId: actor.id,
           reviewNote: null,
         }),
-        ...(action === "reject" && { reviewNote: note!.trim(), reviewerId: actor.id }),
-        ...(action === "submit" && { reviewNote: null }),
       },
     });
     await recordAudit(
@@ -440,7 +434,7 @@ export async function transitionProblem(
         entityType: "problem",
         entityId: id,
         before: { status: problem.status },
-        after: { status, ...(note ? { note } : {}) },
+        after: { status },
       },
       tx,
     );

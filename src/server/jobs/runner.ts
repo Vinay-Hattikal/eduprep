@@ -19,7 +19,8 @@ const handlers: { [T in JobType]: (payload: JobPayloads[T]) => Promise<void> } =
   "import.validate": ({ batchId }) => validateBatch(batchId),
   "import.commit": ({ batchId }) => commitBatch(batchId),
   "code.judge": ({ submissionId }) => judgeSubmission(submissionId),
-  "problem.validate": ({ problemId }) => validateProblem(problemId),
+  "problem.validate": ({ problemId, publishBy }) =>
+    validateProblem(problemId, undefined, publishBy),
   "test.autosubmit": ({ sittingId }) => autoSubmitSitting(sittingId),
   "notification.send": ({ notificationId }) => sendNotification(notificationId),
   "booking.meeting": ({ bookingId, action }) => syncMeeting(bookingId, action),
