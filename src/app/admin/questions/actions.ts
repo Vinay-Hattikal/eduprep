@@ -4,8 +4,10 @@ import { revalidatePath, updateTag } from "next/cache";
 import { COMPANIES_TAG } from "@/server/services/public-companies";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { askedAtFromFormData, readAskedAt } from "@/lib/content/asked-at";
 import { questionFormFromData } from "@/schemas/question";
 import { requirePermission } from "@/server/auth";
+import { companyLinksProblem, setCompanyLinks } from "@/server/services/company-links";
 import {
   bulkTransition,
   getQuestion,
@@ -30,6 +32,11 @@ export async function saveQuestionAction(
     return { fieldErrors, formError: "Fix the highlighted fields." };
   }
 
+  // "Asked at" companies are checked before anything is saved (D-057).
+  const asked = readAskedAt(askedAtFromFormData(formData), new Date());
+  const linkError = asked.error ?? (await companyLinksProblem(asked.links));
+  if (linkError) return { fieldErrors: { companies: linkError }, formError: linkError };
+
   const result = await saveQuestion(parsed.data, user);
   if (!result.ok) {
     return {
@@ -37,6 +44,7 @@ export async function saveQuestionAction(
       formError: result.formError ?? "Fix the highlighted fields.",
     };
   }
+  await setCompanyLinks({ questionId: result.id }, asked.links, user);
   // "Save and publish" (D-056): the question goes live straight away.
   let query = `saved=1${result.movedToDraft ? "&draft=1" : ""}`;
   if (formData.get("intent") === "publish") {
@@ -50,6 +58,9 @@ export async function saveQuestionAction(
   }
   revalidatePath("/admin/questions");
   updateTag(COMPANIES_TAG);
+  // "Then add another": a fresh form that keeps the classification and companies.
+  if (!parsed.data.id && formData.get("next") === "on" && !query.includes("error="))
+    redirect(`/admin/questions/new?copyFrom=${result.id}&${query}`);
   redirect(`/admin/questions/${result.id}?${query}`);
 }
 

@@ -73,7 +73,9 @@ export async function getAdminProblem(id: string) {
       topics: { select: { id: true, name: true, slug: true } },
       testCases: { orderBy: { order: "asc" } },
       solutions: { orderBy: [{ kind: "asc" }, { language: "asc" }] },
-      companies: { select: { company: { select: { name: true, slug: true } } } },
+      companies: {
+        select: { companyId: true, askedIn: true, company: { select: { name: true, slug: true } } },
+      },
       author: { select: { name: true } },
       reviewer: { select: { name: true } },
     },

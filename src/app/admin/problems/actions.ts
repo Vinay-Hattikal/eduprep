@@ -1,9 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { askedAtFromFormData, readAskedAt } from "@/lib/content/asked-at";
 import { requirePermission } from "@/server/auth";
+import { companyLinksProblem, setCompanyLinks } from "@/server/services/company-links";
+import { COMPANIES_TAG } from "@/server/services/public-companies";
 import { fieldErrors, problemFormFromData, solutionFormSchema } from "@/schemas/admin-content";
 import {
   addTestCase,
@@ -57,6 +60,9 @@ export async function saveProblemAction(
   const parsed = problemFormFromData(formData);
   if (!parsed.success)
     return { fieldErrors: fieldErrors(parsed.error), formError: "Fix the highlighted fields." };
+  const asked = readAskedAt(askedAtFromFormData(formData), new Date());
+  const linkError = asked.error ?? (await companyLinksProblem(asked.links));
+  if (linkError) return { fieldErrors: { companies: linkError }, formError: linkError };
   const { hints, ...values } = parsed.data;
   const result = await saveProblem({ ...values, hints: hints.filter(Boolean) }, user);
   if (!result.ok)
@@ -64,6 +70,8 @@ export async function saveProblemAction(
       fieldErrors: result.fieldErrors,
       formError: result.formError ?? "Fix the highlighted fields.",
     };
+  await setCompanyLinks({ problemId: result.id }, asked.links, user);
+  updateTag(COMPANIES_TAG);
   revalidatePath("/admin/problems");
   if (result.created) back(result.id, "created=1");
   // "Save and publish" (D-056): publish now if the judge check still holds, else check first.

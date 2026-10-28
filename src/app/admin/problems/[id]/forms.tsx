@@ -7,6 +7,9 @@ import {
   transitionProblemAction,
   type ProblemFormState,
 } from "@/app/admin/problems/actions";
+import { useState } from "react";
+import { AskedAtField } from "@/components/content/asked-at-field";
+import { QuickTopic } from "@/components/content/quick-topic";
 import { CheckboxGroup } from "@/components/shared/checkbox-group";
 import { FormField } from "@/components/shared/form-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { CODING_LANGUAGE_IDS, CODING_LANGUAGES } from "@/lib/coding/languages";
+import type { AskedAtInput } from "@/lib/content/asked-at";
 import { ACTION_LABELS, type ContentAction } from "@/lib/content/workflow";
 import type { ProblemFormValues } from "@/app/admin/problems/problem-defaults";
 import { useFormSubmit } from "@/hooks/use-form-submit";
@@ -67,13 +71,21 @@ const LANGUAGE_OPTIONS = CODING_LANGUAGE_IDS.map((id) => ({
 export function ProblemForm({
   values,
   topics,
+  companies,
+  initialCompanies,
 }: {
   values: ProblemFormValues;
   topics: { id: string; name: string }[];
+  /** Companies for the "Asked at" picker and the problem's current links (D-057). */
+  companies: { id: string; name: string }[];
+  initialCompanies: AskedAtInput[];
 }) {
   const [state, onSubmit, pending] = useFormSubmit<ProblemFormState>(saveProblemAction, {});
   const errors = state.fieldErrors ?? {};
   const creating = !values.id;
+  // "+ New topic" adds to the list and ticks the new topic (D-057).
+  const [topicList, setTopicList] = useState(topics);
+  const [checkedTopics, setCheckedTopics] = useState(values.topicIds);
   const text = (
     name: keyof ProblemFormValues,
     label: string,
@@ -158,15 +170,24 @@ export function ProblemForm({
           </FormField>
         </div>
       </div>
-      <CheckboxGroup
-        id="topicIds"
-        name="topicIds"
-        legend="Topics"
-        options={topics.map((t) => ({ value: t.id, label: t.name }))}
-        defaultValues={values.topicIds}
-        error={errors.topicIds}
-        emptyText="Add topics to the DSA subject in Taxonomy first."
-      />
+      <div className="space-y-1">
+        <CheckboxGroup
+          id="topicIds"
+          name="topicIds"
+          legend="Topics"
+          options={topicList.map((t) => ({ value: t.id, label: t.name }))}
+          defaultValues={checkedTopics}
+          error={errors.topicIds}
+          emptyText="No DSA topics yet. Add one below."
+        />
+        <QuickTopic
+          subject="dsa"
+          onCreated={(topic) => {
+            setTopicList((list) => [...list, topic]);
+            setCheckedTopics((ids) => [...ids, topic.id]);
+          }}
+        />
+      </div>
       <CheckboxGroup
         id="languages"
         name="languages"
@@ -246,6 +267,7 @@ export function ProblemForm({
         ))}
       </div>
       {text("editorial", "Editorial (Markdown)", 6, "Unlocks after the last hint or once solved.")}
+      <AskedAtField companies={companies} initial={initialCompanies} error={errors.companies} />
       <p className="text-xs text-muted-foreground">
         {creating
           ? "Saved as a draft. Next, add tests and a reference solution, then check it in the judge."

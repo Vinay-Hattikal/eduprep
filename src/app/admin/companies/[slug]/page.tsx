@@ -5,9 +5,10 @@ import { Suspense } from "react";
 import { AlertTriangle, ArrowLeft, BadgeCheck, CheckCircle2, ExternalLink } from "lucide-react";
 import { companyStatusAction, verifyCompanyAction } from "@/app/admin/companies/actions";
 import { CompanyForm } from "@/app/admin/companies/company-form";
+import { CompanyMocks } from "@/app/admin/companies/[slug]/company-mocks";
 import { ChangeButton, HiringProcess } from "@/app/admin/companies/[slug]/hiring-process";
+import { LinkedContent } from "@/app/admin/companies/[slug]/linked-content";
 import { SourceForm } from "@/app/admin/companies/hiring-forms";
-import { DataTable } from "@/components/shared/data-table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageSkeleton } from "@/components/shared/skeletons";
@@ -16,7 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { COMPANY_ACTION_LABELS, STALE_AFTER_MONTHS } from "@/lib/content/companies";
-import { formatDate, plainExcerpt } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { requirePermission } from "@/server/auth";
@@ -151,7 +152,12 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
                 {t.label}
                 {t.key === "process" ? <TabCount n={company.rounds.length} /> : null}
                 {t.key === "sources" ? <TabCount n={company.sources.length} /> : null}
-                {t.key === "questions" ? <TabCount n={company.items.length} /> : null}
+                {t.key === "questions" ? (
+                  <TabCount n={company.items.filter((i) => i.questionId).length} />
+                ) : null}
+                {t.key === "coding" ? (
+                  <TabCount n={company.items.filter((i) => i.problemId).length} />
+                ) : null}
               </Link>
             </li>
           ))}
@@ -237,65 +243,16 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
       ) : null}
 
       {tab === "questions" ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Linked questions</CardTitle>
-            <CardDescription>
-              From company-question-map.csv. The same question can be linked to many companies.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataTable
-              caption="Linked questions"
-              rows={company.items}
-              rowKey={(item) => item.id}
-              emptyTitle="No questions linked yet"
-              columns={[
-                {
-                  key: "question",
-                  header: "Question",
-                  cell: (item) =>
-                    item.question ? (
-                      <div className="max-w-xl">
-                        <Link
-                          href={`/admin/questions/${item.question.id}`}
-                          className="font-mono text-xs font-medium text-primary hover:underline"
-                        >
-                          {item.question.externalId}
-                        </Link>
-                        <p className="line-clamp-1">{plainExcerpt(item.question.text, 120)}</p>
-                      </div>
-                    ) : item.problem ? (
-                      <div className="max-w-xl">
-                        <Link
-                          href={`/admin/problems/${item.problem.id}`}
-                          className="font-mono text-xs font-medium text-primary hover:underline"
-                        >
-                          {item.problem.externalId}
-                        </Link>
-                        <p className="line-clamp-1">Coding · {item.problem.title}</p>
-                      </div>
-                    ) : null,
-                },
-                {
-                  key: "status",
-                  header: "Status",
-                  hideOnMobile: true,
-                  cell: (item) => {
-                    const status = item.question?.status ?? item.problem?.status;
-                    return status ? <ContentStatusBadge status={status} /> : null;
-                  },
-                },
-                {
-                  key: "asked",
-                  header: "Asked in",
-                  hideOnMobile: true,
-                  cell: (item) => (item.askedIn.length ? item.askedIn.join(", ") : "—"),
-                },
-              ]}
-            />
-          </CardContent>
-        </Card>
+        <LinkedContent kind="question" company={company} canEdit={canEdit} query={query} />
+      ) : null}
+      {tab === "coding" ? (
+        <LinkedContent kind="problem" company={company} canEdit={canEdit} query={query} />
+      ) : null}
+      {tab === "mocks" ? (
+        <CompanyMocks
+          company={company}
+          hasTestSections={company.rounds.some((r) => r.sections.length > 0)}
+        />
       ) : null}
     </div>
   );
@@ -305,7 +262,9 @@ const TABS = [
   { key: "profile", label: "Profile" },
   { key: "process", label: "Hiring process" },
   { key: "sources", label: "Sources" },
-  { key: "questions", label: "Questions" },
+  { key: "questions", label: "MCQ questions" },
+  { key: "coding", label: "Coding" },
+  { key: "mocks", label: "Mock tests" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 

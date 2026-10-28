@@ -262,11 +262,20 @@ See [data-import.md](data-import.md) for the exact formats.
 ### 9.4 Content editor and review — Phase 2
 - A form editor for single MCQs and coding problems, with Markdown and LaTeX preview.
 - Status flow: **Draft → Published → Archived** (D-056). Editors have "Save as draft" and "Save and publish"; imports can publish what they bring in. Publishing runs the automatic checks; coding problems publish only after the judge check passes.
-- Automatic checks before review: answer key valid, options not duplicated, explanation present, topic set. For coding problems, the reference solution must pass every test case.
+- Automatic checks before publishing: answer key valid, options not duplicated, explanation present, topic set. For coding problems, the reference solution must pass every test case.
 - Version history for every item.
 
 ### 9.5 Companies — Phase 2
 Structured form for each company page (section 8.2), with sources, last-verified date, SEO title and description, preview and publish.
+
+**Company workspace (D-057):** each company's admin page has tabs, so one admin can build a company's content by hand without CSV files:
+- **Profile:** the company form.
+- **Hiring process:** add, edit, reorder and delete rounds and their test sections (questions, minutes, negative marking, going back, topics).
+- **Sources:** add and remove links.
+- **MCQ questions and Coding:** "Add question" or "Add coding problem" opens the editor with the company already tagged. "Then add another" keeps the subject, topic, difficulty and companies and suggests the next ID. Existing items can be searched and linked, or unlinked.
+- **Mock tests:** "Draft mock from the pattern".
+
+The question and coding editors have an "Asked at" list (companies and optional months), and a "+ New topic" button for a missing topic.
 
 ### 9.6 Test blueprints — Phase 4
 Define tests: sections, timer per section, topic and difficulty mix, negative marking, navigation rules, the platform interface to copy, and which company the test belongs to.

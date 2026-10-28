@@ -14,6 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { AskedAtField } from "@/components/content/asked-at-field";
+import { QuickTopic } from "@/components/content/quick-topic";
+import type { AskedAtInput } from "@/lib/content/asked-at";
 import { CODE_LANGUAGES, OPTION_LETTERS } from "@/lib/content/question-rules";
 
 export type TaxonomyOption = {
@@ -51,16 +54,35 @@ type Props = {
   initial: EditorValues;
   passage?: { title: string; body: string } | null;
   readOnly?: boolean;
+  /** Companies for the "Asked at" picker, and the question's current links. */
+  companies: { id: string; name: string }[];
+  initialCompanies: AskedAtInput[];
+  /** New questions: start the next one after saving (company-wise entry, D-057). */
+  addAnother?: boolean;
 };
 
-export function QuestionEditor({ taxonomy, initial, passage, readOnly = false }: Props) {
+export function QuestionEditor({
+  taxonomy,
+  initial,
+  passage,
+  readOnly = false,
+  companies,
+  initialCompanies,
+  addAnother = false,
+}: Props) {
   const [state, onSubmit, pending] = useFormSubmit(saveQuestionAction, initialState);
   const [v, setV] = useState(initial);
+  // Topics added with "+ New topic", per subject id (D-057).
+  const [addedTopics, setAddedTopics] = useState<Record<string, TaxonomyOption["topics"]>>({});
   const errors = state.fieldErrors ?? {};
   const set = <K extends keyof EditorValues>(key: K, value: EditorValues[K]) =>
     setV((prev) => ({ ...prev, [key]: value }));
 
-  const subject = taxonomy.find((s) => s.id === v.subjectId);
+  const baseSubject = taxonomy.find((s) => s.id === v.subjectId);
+  const subject = baseSubject && {
+    ...baseSubject,
+    topics: [...baseSubject.topics, ...(addedTopics[baseSubject.id] ?? [])],
+  };
   const topic = subject?.topics.find((t) => t.id === v.topicId);
   const isNumeric = v.type === "NUMERIC";
 
@@ -171,6 +193,20 @@ export function QuestionEditor({ taxonomy, initial, passage, readOnly = false }:
                   </NativeSelect>
                 )}
               </FormField>
+              {readOnly ? null : (
+                <div className="-mt-2 sm:col-span-2">
+                  <QuickTopic
+                    subject={v.subjectId}
+                    onCreated={(topic) => {
+                      setAddedTopics((prev) => ({
+                        ...prev,
+                        [v.subjectId]: [...(prev[v.subjectId] ?? []), { ...topic, subtopics: [] }],
+                      }));
+                      setV((p) => ({ ...p, topicId: topic.id, subtopicId: "" }));
+                    }}
+                  />
+                </div>
+              )}
               <FormField id="subtopicId" label="Subtopic (optional)" error={errors.subtopicId}>
                 {(aria) => (
                   <NativeSelect
@@ -430,6 +466,19 @@ export function QuestionEditor({ taxonomy, initial, passage, readOnly = false }:
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Companies</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AskedAtField
+                companies={companies}
+                initial={initialCompanies}
+                error={errors.companies}
+              />
+            </CardContent>
+          </Card>
         </fieldset>
 
         {readOnly ? null : (
@@ -453,7 +502,20 @@ export function QuestionEditor({ taxonomy, initial, passage, readOnly = false }:
             >
               <Save /> Save as draft
             </Button>
-            <p className="text-xs text-muted-foreground">
+            {v.id ? null : (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="next"
+                  name="next"
+                  defaultChecked={addAnother}
+                  data-testid="add-another"
+                />
+                <Label htmlFor="next" className="font-normal">
+                  Then add another
+                </Label>
+              </div>
+            )}
+            <p className="w-full text-xs text-muted-foreground">
               Drafts are hidden from students. Saving a published question as a draft unpublishes
               it.
             </p>

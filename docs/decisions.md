@@ -519,3 +519,17 @@ Every significant product or technical decision is recorded here, so humans and 
   - **Drafts page** (`/admin/drafts`, was the review queue): draft questions with bulk publish, draft coding problems with their judge state, and draft design questions.
   - **Publish after import:** a tick box on the import preview (MCQ, companies, design questions, coding). Items go through the same publish rules; ones that fail stay drafts. The batch records `publishAfterImport` and `publishedCount`. Coding problems publish from their judge-check job.
 - Consequences: the old seeded accounts (author, reviewer, ops, support) are admins in existing local databases; the seed now creates one admin. Blind review is gone; mistakes are caught by the automatic checks, the judge, student error reports and content analytics.
+
+## D-057: Company workspace for adding content by hand
+- Date: 2026-10-28
+- Status: Accepted
+- Context: preparing CSV datasets is slow. The owner wants to build each company's content one item at a time, starting from the company.
+- Decision:
+  - Questions and coding problems stay in one shared bank, organised by subject and topic. A company **links** to them (`company_items`, with optional months). Nothing is copied per company. Working "from a company" means the editors open with that company already linked.
+  - **Company admin page tabs:** Profile, Hiring process, Sources, MCQ questions, Coding, Mock tests.
+  - **Hiring process and sources** are edited in place and go live straight away, like the process import: they describe the company, they aren't graded content. Round and section orders stay 1, 2, 3… (swap to move, renumber after delete). A published company can't lose its last source.
+  - **"Asked at"** in the question and problem editors is the item's full company list. Changing it doesn't unpublish the item (same as D-054 for imports). Months are `YYYY-MM`, not in the future.
+  - **"Then add another"** (new questions): after saving, a fresh form keeps the subject, topic, subtopic, type, difficulty, time, source, tags and companies, and suggests the next unused ID (QA-PCT-0042 → QA-PCT-0043). It's ticked by default when the editor was opened from a company.
+  - **Link existing / unlink** on the company tabs. Unlinking never deletes the item.
+  - **"+ New topic"** creates a topic from its name inside the editors. The slug comes from the name; a slug taken by another subject gets the subject slug in front.
+  - **Coding problem checklist:** samples, hidden tests, reference solution, judge check, published.

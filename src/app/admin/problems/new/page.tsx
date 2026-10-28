@@ -9,36 +9,53 @@ import { PageSkeleton } from "@/components/shared/skeletons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requirePermission } from "@/server/auth";
+import { companyOptions } from "@/server/services/company-links";
 import { listDsaTopics } from "@/server/services/problems";
 
 export const metadata: Metadata = { title: "New coding problem" };
 
-export default function NewProblemPage() {
+export default function NewProblemPage({ searchParams }: PageProps<"/admin/problems/new">) {
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
-        <Link href="/admin/problems">
-          <ArrowLeft /> Coding problems
-        </Link>
-      </Button>
-      <PageHeader
-        title="New coding problem"
-        description="Saved as a draft. Then add tests and a reference solution on the problem's page."
-      />
       <Suspense fallback={<PageSkeleton />}>
-        <NewProblem />
+        <NewProblem searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function NewProblem() {
+/** A blank problem; with `?company=<slug>` it is tagged with that company (D-057). */
+async function NewProblem({
+  searchParams,
+}: {
+  searchParams: PageProps<"/admin/problems/new">["searchParams"];
+}) {
   await requirePermission("content.edit");
+  const { company: slug } = await searchParams;
+  const [topics, companies] = await Promise.all([listDsaTopics(), companyOptions()]);
+  const company = typeof slug === "string" ? companies.find((c) => c.slug === slug) : undefined;
   return (
-    <Card>
-      <CardContent>
-        <ProblemForm values={EMPTY_PROBLEM} topics={await listDsaTopics()} />
-      </CardContent>
-    </Card>
+    <>
+      <Button asChild variant="ghost" size="sm" className="-ml-2 max-w-full">
+        <Link href={company ? `/admin/companies/${company.slug}?tab=coding` : "/admin/problems"}>
+          <ArrowLeft />
+          <span className="truncate">{company ? `${company.name} coding` : "Coding problems"}</span>
+        </Link>
+      </Button>
+      <PageHeader
+        title={company ? `New coding problem for ${company.name}` : "New coding problem"}
+        description="Saved as a draft. Then add tests and a reference solution on the problem's page."
+      />
+      <Card>
+        <CardContent>
+          <ProblemForm
+            values={EMPTY_PROBLEM}
+            topics={topics}
+            companies={companies}
+            initialCompanies={company ? [{ companyId: company.id, askedIn: "" }] : []}
+          />
+        </CardContent>
+      </Card>
+    </>
   );
 }

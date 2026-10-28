@@ -14,6 +14,7 @@ import {
   ProblemWorkflow,
   SolutionForm,
 } from "@/app/admin/problems/[id]/forms";
+import { ProblemChecklist } from "@/app/admin/problems/[id]/checklist";
 import { AutoRefresh } from "@/components/shared/auto-refresh";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageSkeleton } from "@/components/shared/skeletons";
@@ -26,6 +27,7 @@ import { availableActions, ACTION_LABELS, type ContentAction } from "@/lib/conte
 import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
+import { companyOptions } from "@/server/services/company-links";
 import { getAdminProblem, listDsaTopics } from "@/server/services/problems";
 
 export const metadata: Metadata = { title: "Coding problem" };
@@ -51,7 +53,11 @@ async function Detail({ params, searchParams }: PageProps<"/admin/problems/[id]"
   const user = await requirePermission("content.view");
   const { id } = await params;
   const query = await searchParams;
-  const [problem, topics] = await Promise.all([getAdminProblem(id), listDsaTopics()]);
+  const [problem, topics, companies] = await Promise.all([
+    getAdminProblem(id),
+    listDsaTopics(),
+    companyOptions(),
+  ]);
   if (!problem) notFound();
 
   const canEdit = can(user.roles, "content.edit") && problem.status !== "ARCHIVED";
@@ -128,6 +134,19 @@ async function Detail({ params, searchParams }: PageProps<"/admin/problems/[id]"
           </AlertDescription>
         </Alert>
       ) : null}
+
+      <ProblemChecklist
+        steps={[
+          { label: "At least 1 sample test", done: samples >= 1 },
+          { label: "At least 5 hidden tests", done: problem.testCases.length - samples >= 5 },
+          {
+            label: "A reference solution",
+            done: problem.solutions.some((s) => s.kind === "REFERENCE"),
+          },
+          { label: "Passed the judge check", done: Boolean(problem.validatedAt) },
+          { label: "Published", done: problem.status === "PUBLISHED" },
+        ]}
+      />
 
       <Card data-testid="judge-check">
         <CardHeader>
@@ -316,6 +335,11 @@ async function Detail({ params, searchParams }: PageProps<"/admin/problems/[id]"
           <CardContent>
             <ProblemForm
               topics={topics}
+              companies={companies}
+              initialCompanies={problem.companies.map((c) => ({
+                companyId: c.companyId,
+                askedIn: c.askedIn.join(", "),
+              }))}
               values={{
                 id: problem.id,
                 externalId: problem.externalId,

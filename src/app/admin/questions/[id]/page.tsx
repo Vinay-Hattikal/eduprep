@@ -18,6 +18,7 @@ import { ACTION_LABELS, availableActions, type ContentAction } from "@/lib/conte
 import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
+import { companyOptions } from "@/server/services/company-links";
 import { getQuestion, getQuestionHistory } from "@/server/services/questions";
 
 export const metadata: Metadata = { title: "Question" };
@@ -55,7 +56,11 @@ async function QuestionDetail({ params, searchParams }: PageProps<"/admin/questi
   const question = await getQuestion(id);
   if (!question) notFound();
 
-  const [taxonomy, history] = await Promise.all([taxonomyOptions(), getQuestionHistory(id)]);
+  const [taxonomy, history, companies] = await Promise.all([
+    taxonomyOptions(),
+    getQuestionHistory(id),
+    companyOptions(),
+  ]);
   const actions = availableActions(question.status, user);
   const issues = checkQuestion(question);
   const canEdit = can(user.roles, "content.edit") && question.status !== "ARCHIVED";
@@ -133,6 +138,11 @@ async function QuestionDetail({ params, searchParams }: PageProps<"/admin/questi
         initial={toEditorValues(question)}
         passage={question.passage}
         readOnly={!canEdit}
+        companies={companies}
+        initialCompanies={question.companies.map((c) => ({
+          companyId: c.companyId,
+          askedIn: c.askedIn.join(", "),
+        }))}
       />
 
       <Card>
