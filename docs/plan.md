@@ -244,6 +244,20 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 
 ---
 
+## Public pages for search and preview (D-058)
+
+**Goal:** search engines index the question bank and visitors can try the platform before signing up, without giving the whole bank away.
+
+| # | Task | Status |
+|---|---|---|
+| C.1 | Sitemap: pricing, legal, become-interviewer, experience pages; company "last modified" follows its content | ✅ |
+| C.2 | "Public sample" flag per question (editor, bulk), automatic first N per topic (setting) | ✅ |
+| C.3 | Public topic pages and question pages (samples show answers; others ask to sign up), structured data, split sitemaps | ⬜ |
+| C.4 | Public coding problem statements and mock test landing pages | ⬜ |
+| C.5 | Company pages: sample questions and links to their topics; rate limits against scraping | ⬜ |
+
+---
+
 ## After launch (not scheduled)
 
 College leaderboards and ambassadors, AI resume–JD match, AI mock interviews, college (TPO) dashboards, Hindi explanations, mobile app.

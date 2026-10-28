@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { FileQuestion, Plus, Search } from "lucide-react";
-import { QuestionsTable } from "@/app/admin/questions/questions-table";
+import { QuestionsTable, type BulkAction } from "@/app/admin/questions/questions-table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Pagination } from "@/components/shared/pagination";
@@ -11,12 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { Difficulty, QuestionType } from "@/generated/prisma/enums";
-import {
-  CONTENT_ACTIONS,
-  STATUS_CHOICES,
-  STATUS_LABELS,
-  type ContentAction,
-} from "@/lib/content/workflow";
+import { CONTENT_ACTIONS, STATUS_CHOICES, STATUS_LABELS } from "@/lib/content/workflow";
 import { formatDate, plainExcerpt } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
@@ -70,8 +65,8 @@ async function QuestionBank({
   };
   const [result, taxonomy] = await Promise.all([listQuestions(filters), getTaxonomyTree()]);
 
-  const bulkActions: ContentAction[] = can(user.roles, "content.publish")
-    ? [...CONTENT_ACTIONS]
+  const bulkActions: BulkAction[] = can(user.roles, "content.publish")
+    ? [...CONTENT_ACTIONS, "sample-on", "sample-off"]
     : [];
 
   return (
@@ -155,6 +150,7 @@ async function QuestionBank({
             difficulty: q.difficulty,
             status: q.status,
             updated: formatDate(q.updatedAt),
+            publicSample: q.publicSample,
           }))}
         />
       )}

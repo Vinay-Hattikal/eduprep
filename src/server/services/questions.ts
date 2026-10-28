@@ -12,6 +12,7 @@ import {
 import type { QuestionFormValues } from "@/schemas/question";
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/services/audit";
+import { getSetting } from "@/server/services/settings";
 import {
   changedFields,
   pickContent,
@@ -62,6 +63,7 @@ export async function listQuestions(filters: QuestionFilters) {
         type: true,
         difficulty: true,
         status: true,
+        publicSample: true,
         updatedAt: true,
         subject: { select: { name: true } },
         topic: { select: { name: true } },
@@ -313,8 +315,27 @@ export async function transitionQuestion(
       : {}),
   };
 
+  // Public samples (D-058): a newly published question shows its answer without sign-in
+  // until its topic has enough public samples.
+  const samplesPerTopic =
+    action === "publish" && !question.publicSample
+      ? await getSetting("seo.publicSamplesPerTopic")
+      : 0;
+
   await db.$transaction(async (tx) => {
+    if (samplesPerTopic > 0) {
+      const samples = await tx.question.count({
+        where: { topicId: question.topicId, publicSample: true, status: "PUBLISHED" },
+      });
+      if (samples < samplesPerTopic) data.publicSample = true;
+    }
     const updated = await tx.question.update({ where: { id }, data });
+    // Publishing or unpublishing changes the company pages that list it (D-058).
+    if (action === "publish" || question.status === "PUBLISHED")
+      await tx.company.updateMany({
+        where: { items: { some: { questionId: id } } },
+        data: { updatedAt: new Date() },
+      });
     await tx.contentVersion.create({
       data: {
         entityType: "question",
@@ -338,6 +359,34 @@ export async function transitionQuestion(
     );
   });
   return { ok: true };
+}
+
+/** Marks a question as a public sample (answer shown without sign-in) or not (D-058). */
+export async function setPublicSample(id: string, value: boolean, actor: Actor) {
+  const question = await db.question.findUnique({
+    where: { id },
+    select: { publicSample: true, externalId: true },
+  });
+  if (!question || question.publicSample === value) return false;
+  await db.$transaction(async (tx) => {
+    await tx.question.update({ where: { id }, data: { publicSample: value } });
+    await recordAudit(
+      {
+        actorId: actor.id,
+        action: value ? "question.public_sample" : "question.private_answer",
+        entityType: "question",
+        entityId: id,
+      },
+      tx,
+    );
+  });
+  return true;
+}
+
+export async function bulkPublicSample(ids: string[], value: boolean, actor: Actor) {
+  let done = 0;
+  for (const id of ids.slice(0, 200)) if (await setPublicSample(id, value, actor)) done += 1;
+  return done;
 }
 
 export async function bulkTransition(ids: string[], action: ContentAction, actor: Actor) {

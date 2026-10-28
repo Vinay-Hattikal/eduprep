@@ -533,3 +533,14 @@ Every significant product or technical decision is recorded here, so humans and 
   - **Link existing / unlink** on the company tabs. Unlinking never deletes the item.
   - **"+ New topic"** creates a topic from its name inside the editors. The slug comes from the name; a slug taken by another subject gets the subject slug in front.
   - **Coding problem checklist:** samples, hidden tests, reference solution, judge check, published.
+
+## D-058: Public content for search and preview
+- Date: 2026-10-28
+- Status: Accepted (C.1–C.2 built; C.3–C.5 planned)
+- Context: search engines only see the home, company and job pages. The question bank, the main source of search traffic ("TCS NQT percentage questions"), is behind sign-in, so Google never sees it. The owner wants pages to rank and visitors to preview the platform without signing in.
+- Decision (owner chose "samples only"):
+  - **Every published question's text and options can be public.** The answer and explanation are public only for **public samples**. The rest say "Sign up free to see the answer", and visitors and search engines see the same page (no cloaking).
+  - **Public samples:** a `public_sample` flag per question. Admins switch it on the question page or in bulk. When a question is published, it becomes a sample automatically while its topic has fewer than `seo.publicSamplesPerTopic` (setting, default 10; 0 turns this off). Republishing a draft can mark it again if the topic has room.
+  - **Stays private:** questions inside mock tests and All-India contests, hidden tests, editorials and model answers beyond the samples, user data, and paid company packs.
+  - **Sitemap:** adds pricing, become-interviewer, the legal pages, and the interview-experience pages of companies that have approved ones. A company's "last modified" moves when its rounds, sections, sources, linked questions, or the publishing of a linked question change.
+  - **Planned public pages (C.3–C.5):** one address per question (shared by every company that asks it), topic pages with samples first, coding problem statements with samples, mock test landing pages, more on company pages, structured data, split sitemaps, rate limits against scraping, and keeping topics with very few questions out of the index.

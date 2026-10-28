@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { bulkQuestionAction, type BulkState } from "@/app/admin/questions/actions";
 import { DifficultyLabel, ContentStatusBadge } from "@/components/shared/status-badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -21,6 +22,17 @@ export type QuestionRow = {
   difficulty: Difficulty;
   status: ContentStatus;
   updated: string;
+  /** Answer shown on public pages without sign-in (D-058). */
+  publicSample?: boolean;
+};
+
+/** Publishing actions plus the public-sample switches (D-058). */
+export type BulkAction = ContentAction | "sample-on" | "sample-off";
+
+const BULK_LABELS: Record<BulkAction, string> = {
+  ...ACTION_LABELS,
+  "sample-on": "Make public sample",
+  "sample-off": "Hide answer from public",
 };
 
 const TYPE_LABELS: Record<QuestionType, string> = {
@@ -35,7 +47,7 @@ export function QuestionsTable({
   bulkActions,
 }: {
   rows: QuestionRow[];
-  bulkActions: ContentAction[];
+  bulkActions: BulkAction[];
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [state, formAction, pending] = useActionState(bulkQuestionAction, initialState);
@@ -68,7 +80,7 @@ export function QuestionsTable({
             </NativeSelectOption>
             {bulkActions.map((action) => (
               <NativeSelectOption key={action} value={action}>
-                {ACTION_LABELS[action]}
+                {BULK_LABELS[action]}
               </NativeSelectOption>
             ))}
           </NativeSelect>
@@ -132,6 +144,11 @@ export function QuestionsTable({
                     {row.externalId}
                   </Link>
                   <p className="line-clamp-2 text-sm">{row.excerpt}</p>
+                  {row.publicSample ? (
+                    <Badge variant="outline" className="mt-1">
+                      Public sample
+                    </Badge>
+                  ) : null}
                 </td>
                 <td className="hidden px-3 py-3 md:table-cell">
                   <p>{row.topic}</p>

@@ -23,6 +23,8 @@ async function audit(
   action: string,
   after: Prisma.InputJsonObject,
 ) {
+  // The sitemap's "last modified" for the company page (D-058).
+  await tx.company.update({ where: { id: companyId }, data: { updatedAt: new Date() } });
   await recordAudit(
     { actorId: actor.id, action, entityType: "company", entityId: companyId, after },
     tx,

@@ -26,7 +26,13 @@ export async function getPublishedCompanies() {
       ctcExperienced: true,
       lastVerifiedAt: true,
       updatedAt: true,
-      _count: { select: { rounds: true, items: { where: { question: { status: "PUBLISHED" } } } } },
+      _count: {
+        select: {
+          rounds: true,
+          items: { where: { question: { status: "PUBLISHED" } } },
+          experiences: { where: { status: "APPROVED" } },
+        },
+      },
     },
   });
 }

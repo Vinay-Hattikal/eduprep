@@ -9,8 +9,10 @@ import { questionFormFromData } from "@/schemas/question";
 import { requirePermission } from "@/server/auth";
 import { companyLinksProblem, setCompanyLinks } from "@/server/services/company-links";
 import {
+  bulkPublicSample,
   bulkTransition,
   getQuestion,
+  setPublicSample,
   saveQuestion,
   transitionQuestion,
 } from "@/server/services/questions";
@@ -45,6 +47,9 @@ export async function saveQuestionAction(
     };
   }
   await setCompanyLinks({ questionId: result.id }, asked.links, user);
+  // Existing questions show the "Public sample" box; new ones are chosen when published.
+  if (formData.get("publicSampleField") === "1")
+    await setPublicSample(result.id, formData.get("publicSample") === "on", user);
   // "Save and publish" (D-056): the question goes live straight away.
   let query = `saved=1${result.movedToDraft ? "&draft=1" : ""}`;
   if (formData.get("intent") === "publish") {
@@ -86,10 +91,19 @@ export type BulkState = { message?: string; errors?: string[] };
 
 export async function bulkQuestionAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
   const user = await requirePermission("content.view");
-  const action = actionSchema.safeParse(formData.get("action"));
+  const action = actionSchema
+    .or(z.enum(["sample-on", "sample-off"]))
+    .safeParse(formData.get("action"));
   const ids = formData.getAll("ids").map(String).filter(Boolean);
   if (!action.success) return { errors: ["Choose an action."] };
   if (ids.length === 0) return { errors: ["Select at least one question."] };
+  if (action.data === "sample-on" || action.data === "sample-off") {
+    const changed = await bulkPublicSample(ids, action.data === "sample-on", user);
+    revalidatePath("/admin/questions");
+    return {
+      message: `${changed} of ${ids.length} question${ids.length === 1 ? "" : "s"} changed.`,
+    };
+  }
 
   const { done, errors } = await bulkTransition(ids, action.data, user);
   revalidatePath("/admin/questions");

@@ -138,6 +138,7 @@ async function QuestionDetail({ params, searchParams }: PageProps<"/admin/questi
         initial={toEditorValues(question)}
         passage={question.passage}
         readOnly={!canEdit}
+        publicSample={question.publicSample}
         companies={companies}
         initialCompanies={question.companies.map((c) => ({
           companyId: c.companyId,

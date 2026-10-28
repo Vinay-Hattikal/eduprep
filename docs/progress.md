@@ -5,7 +5,7 @@ Where the project stands right now. **Update at the end of every work session.**
 - Task list and status for every phase: [plan.md](plan.md)
 - This file: current focus, known issues, session log
 
-Last updated: 2026-10-28 (company workspace, D-057)
+Last updated: 2026-10-29 (public samples and sitemap, D-058)
 
 ---
 
@@ -117,6 +117,8 @@ See PRD section 14.
 ## Session log
 
 Newest first. One line per session: date, who, what changed, what's next.
+
+- 2026-10-29 · Claude · **C.1–C.2 (D-058):** "Public sample" flag on questions (editor box, bulk actions, "Public sample" badge, automatic first N per topic with the `seo.publicSamplesPerTopic` setting). The sitemap adds pricing, legal, become-interviewer and experience pages. A company's last-modified date follows its rounds, sources, links and linked-question publishing. Verified: `npm run check`, 128/128 integration (new `public-samples`), full e2e 82 passed (new `seo` spec fixed and re-run; the known-flaky phone password reset passed on re-run). Next: C.3 public topic and question pages.
 
 - 2026-10-28 · Claude · **B.2–B.5 Company workspace (D-057):** company page tabs; rounds, sections and sources editors (reorder, renumber, last-source guard); "Asked at" companies and months in the question and problem editors (links never unpublish); add from a company (pre-tagged) with "Then add another" and next-ID suggestion; link and unlink existing items; Mock tests tab; "+ New topic" in the editors; coding problem checklist. Fixed while here: the long "back" link on new-question and new-problem pages scrolled phones sideways. Verified: `npm run check` (285 unit), 124/124 integration (new `company-hiring`, `company-content`), full e2e 82 passed (36 skipped by design; the known-flaky phone password-reset test failed once and passed on re-run). Next: owner adds content.
 

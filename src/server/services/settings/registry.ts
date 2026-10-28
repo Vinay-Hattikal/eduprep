@@ -23,6 +23,7 @@ export const SETTING_GROUPS = {
   policies: "Interview policies",
   growth: "Taxes, referrals and points",
   engagement: "Streaks and discussions",
+  seo: "Public pages and search",
 } as const;
 
 export type SettingGroup = keyof typeof SETTING_GROUPS;
@@ -235,6 +236,14 @@ export const SETTINGS = {
     description: "A discussion comment is hidden for review once this many students flag it.",
     kind: "integer",
     defaultValue: 3,
+  },
+  "seo.publicSamplesPerTopic": {
+    group: "seo",
+    label: "Public sample answers per topic",
+    description:
+      "When a question is published, it becomes a public sample (answer shown without sign-in) until its topic has this many. 0 turns the automatic choice off; you can still mark questions by hand.",
+    kind: "integer",
+    defaultValue: 10,
   },
 } as const satisfies Record<string, Definition>;
 

@@ -59,6 +59,8 @@ type Props = {
   initialCompanies: AskedAtInput[];
   /** New questions: start the next one after saving (company-wise entry, D-057). */
   addAnother?: boolean;
+  /** Existing questions: shown without sign-in on public pages (D-058). */
+  publicSample?: boolean;
 };
 
 export function QuestionEditor({
@@ -69,6 +71,7 @@ export function QuestionEditor({
   companies,
   initialCompanies,
   addAnother = false,
+  publicSample,
 }: Props) {
   const [state, onSubmit, pending] = useFormSubmit(saveQuestionAction, initialState);
   const [v, setV] = useState(initial);
@@ -477,6 +480,37 @@ export function QuestionEditor({
                 initial={initialCompanies}
                 error={errors.companies}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Public pages</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {v.id ? (
+                <>
+                  <input type="hidden" name="publicSampleField" value="1" />
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="publicSample"
+                      name="publicSample"
+                      defaultChecked={publicSample}
+                      data-testid="public-sample"
+                    />
+                    <Label htmlFor="publicSample" className="font-normal">
+                      Public sample: show the answer and explanation without sign-in
+                    </Label>
+                  </div>
+                </>
+              ) : null}
+              <p className="text-xs text-muted-foreground">
+                Every published question&apos;s text is public, so search engines can find it. Only
+                public samples show the answer; the rest ask visitors to sign up.
+                {v.id
+                  ? ""
+                  : " New questions become samples automatically when published, until their topic has enough (Settings)."}
+              </p>
             </CardContent>
           </Card>
         </fieldset>

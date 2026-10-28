@@ -13,6 +13,15 @@ import { recordAudit } from "@/server/services/audit";
 type Actor = { id: string };
 export type Item = { questionId: string } | { problemId: string };
 
+/** Company pages list their questions, so their sitemap date moves when links change (D-058). */
+export async function touchCompanies(tx: Prisma.TransactionClient, ids: readonly string[]) {
+  if (ids.length)
+    await tx.company.updateMany({
+      where: { id: { in: [...ids] } },
+      data: { updatedAt: new Date() },
+    });
+}
+
 const itemWhere = (item: Item) =>
   "questionId" in item ? { questionId: item.questionId } : { problemId: item.problemId };
 
@@ -71,6 +80,9 @@ async function writeLinks(
       });
     }
   }
+  await touchCompanies(tx, [
+    ...new Set([...removed.map((r) => r.companyId), ...links.map((l) => l.companyId)]),
+  ]);
   const [entityType, entityId] =
     "questionId" in item ? ["question", item.questionId] : ["problem", item.problemId];
   await recordAudit(
@@ -93,6 +105,7 @@ export async function linkToCompany(companyId: string, item: Item, actor: Actor)
   if (already) return;
   await db.$transaction(async (tx) => {
     await tx.companyItem.create({ data: { companyId, ...where } });
+    await touchCompanies(tx, [companyId]);
     await recordAudit(
       {
         actorId: actor.id,
@@ -111,6 +124,7 @@ export async function unlinkFromCompany(companyItemId: string, actor: Actor) {
   if (!link) return null;
   await db.$transaction(async (tx) => {
     await tx.companyItem.delete({ where: { id: link.id } });
+    await touchCompanies(tx, [link.companyId]);
     await recordAudit(
       {
         actorId: actor.id,
