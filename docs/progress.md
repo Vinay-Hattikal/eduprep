@@ -92,7 +92,6 @@ Phase 6, mocked or replaced until then (D-020, D-022, D-029):
 
 - **Real providers are untested with real keys** (Razorpay, Resend, MSG91, WhatsApp, Google Meet, Redis). Their request formats and signatures are unit-tested against the providers' documented behaviour; each needs one staging run (deployment.md).
 - **Docker isn't installed on this machine,** so the Dockerfile and compose file haven't been built here. CI or the hosting machine will be the first build.
-- **No Content-Security-Policy yet** (D-047); other security headers are on.
 - **CI has not run yet.** No GitHub remote and nothing committed. Every step passes locally.
 - **`npm audit`: 9 high (braces, GHSA-vfj7-8cjw-p6xm).** No patched version; build tooling only. KaTeX fixed with an override.
 - **Re-running `npm run db:seed` resets the names, descriptions and order of the five seeded interview types** (the seed updates them). Rubrics, length, price and on/off edits are kept.
