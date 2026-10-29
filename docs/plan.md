@@ -177,7 +177,7 @@ Rough timeline with one developer plus AI agents: about 20–24 weeks in total. 
 | 6.7 | Staging environment + deployment pipeline from CI | ⬜ |
 | 6.8 | Sentry, PostHog (events and funnels), uptime monitoring, backups with a tested restore | ⬜ |
 | 6.9 | Security review: OWASP checklist, rate limits, webhook verification, access audit, dependency scan | 🟡 |
-| 6.10 | Load test: concurrent test-takers and judge throughput | ⬜ |
+| 6.10 | Load test: concurrent test-takers and judge throughput (D-065; re-run on production hardware before launch) | ✅ |
 | 6.11 | SEO: sitemap, robots, structured data (D-058), Open Graph images and performance budget (D-062) | ✅ |
 | 6.12 | Legal pages: terms, privacy (DPDP), refund policy, interviewer agreement | 🟡 |
 | 6.13 | Production content load and final review of all live content | ⬜ |

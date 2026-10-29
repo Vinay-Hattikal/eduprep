@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "test:integration": "node scripts/with-db.mjs \"vitest run --config vitest.integration.config.mts\"",
     "test:e2e": "playwright test",
+    "test:load": "node scripts/with-db.mjs \"vitest run --config vitest.load.config.mjs --silent=false\"",
     "check": "npm run lint && npm run typecheck && npm run test && node scripts/check-brand.mjs",
     "db:start": "node scripts/with-db.mjs",
     "db:stop": "node scripts/db-stop.mjs",

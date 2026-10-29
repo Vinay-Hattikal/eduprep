@@ -84,6 +84,10 @@ export type TestCard = {
   locked: boolean;
 };
 
+// Starting and submitting are the busiest moments (everyone at a contest's start and end). Under
+// load they queue for a database connection rather than failing after Prisma's 2 s default (D-065).
+const SITTING_TX_WAIT_MS = 15_000;
+
 const blueprintCardSelect = {
   slug: true,
   title: true,
@@ -385,7 +389,7 @@ export async function startSitting(
       });
       return { status: "started", sittingId: sitting.id };
     },
-    { timeout: 20_000 },
+    { timeout: 20_000, maxWait: SITTING_TX_WAIT_MS },
   );
 
   if (result.status === "started") {
@@ -785,12 +789,24 @@ export async function finishSitting(
             };
         return { item, input, score: scoreItem(input, sections[item.sectionIndex]!) };
       });
+      // Items share a handful of results (right, wrong, skipped), so one update per result
+      // rather than one per item: this transaction is what everyone runs at a contest's end.
+      const byResult = new Map<
+        string,
+        { isCorrect: boolean | null; marks: number; ids: string[] }
+      >();
       for (const { item, score } of scored) {
-        await tx.sittingItem.update({
-          where: { id: item.id },
-          data: { isCorrect: score.isCorrect, marks: score.marks },
-        });
+        const key = `${score.isCorrect}:${score.marks}`;
+        const group = byResult.get(key) ?? {
+          isCorrect: score.isCorrect,
+          marks: score.marks,
+          ids: [],
+        };
+        group.ids.push(item.id);
+        byResult.set(key, group);
       }
+      for (const { isCorrect, marks, ids } of byResult.values())
+        await tx.sittingItem.updateMany({ where: { id: { in: ids } }, data: { isCorrect, marks } });
       const totals = scoreSections(
         sections,
         scored.map(({ input, score }) => ({ ...input, score })),
@@ -803,7 +819,7 @@ export async function finishSitting(
       await recordTestAnswers(tx, sitting.userId, scored, now, rules);
       return { userId: sitting.userId, contestId: sitting.contestId };
     },
-    { timeout: 30_000 },
+    { timeout: 30_000, maxWait: SITTING_TX_WAIT_MS },
   );
   if (finished) {
     const count = await db.testSitting.count({
@@ -870,23 +886,26 @@ async function recordTestAnswers(
     await tx.mastery.upsert({ where, create: { userId, topicId, ...next }, update: next });
   }
 
-  for (const { item, score } of answered) {
-    const questionId = item.question!.id;
-    if (score.isCorrect) {
-      await tx.mistake.updateMany({
-        where: { userId, questionId, resolvedAt: null },
-        data: { resolvedAt: now },
-      });
-    } else {
-      await tx.mistake.upsert({
-        where: { userId_questionId: { userId, questionId } },
-        create: { userId, questionId, lastWrongAt: now },
-        update: { lastWrongAt: now, resolvedAt: null },
-      });
-    }
+  // Right answers resolve their mistakes; wrong ones open (or reopen) one. In bulk.
+  const right = answered.filter((a) => a.score.isCorrect).map((a) => a.item.question!.id);
+  const wrong = answered.filter((a) => !a.score.isCorrect).map((a) => a.item.question!.id);
+  if (right.length)
+    await tx.mistake.updateMany({
+      where: { userId, questionId: { in: right }, resolvedAt: null },
+      data: { resolvedAt: now },
+    });
+  if (wrong.length) {
+    await tx.mistake.createMany({
+      data: wrong.map((questionId) => ({ userId, questionId, lastWrongAt: now })),
+      skipDuplicates: true,
+    });
+    await tx.mistake.updateMany({
+      where: { userId, questionId: { in: wrong } },
+      data: { lastWrongAt: now, resolvedAt: null },
+    });
   }
 
-  const correct = answered.filter((a) => a.score.isCorrect).length;
+  const correct = right.length;
   await recordDailyActivity(tx, userId, today, { attempts: answered.length, correct }, rules);
 }
 

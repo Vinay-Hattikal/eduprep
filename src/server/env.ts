@@ -16,6 +16,9 @@ const schema = z
   .object({
     APP_ENV: z.enum(["local", "test", "staging", "production"]).default("local"),
     DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+    // Connections each app or worker process keeps open (D-065). The load test saturates 10 at
+    // about 200 students submitting at once; keep the total under the database's max_connections.
+    DATABASE_POOL_SIZE: z.coerce.number().int().min(2).max(200).default(10),
     AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
     // dev: the /dev-login user picker is available next to real sign-in. live: real sign-in only.
     AUTH_MODE: z.enum(["dev", "live"]).default("dev"),

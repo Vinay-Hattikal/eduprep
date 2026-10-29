@@ -5,7 +5,8 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { env } from "@/server/env";
 
 function createClient() {
-  const adapter = new PrismaPg({ connectionString: env().DATABASE_URL });
+  const { DATABASE_URL, DATABASE_POOL_SIZE } = env();
+  const adapter = new PrismaPg({ connectionString: DATABASE_URL, max: DATABASE_POOL_SIZE });
   return new PrismaClient({ adapter });
 }
 
