@@ -19,7 +19,7 @@ describe("mock-data folder", () => {
     const first = await importFolder(root, admin.id);
     expect(first.unknown).toEqual([]);
     const notImported = first.files.filter((f) => f.outcome !== "imported");
-    expect(notImported.map((f) => [f.file.path, f.problems])).toEqual([]);
+    expect(notImported.map((f) => [f.path, f.problems])).toEqual([]);
 
     expect(await db.question.count({ where: { status: "DRAFT" } })).toBe(66);
     expect(await db.problem.count()).toBe(2);
@@ -31,6 +31,6 @@ describe("mock-data folder", () => {
 
     const second = await importFolder(root, admin.id);
     const changed = second.files.filter((f) => (f.created ?? 0) + (f.updated ?? 0) > 0);
-    expect(changed.map((f) => f.file.path)).toEqual([]);
+    expect(changed.map((f) => f.path)).toEqual([]);
   });
 });

@@ -21,6 +21,7 @@ export const JOB_TYPES = [
   "contest.finalize",
   "jobs.digest",
   "contest.reminder",
+  "pack.import",
 ] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 
@@ -39,6 +40,7 @@ export type JobPayloads = {
   /** Covers jobs published after `since` (the previous digest). */
   "jobs.digest": { since: string };
   "contest.reminder": { contestId: string; startsAt: string };
+  "pack.import": { packId: string };
 };
 
 /** A job to queue, for code that describes work without queuing it itself. */

@@ -222,7 +222,7 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 | A.4 | Interview types: create and edit, including the scorecard rubric; old scorecards keep their scores | ✅ |
 | A.5 | Admin roles: super admins give and remove admin roles; the last super admin is protected | ✅ |
 | A.6 | Passages: list, create, edit with preview, see linked questions, delete unused | ✅ |
-| A.7 | ZIP "content pack" upload in admin (all files, imported in order) | ⬜ |
+| A.7 | ZIP "content pack" upload in admin (all files, imported in order, D-061) | ✅ |
 
 **Exit criteria:** met for A.1–A.6: an admin can write a coding problem with its tests and code, pass the judge check and publish it without a CSV, and can create or edit design questions, role tracks, interview types and passages, and admin roles.
 

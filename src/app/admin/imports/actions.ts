@@ -7,6 +7,7 @@ import type { ImportType } from "@/generated/prisma/enums";
 import { can } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
 import { db } from "@/server/db";
+import { createContentPack } from "@/server/imports/content-pack";
 import { ACCEPTED_EXTENSIONS, MAX_UPLOAD_BYTES } from "@/server/imports/parse";
 import {
   cancelBatch,
@@ -62,6 +63,36 @@ export async function uploadImportAction(
   });
   revalidatePath("/admin/imports");
   redirect(`/admin/imports/${batchId}`);
+}
+
+/** Uploads a ZIP of a whole content folder; the worker imports it file by file (D-061). */
+export async function uploadPackAction(
+  _prev: UploadState,
+  formData: FormData,
+): Promise<UploadState> {
+  const user = await requirePermission("imports.view");
+  if (!can(user.roles, "content.edit") || !can(user.roles, "companies.manage"))
+    return { error: "Content packs need permission to import every content type." };
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose a ZIP file." };
+  if (!file.name.toLowerCase().endsWith(".zip")) return { error: "Upload a .zip file." };
+  if (file.size > MAX_UPLOAD_BYTES)
+    return { error: "The ZIP is larger than 25 MB. Split it into several packs." };
+
+  let packId: string;
+  try {
+    packId = await createContentPack({
+      fileName: file.name,
+      data: new Uint8Array(await file.arrayBuffer()),
+      actorId: user.id,
+      publish: formData.get("publish") === "on",
+    });
+  } catch (error) {
+    if (error instanceof ImportActionError) return { error: error.message };
+    throw error;
+  }
+  revalidatePath("/admin/imports");
+  redirect(`/admin/imports/packs/${packId}`);
 }
 
 async function runBatchAction(

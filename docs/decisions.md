@@ -584,3 +584,8 @@ Every significant product or technical decision is recorded here, so humans and 
 - Status: Accepted (supersedes D-032's MCQ-only readiness)
 - Context: readiness used MCQ sections only, weighted by question count, so coding practice never moved it although coding submissions already build DSA topic mastery.
 - Decision: every test section counts, MCQ and coding. Each section's **minutes** are shared by its topics (not its question count), so a 40-minute coding section with 2 problems weighs as much as a 40-minute aptitude section with 30 questions. MCQ-only companies keep nearly the same scores, because their sections' time is usually proportional to their questions.
+
+## D-061: Content packs (ZIP of a content folder)
+- Date: 2026-10-29
+- Status: Accepted
+- Decision: admin › Imports takes a ZIP of a whole content folder (the layout in `folder.ts`, max 25 MB, 500 files). A `content_packs` row records it, and a `pack.import` job imports the files one by one in dependency order through the normal pipeline. Each file is an ordinary import batch (`import_batches.pack_id`), so previews, failed rows and undo work as usual. The job runs each file's validate, confirm and commit steps itself instead of queueing them, so the next file sees the previous one committed and no other worker runs the same step. A single top-level folder in the ZIP is ignored, as is Mac metadata. Files outside the layout are listed, not imported. "Publish after import" applies to every file. `npm run content:import` uses the same per-file function.

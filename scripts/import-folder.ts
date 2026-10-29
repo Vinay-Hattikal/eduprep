@@ -26,7 +26,7 @@ async function main() {
       result.outcome === "skipped"
         ? ""
         : `created ${result.created ?? 0}, updated ${result.updated ?? 0}, unchanged ${result.unchanged ?? 0}`;
-    console.log(`${mark} ${result.file.path.padEnd(52)} ${result.file.type.padEnd(22)} ${counts}`);
+    console.log(`${mark} ${result.path.padEnd(52)} ${result.type.padEnd(22)} ${counts}`);
     for (const problem of result.problems) console.log(`    ${problem}`);
   });
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Download } from "lucide-react";
+import { PackForm } from "@/app/admin/imports/pack-form";
 import { UploadForm } from "@/app/admin/imports/upload-form";
 import { DataTable } from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
@@ -24,10 +25,13 @@ export default function ImportsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Imports"
-        description="Upload CSV files for content. Every file is checked first, and nothing goes live without review."
+        description="Upload CSV files, or a whole content folder as a ZIP. Every file is checked first; imported content stays a draft unless you choose to publish it."
       />
       <Suspense fallback={<PageSkeleton />}>
         <UploadCard />
+      </Suspense>
+      <Suspense fallback={null}>
+        <PackCard />
       </Suspense>
       <Suspense fallback={null}>
         <ExportCard />
@@ -68,6 +72,54 @@ async function UploadCard() {
       </CardHeader>
       <CardContent>
         <UploadForm types={types} canReplace={can(user.roles, "settings.manage")} />
+      </CardContent>
+    </Card>
+  );
+}
+
+const PACK_STATUS_LABELS = {
+  QUEUED: "Waiting",
+  RUNNING: "Importing",
+  COMPLETED: "Done",
+  FAILED: "Stopped",
+} as const;
+
+/** A ZIP of a whole content folder, imported in dependency order (D-061). */
+async function PackCard() {
+  const user = await requirePermission("imports.view");
+  if (!can(user.roles, "content.edit") || !can(user.roles, "companies.manage")) return null;
+  const packs = await db.contentPack.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: { id: true, fileName: true, status: true, createdAt: true },
+  });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Upload a content pack</CardTitle>
+        <CardDescription>
+          A ZIP of a whole content folder. Its files are imported one by one in the right order
+          (taxonomy, companies, then questions and coding), each as a normal import you can open.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <PackForm />
+        {packs.length ? (
+          <ul className="divide-y rounded-lg border text-sm">
+            {packs.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center gap-3 p-3">
+                <Link
+                  href={`/admin/imports/packs/${p.id}`}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {p.fileName}
+                </Link>
+                <span className="text-muted-foreground">{formatDateTime(p.createdAt)}</span>
+                <span className="ml-auto text-xs">{PACK_STATUS_LABELS[p.status]}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </CardContent>
     </Card>
   );

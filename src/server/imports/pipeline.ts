@@ -38,6 +38,10 @@ export async function createImportBatch(input: {
   actorId: string | null;
   /** REPLACE is for super admins only; callers check the role (D-054). */
   mode?: ImportMode;
+  /** Set when the file came in a content pack (D-061). */
+  packId?: string;
+  /** False when the caller runs validation itself (content packs), so no job runs it twice. */
+  queue?: boolean;
 }): Promise<string> {
   const mode = input.mode ?? "ADD_UPDATE";
   if (mode === "REPLACE" && !getImportDefinition(input.type).replace)
@@ -55,6 +59,7 @@ export async function createImportBatch(input: {
       fileKey,
       fileSize: input.data.byteLength,
       uploadedById: input.actorId,
+      packId: input.packId ?? null,
     },
   });
   await recordAudit({
@@ -64,7 +69,7 @@ export async function createImportBatch(input: {
     entityId: id,
     after: { type: input.type, fileName: input.fileName, mode },
   });
-  await enqueueJob("import.validate", { batchId: id });
+  if (input.queue !== false) await enqueueJob("import.validate", { batchId: id });
   return id;
 }
 
@@ -166,7 +171,7 @@ export async function validateBatch(batchId: string): Promise<void> {
 export async function confirmBatch(
   batchId: string,
   actorId: string,
-  { publish = false } = {},
+  { publish = false, queue = true } = {},
 ): Promise<void> {
   const updated = await db.importBatch.updateMany({
     where: {
@@ -183,7 +188,7 @@ export async function confirmBatch(
   });
   if (updated.count === 0)
     throw new ImportActionError("This import can't be confirmed in its current state.");
-  await enqueueJob("import.commit", { batchId });
+  if (queue) await enqueueJob("import.commit", { batchId });
 }
 
 export async function cancelBatch(batchId: string, actorId: string): Promise<void> {

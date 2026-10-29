@@ -54,6 +54,7 @@ model User {
   authoredQuestions  Question[]          @relation("QuestionAuthor")
   reviewedQuestions  Question[]          @relation("QuestionReviewer")
   importBatches      ImportBatch[]       @relation("ImportUploader")
+  contentPacks       ContentPack[]       @relation("ContentPackUploader")
   confirmedImports   ImportBatch[]       @relation("ImportConfirmer")
   contentVersions    ContentVersion[]
   targetCompanies    TargetCompany[]
@@ -523,6 +524,7 @@ model ImportBatch {
   backupKey          String?      @map("backup_key") // REPLACE: export taken before archiving
   publishAfterImport Boolean      @default(false) @map("publish_after_import") // D-056
   publishedCount     Int          @default(0) @map("published_count") // items published by the import
+  packId             String?      @map("pack_id") // set when the file came in a content pack (D-061)
   error              String? // file-level problem: unreadable file, missing columns, crash
   createdAt          DateTime     @default(now()) @map("created_at")
   validatedAt        DateTime?    @map("validated_at")
@@ -530,13 +532,44 @@ model ImportBatch {
   completedAt        DateTime?    @map("completed_at")
   rolledBackAt       DateTime?    @map("rolled_back_at")
 
-  uploadedBy  User?       @relation("ImportUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
-  confirmedBy User?       @relation("ImportConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
+  pack        ContentPack? @relation(fields: [packId], references: [id], onDelete: SetNull)
+  uploadedBy  User?        @relation("ImportUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  confirmedBy User?        @relation("ImportConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
   rows        ImportRow[]
   questions   Question[]
 
   @@index([status, createdAt])
   @@map("import_batches")
+}
+
+enum ContentPackStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+/// A ZIP of a whole content folder (D-061): each file becomes an import batch, in dependency order.
+model ContentPack {
+  id           String            @id @default(cuid())
+  fileName     String            @map("file_name")
+  fileKey      String            @map("file_key") // the ZIP in storage
+  status       ContentPackStatus @default(QUEUED)
+  publish      Boolean           @default(false) // "Publish after import" for every file
+  /// Files that don't fit the folder layout (not imported).
+  unknownFiles String[]          @map("unknown_files")
+  /// One entry per planned file: { path, type, outcome, batchId?, problems[] }.
+  results      Json              @default("[]")
+  error        String?
+  createdById  String?           @map("created_by_id")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  completedAt  DateTime?         @map("completed_at")
+
+  createdBy User?         @relation("ContentPackUploader", fields: [createdById], references: [id], onDelete: SetNull)
+  batches   ImportBatch[]
+
+  @@index([createdAt])
+  @@map("content_packs")
 }
 
 model ImportRow {

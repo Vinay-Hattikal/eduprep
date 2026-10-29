@@ -13,7 +13,7 @@ async function upload(
   await page.goto("/admin/imports");
   await page.getByLabel("What are you importing?").selectOption(type);
   await page
-    .getByLabel("File")
+    .getByLabel("File", { exact: true })
     .setInputFiles(typeof file === "string" ? path.join(templates, file) : file);
   await page.getByRole("button", { name: "Upload and check" }).click();
   await page.waitForURL(/\/admin\/imports\/[a-z0-9]+/);
@@ -67,7 +67,7 @@ test.describe("content engine", () => {
     await page.getByLabel("What are you importing?").selectOption("CODING_BUNDLE");
     await page.getByLabel("How to import").selectOption("REPLACE");
     await page
-      .getByLabel("File")
+      .getByLabel("File", { exact: true })
       .setInputFiles(path.join(templates, "coding/coding-problems-single-file.csv"));
     await page.getByRole("button", { name: "Upload and check" }).click();
     await page.waitForURL(/\/admin\/imports\/[a-z0-9]+/);
