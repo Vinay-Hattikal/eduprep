@@ -25,6 +25,26 @@ const rupeeFormatter = new Intl.NumberFormat("en-IN", {
   minimumFractionDigits: 0,
 });
 
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/** "2026-08" → "Aug 2026" (the months questions were asked in). */
+export function formatMonth(ym: string): string {
+  return `${MONTH_NAMES[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
+}
+
 export function formatDate(date: Date): string {
   return dateFormatter.format(date);
 }

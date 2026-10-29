@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { connection } from "next/server";
 import { siteConfig } from "@/config/site";
 import { openJobSlugs } from "@/server/services/job-postings";
-import { listPublicMocks, listPublicProblems } from "@/server/services/public-catalog";
+import { listPublicMocks, publicProblemSitemap } from "@/server/services/public-catalog";
 import { getPublishedCompanies } from "@/server/services/public-companies";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -11,19 +11,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [companies, jobs, problems, mocks] = await Promise.all([
     getPublishedCompanies(),
     openJobSlugs(),
-    listPublicProblems(1),
+    publicProblemSitemap(),
     listPublicMocks(),
   ]);
-  // Every published problem (the first page call gives the total; fetch the rest only if needed).
-  const allProblems = [...problems.problems];
-  for (let page = 2; page <= problems.pageCount; page += 1)
-    allProblems.push(...(await listPublicProblems(page)).problems);
   return [
     { url: siteConfig.url, changeFrequency: "weekly", priority: 1 },
     { url: `${siteConfig.url}/companies`, changeFrequency: "daily", priority: 0.9 },
     { url: `${siteConfig.url}/questions`, changeFrequency: "daily", priority: 0.9 },
     { url: `${siteConfig.url}/problems`, changeFrequency: "daily", priority: 0.8 },
-    ...allProblems.map((p) => ({
+    ...problems.map((p) => ({
       url: `${siteConfig.url}/problems/${p.slug}`,
       lastModified: p.updatedAt,
       changeFrequency: "monthly" as const,

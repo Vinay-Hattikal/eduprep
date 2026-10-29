@@ -1,13 +1,11 @@
 "use server";
 
-import { PUBLIC_CATALOG_TAG } from "@/server/services/public-catalog";
-import { PUBLIC_QUESTIONS_TAG } from "@/server/services/public-questions";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requirePermission } from "@/server/auth";
+import { refreshPublicPages } from "@/server/services/public-pages";
 import { linkToCompany, unlinkFromCompany } from "@/server/services/company-links";
-import { COMPANIES_TAG } from "@/server/services/public-companies";
 
 const id = z.string().min(1).max(40);
 const kind = z.enum(["question", "problem"]);
@@ -15,9 +13,7 @@ const slug = z.string().min(1).max(80);
 
 function back(companySlug: string, itemKind: "question" | "problem", query: string) {
   revalidatePath(`/admin/companies/${companySlug}`);
-  updateTag(COMPANIES_TAG);
-  updateTag(PUBLIC_QUESTIONS_TAG);
-  updateTag(PUBLIC_CATALOG_TAG);
+  refreshPublicPages();
   redirect(
     `/admin/companies/${companySlug}?tab=${itemKind === "question" ? "questions" : "coding"}${query}`,
   );

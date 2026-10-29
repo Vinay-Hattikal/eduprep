@@ -52,12 +52,16 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
   const user = await requirePermission("companies.manage");
   const { slug } = await params;
   const query = await searchParams;
-  const [company, taxonomy] = await Promise.all([getCompanyBySlug(slug), getTaxonomyTree()]);
+  const tab = TABS.some((t) => t.key === query.tab) ? (query.tab as TabKey) : "profile";
+  // The topic tree is only needed by the hiring-process editors.
+  const [company, taxonomy] = await Promise.all([
+    getCompanyBySlug(slug),
+    tab === "process" ? getTaxonomyTree() : [],
+  ]);
   if (!company) notFound();
   const actions = companyActions(company.status, user.roles);
   const error = typeof query.error === "string" ? query.error : null;
   const today = todayUtc().toISOString().slice(0, 10);
-  const tab = TABS.some((t) => t.key === query.tab) ? (query.tab as TabKey) : "profile";
   const canEdit = can(user.roles, "companies.manage") && company.status !== "ARCHIVED";
   const topics = taxonomy.map((s) => ({
     name: s.name,
@@ -152,12 +156,8 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
                 {t.label}
                 {t.key === "process" ? <TabCount n={company.rounds.length} /> : null}
                 {t.key === "sources" ? <TabCount n={company.sources.length} /> : null}
-                {t.key === "questions" ? (
-                  <TabCount n={company.items.filter((i) => i.questionId).length} />
-                ) : null}
-                {t.key === "coding" ? (
-                  <TabCount n={company.items.filter((i) => i.problemId).length} />
-                ) : null}
+                {t.key === "questions" ? <TabCount n={company.questionCount} /> : null}
+                {t.key === "coding" ? <TabCount n={company.problemCount} /> : null}
               </Link>
             </li>
           ))}

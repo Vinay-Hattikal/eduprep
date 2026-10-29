@@ -52,6 +52,18 @@ export async function listPublicProblems(page: number, topicSlug?: string) {
   };
 }
 
+/** Every published problem's address and date, for the sitemap. */
+export async function publicProblemSitemap() {
+  "use cache";
+  cacheTag(PUBLIC_CATALOG_TAG);
+  cacheLife("hours");
+  return db.problem.findMany({
+    where: LIVE,
+    orderBy: { slug: "asc" },
+    select: { slug: true, updatedAt: true },
+  });
+}
+
 /** One published problem: statement and sample tests only. */
 export async function getPublicProblem(slug: string) {
   "use cache";

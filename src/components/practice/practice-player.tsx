@@ -30,7 +30,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { OPTION_LETTERS } from "@/lib/content/question-rules";
+import { codeFence, filledOptions, OPTION_LETTERS } from "@/lib/content/question-rules";
+import { formatMonth } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type {
   AnswerResult,
@@ -52,9 +53,6 @@ type PlayerProps = {
   alreadyAnswered?: boolean;
   emptyHref: string;
 };
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const monthLabel = (ym: string) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
 
 function formatClock(seconds: number) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -99,9 +97,7 @@ export function PracticePlayer({
     return () => clearInterval(timer);
   }, [question, result]);
 
-  const options = question
-    ? question.options.slice(0, question.options.findLastIndex((o) => o.trim()) + 1)
-    : [];
+  const options = question ? filledOptions(question.options) : [];
   const canSubmit =
     !result &&
     !pending &&
@@ -306,7 +302,7 @@ export function PracticePlayer({
               <Badge key={item.company} variant="outline" className="max-w-full gap-1">
                 <History className="size-3" aria-hidden="true" />
                 <span className="truncate">
-                  {item.company} · {monthLabel(item.months[0]!)}
+                  {item.company} · {formatMonth(item.months[0]!)}
                 </span>
               </Badge>
             ))}
@@ -331,13 +327,7 @@ export function PracticePlayer({
           >
             <Markdown>{question.text}</Markdown>
             {question.code ? (
-              <Markdown>
-                {"```" +
-                  (question.codeLanguage === "pseudocode" ? "" : (question.codeLanguage ?? "")) +
-                  "\n" +
-                  question.code +
-                  "\n```"}
-              </Markdown>
+              <Markdown>{codeFence(question.code, question.codeLanguage)}</Markdown>
             ) : null}
           </div>
 

@@ -6,6 +6,7 @@
 import "server-only";
 
 import type { ImportType } from "@/generated/prisma/enums";
+import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { db } from "@/server/db";
 import { setCompanyStatus } from "@/server/services/companies";
 import { setDesignStatus } from "@/server/services/design-questions";
@@ -48,14 +49,14 @@ export async function publishImported(batchId: string, type: ImportType, actorId
   let published = 0;
   if (type === "MCQ") {
     const drafts = await db.question.findMany({
-      where: { id: { in: ids }, status: { in: ["DRAFT", "IN_REVIEW"] } },
+      where: { id: { in: ids }, status: { in: DRAFT_STATUSES } },
       select: { id: true },
     });
     for (const { id } of drafts)
       if ((await transitionQuestion(id, "publish", actor)).ok) published += 1;
   } else if (type === "DESIGN_QUESTIONS") {
     const drafts = await db.designQuestion.findMany({
-      where: { id: { in: ids }, status: { in: ["DRAFT", "IN_REVIEW"] } },
+      where: { id: { in: ids }, status: { in: DRAFT_STATUSES } },
       select: { id: true },
     });
     for (const { id } of drafts) {
@@ -64,7 +65,7 @@ export async function publishImported(batchId: string, type: ImportType, actorId
     }
   } else if (type === "COMPANIES") {
     const drafts = await db.company.findMany({
-      where: { id: { in: ids }, status: { in: ["DRAFT", "IN_REVIEW"] } },
+      where: { id: { in: ids }, status: { in: DRAFT_STATUSES } },
       select: { id: true },
     });
     for (const { id } of drafts)

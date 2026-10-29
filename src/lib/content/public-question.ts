@@ -2,6 +2,7 @@
 // rule is unit-tested: every public page builds its data through toPublicQuestion, and the
 // answer fields of non-sample questions never reach the page.
 
+import { filledOptions } from "@/lib/content/question-rules";
 import type { QuestionType } from "@/generated/prisma/enums";
 
 /** Topics with fewer published questions than this stay out of search results. */
@@ -57,7 +58,7 @@ export function toPublicQuestion(q: StoredQuestion): PublicQuestion {
     text: q.text,
     code: q.code,
     codeLanguage: q.codeLanguage,
-    options: q.options.slice(0, q.options.findLastIndex((o) => o.trim()) + 1),
+    options: filledOptions(q.options),
     difficulty: q.difficulty,
     answer: q.publicSample
       ? {

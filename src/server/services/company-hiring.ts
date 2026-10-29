@@ -13,8 +13,8 @@ import { recordAudit } from "@/server/services/audit";
 type Actor = { id: string };
 type Result = { ok: true; slug: string } | { ok: false; error: string; field?: string };
 
-export const MAX_ROUNDS = 20;
-export const MAX_SECTIONS = 20;
+const MAX_ROUNDS = 20;
+const MAX_SECTIONS = 20;
 
 async function audit(
   tx: Prisma.TransactionClient,
@@ -75,7 +75,7 @@ export async function deleteRound(roundId: string, actor: Actor): Promise<Result
   if (!round) return { ok: false, error: "This round no longer exists." };
   await db.$transaction(async (tx) => {
     await tx.companyRound.delete({ where: { id: roundId } });
-    await renumber(tx, "round", round.companyId);
+    await renumber(roundList(tx, round.companyId));
     await audit(tx, actor, round.companyId, "company.round_delete", { round: round.name });
   });
   return { ok: true, slug: round.company.slug };
@@ -91,25 +91,13 @@ export async function moveRound(
     include: { company: { select: { slug: true } } },
   });
   if (!round) return { ok: false, error: "This round no longer exists." };
-  const neighbour = await db.companyRound.findFirst({
-    where: {
-      companyId: round.companyId,
-      order: direction === "up" ? { lt: round.order } : { gt: round.order },
-    },
-    orderBy: { order: direction === "up" ? "desc" : "asc" },
-  });
-  if (neighbour) {
-    await db.$transaction(async (tx) => {
-      // Orders are unique per company, so park one round while swapping.
-      await tx.companyRound.update({ where: { id: round.id }, data: { order: -1 } });
-      await tx.companyRound.update({ where: { id: neighbour.id }, data: { order: round.order } });
-      await tx.companyRound.update({ where: { id: round.id }, data: { order: neighbour.order } });
+  await db.$transaction(async (tx) => {
+    if (await swapWithNeighbour(roundList(tx, round.companyId), round.id, direction))
       await audit(tx, actor, round.companyId, "company.round_move", {
         round: round.name,
         direction,
       });
-    });
-  }
+  });
   return { ok: true, slug: round.company.slug };
 }
 
@@ -167,7 +155,7 @@ export async function deleteSection(sectionId: string, actor: Actor): Promise<Re
   if (!section) return { ok: false, error: "This section no longer exists." };
   await db.$transaction(async (tx) => {
     await tx.companySection.delete({ where: { id: sectionId } });
-    await renumber(tx, "section", section.roundId);
+    await renumber(sectionList(tx, section.roundId));
     await audit(tx, actor, section.round.company.id, "company.section_delete", {
       section: section.name,
     });
@@ -185,58 +173,54 @@ export async function moveSection(
     include: { round: { include: { company: { select: { id: true, slug: true } } } } },
   });
   if (!section) return { ok: false, error: "This section no longer exists." };
-  const neighbour = await db.companySection.findFirst({
-    where: {
-      roundId: section.roundId,
-      order: direction === "up" ? { lt: section.order } : { gt: section.order },
-    },
-    orderBy: { order: direction === "up" ? "desc" : "asc" },
-  });
-  if (neighbour) {
-    await db.$transaction(async (tx) => {
-      await tx.companySection.update({ where: { id: section.id }, data: { order: -1 } });
-      await tx.companySection.update({
-        where: { id: neighbour.id },
-        data: { order: section.order },
-      });
-      await tx.companySection.update({
-        where: { id: section.id },
-        data: { order: neighbour.order },
-      });
+  await db.$transaction(async (tx) => {
+    if (await swapWithNeighbour(sectionList(tx, section.roundId), section.id, direction))
       await audit(tx, actor, section.round.company.id, "company.section_move", {
         section: section.name,
         direction,
       });
-    });
-  }
+  });
   return { ok: true, slug: section.round.company.slug };
 }
 
+// ---------- ordering (shared by rounds and sections) ----------
+
+/** One company's rounds, or one round's sections, in order. */
+type OrderedList = {
+  rows(): Promise<{ id: string; order: number }[]>;
+  setOrder(id: string, order: number): Promise<unknown>;
+};
+
+const ORDER = { orderBy: { order: "asc" as const }, select: { id: true, order: true } };
+
+const roundList = (tx: Prisma.TransactionClient, companyId: string): OrderedList => ({
+  rows: () => tx.companyRound.findMany({ where: { companyId }, ...ORDER }),
+  setOrder: (id, order) => tx.companyRound.update({ where: { id }, data: { order } }),
+});
+
+const sectionList = (tx: Prisma.TransactionClient, roundId: string): OrderedList => ({
+  rows: () => tx.companySection.findMany({ where: { roundId }, ...ORDER }),
+  setOrder: (id, order) => tx.companySection.update({ where: { id }, data: { order } }),
+});
+
+/** Swaps a row with the one before or after it. False when it's already at that end. */
+async function swapWithNeighbour(list: OrderedList, id: string, direction: "up" | "down") {
+  const rows = await list.rows();
+  const i = rows.findIndex((r) => r.id === id);
+  const neighbour = rows[direction === "up" ? i - 1 : i + 1];
+  const row = rows[i];
+  if (!row || !neighbour) return false;
+  // Orders are unique within the parent, so park the row while swapping.
+  await list.setOrder(row.id, -1);
+  await list.setOrder(neighbour.id, row.order);
+  await list.setOrder(row.id, neighbour.order);
+  return true;
+}
+
 /** Closes gaps after a delete: orders become 1, 2, 3… in their current sequence. */
-async function renumber(
-  tx: Prisma.TransactionClient,
-  level: "round" | "section",
-  parentId: string,
-) {
-  if (level === "round") {
-    const rounds = await tx.companyRound.findMany({
-      where: { companyId: parentId },
-      orderBy: { order: "asc" },
-      select: { id: true, order: true },
-    });
-    for (const [i, r] of rounds.entries())
-      if (r.order !== i + 1)
-        await tx.companyRound.update({ where: { id: r.id }, data: { order: i + 1 } });
-  } else {
-    const sections = await tx.companySection.findMany({
-      where: { roundId: parentId },
-      orderBy: { order: "asc" },
-      select: { id: true, order: true },
-    });
-    for (const [i, s] of sections.entries())
-      if (s.order !== i + 1)
-        await tx.companySection.update({ where: { id: s.id }, data: { order: i + 1 } });
-  }
+async function renumber(list: OrderedList) {
+  for (const [i, row] of (await list.rows()).entries())
+    if (row.order !== i + 1) await list.setOrder(row.id, i + 1);
 }
 
 // ---------- sources ----------

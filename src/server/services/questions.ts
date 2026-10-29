@@ -2,7 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@/generated/prisma/client";
 import type { ContentStatus, Difficulty, QuestionType } from "@/generated/prisma/enums";
-import { checkQuestion, hasErrors, type Issue } from "@/lib/content/question-rules";
+import { checkQuestion, filledOptions, hasErrors, type Issue } from "@/lib/content/question-rules";
 import {
   nextStatus,
   transitionBlocker,
@@ -12,6 +12,7 @@ import {
 import type { QuestionFormValues } from "@/schemas/question";
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/services/audit";
+import { touchCompaniesListing } from "@/server/services/company-links";
 import { getSetting } from "@/server/services/settings";
 import {
   changedFields,
@@ -141,7 +142,8 @@ export async function getTaxonomyTree() {
 }
 
 export type SaveResult =
-  | { ok: true; id: string; movedToDraft: boolean }
+  /** `published`: still live after the save (only when nothing changed). */
+  | { ok: true; id: string; movedToDraft: boolean; published: boolean }
   | { ok: false; fieldErrors: Record<string, string>; formError?: string; warnings?: Issue[] };
 
 /** Creates or updates a question from the editor. Content changes add a version. */
@@ -172,9 +174,7 @@ export async function saveQuestion(values: QuestionFormValues, actor: Actor): Pr
   }
 
   const numeric = values.type === "NUMERIC";
-  const options = numeric
-    ? []
-    : values.options.slice(0, values.options.findLastIndex((o) => o.trim()) + 1);
+  const options = numeric ? [] : filledOptions(values.options);
   const content: QuestionContentFields = {
     subjectId: values.subjectId,
     topicId: values.topicId,
@@ -235,13 +235,19 @@ export async function saveQuestion(values: QuestionFormValues, actor: Actor): Pr
       );
       return question;
     });
-    return { ok: true, id: created.id, movedToDraft: false };
+    return { ok: true, id: created.id, movedToDraft: false, published: false };
   }
 
   const before = await db.question.findUnique({ where: { id: values.id } });
   if (!before) return { ok: false, fieldErrors: {}, formError: "This question no longer exists." };
   const changes = changedFields(pickContent(before), content);
-  if (changes.length === 0) return { ok: true, id: before.id, movedToDraft: false };
+  if (changes.length === 0)
+    return {
+      ok: true,
+      id: before.id,
+      movedToDraft: false,
+      published: before.status === "PUBLISHED",
+    };
 
   // A plain save unpublishes a changed question; "Save and publish" puts it back (D-056).
   const movedToDraft = before.status !== "DRAFT";
@@ -276,7 +282,7 @@ export async function saveQuestion(values: QuestionFormValues, actor: Actor): Pr
       tx,
     );
   });
-  return { ok: true, id: before.id, movedToDraft };
+  return { ok: true, id: before.id, movedToDraft, published: false };
 }
 
 export type TransitionResult = { ok: true } | { ok: false; error: string };
@@ -332,10 +338,7 @@ export async function transitionQuestion(
     const updated = await tx.question.update({ where: { id }, data });
     // Publishing or unpublishing changes the company pages that list it (D-058).
     if (action === "publish" || question.status === "PUBLISHED")
-      await tx.company.updateMany({
-        where: { items: { some: { questionId: id } } },
-        data: { updatedAt: new Date() },
-      });
+      await touchCompaniesListing(tx, { questionId: id });
     await tx.contentVersion.create({
       data: {
         entityType: "question",
@@ -384,9 +387,24 @@ export async function setPublicSample(id: string, value: boolean, actor: Actor) 
 }
 
 export async function bulkPublicSample(ids: string[], value: boolean, actor: Actor) {
-  let done = 0;
-  for (const id of ids.slice(0, 200)) if (await setPublicSample(id, value, actor)) done += 1;
-  return done;
+  const changing = await db.question.findMany({
+    where: { id: { in: ids.slice(0, 200) }, publicSample: !value },
+    select: { id: true },
+  });
+  if (!changing.length) return 0;
+  const changed = changing.map((q) => q.id);
+  await db.$transaction([
+    db.question.updateMany({ where: { id: { in: changed } }, data: { publicSample: value } }),
+    db.auditLog.createMany({
+      data: changed.map((entityId) => ({
+        actorId: actor.id,
+        action: value ? "question.public_sample" : "question.private_answer",
+        entityType: "question",
+        entityId,
+      })),
+    }),
+  ]);
+  return changed.length;
 }
 
 export async function bulkTransition(ids: string[], action: ContentAction, actor: Actor) {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { JsonLd } from "@/components/shared/json-ld";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -27,7 +28,7 @@ import { siteConfig } from "@/config/site";
 import { CATEGORY_LABELS, LEVEL_LABELS, ROUND_TYPE_LABELS } from "@/lib/content/companies";
 import { questionUrl } from "@/lib/content/public-question";
 import { DIFFICULTY_LABELS } from "@/lib/content/workflow";
-import { formatDate, plainExcerpt } from "@/lib/format";
+import { formatDate, formatMonth, plainExcerpt } from "@/lib/format";
 import { checkEligibility, overallEligibility } from "@/lib/learning/eligibility";
 import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
@@ -36,9 +37,6 @@ import { db } from "@/server/db";
 import { recentDriveReports } from "@/server/services/drive-reports";
 import { companyJobs } from "@/server/services/job-postings";
 import { getPublishedCompany } from "@/server/services/public-companies";
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const monthLabel = (ym: string) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
 
 export async function generateMetadata({
   params,
@@ -103,11 +101,7 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
 
   return (
     <article className="space-y-8">
-      <script
-        type="application/ld+json"
-        // Escape "<" so content can never close the script tag.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-      />
+      <JsonLd data={jsonLd} />
 
       <nav
         aria-label="Breadcrumb"
@@ -330,7 +324,7 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
                         <span>{item.question.topic.name}</span>
                         <span className="inline-flex items-center gap-1">
                           <History className="size-3" aria-hidden="true" /> Asked in{" "}
-                          {item.askedIn.slice(0, 2).map(monthLabel).join(", ")}
+                          {item.askedIn.slice(0, 2).map(formatMonth).join(", ")}
                         </span>
                       </p>
                     </li>

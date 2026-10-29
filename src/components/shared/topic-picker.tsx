@@ -5,14 +5,12 @@ export type TopicOptions = { name: string; topics: { id: string; name: string }[
 /** Topics grouped by subject, in a scrolling box so long taxonomies stay compact. */
 export function TopicPicker({
   id,
-  name = "topicIds",
   subjects,
   defaultValues,
   error,
   legend = "Topics",
 }: {
   id: string;
-  name?: string;
   subjects: TopicOptions;
   defaultValues: readonly string[];
   error?: string;
@@ -32,7 +30,7 @@ export function TopicPicker({
           <CheckboxGroup
             key={subject.name}
             id={`${id}-${i}`}
-            name={name}
+            name="topicIds"
             legend={subject.name}
             options={subject.topics.map((t) => ({ value: t.id, label: t.name }))}
             defaultValues={defaultValues}

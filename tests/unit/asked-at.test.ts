@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { nextExternalId, parseMonths, readAskedAt } from "@/lib/content/asked-at";
+import { slugify } from "@/lib/utils";
 
 const today = new Date("2026-10-28T10:00:00Z");
 
@@ -57,5 +58,13 @@ describe("nextExternalId", () => {
     expect(nextExternalId("QA-PCT-0099")).toBe("QA-PCT-0100");
     expect(nextExternalId("Q9")).toBe("Q10");
     expect(nextExternalId("NO-NUMBER")).toBe("");
+  });
+});
+
+describe("slugify", () => {
+  it("keeps letters, digits and single hyphens", () => {
+    expect(slugify("Time & Work!")).toBe("time-work");
+    expect(slugify("  System Design & Trade-offs ")).toBe("system-design-trade-offs");
+    expect(slugify("x".repeat(100), 80)).toHaveLength(80);
   });
 });

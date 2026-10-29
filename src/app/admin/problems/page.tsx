@@ -18,8 +18,6 @@ import { listAdminProblems, PROBLEM_PAGE_SIZE } from "@/server/services/problems
 
 export const metadata: Metadata = { title: "Coding problems" };
 
-const STATUSES = STATUS_CHOICES;
-
 function pick<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
   return typeof value === "string" && (allowed as readonly string[]).includes(value)
     ? (value as T)
@@ -85,7 +83,7 @@ async function ProblemTable({
   const query = await searchParams;
   const filters = {
     q: typeof query.q === "string" ? query.q.trim().slice(0, 100) || undefined : undefined,
-    status: pick(query.status, STATUSES),
+    status: pick(query.status, STATUS_CHOICES),
     difficulty: pick<Difficulty>(query.difficulty, ["EASY", "MEDIUM", "HARD"]),
     validation: pick(query.validation, ["passed", "pending"] as const),
     page: Math.max(1, Number(query.page) || 1),
@@ -118,7 +116,7 @@ async function ProblemTable({
         </div>
         <NativeSelect name="status" defaultValue={filters.status ?? ""} aria-label="Status">
           <NativeSelectOption value="">Any status</NativeSelectOption>
-          {STATUSES.map((s) => (
+          {STATUS_CHOICES.map((s) => (
             <NativeSelectOption key={s} value={s}>
               {STATUS_LABELS[s]}
             </NativeSelectOption>

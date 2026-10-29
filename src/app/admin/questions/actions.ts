@@ -1,18 +1,17 @@
 "use server";
 
-import { PUBLIC_QUESTIONS_TAG } from "@/server/services/public-questions";
-import { revalidatePath, updateTag } from "next/cache";
-import { COMPANIES_TAG } from "@/server/services/public-companies";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { askedAtFromFormData, readAskedAt } from "@/lib/content/asked-at";
+import { fieldErrors } from "@/schemas/admin-content";
 import { questionFormFromData } from "@/schemas/question";
 import { requirePermission } from "@/server/auth";
+import { refreshPublicPages } from "@/server/services/public-pages";
 import { companyLinksProblem, setCompanyLinks } from "@/server/services/company-links";
 import {
   bulkPublicSample,
   bulkTransition,
-  getQuestion,
   setPublicSample,
   saveQuestion,
   transitionQuestion,
@@ -26,14 +25,8 @@ export async function saveQuestionAction(
 ): Promise<QuestionFormState> {
   const user = await requirePermission("content.edit");
   const parsed = questionFormFromData(formData);
-  if (!parsed.success) {
-    const fieldErrors: Record<string, string> = {};
-    for (const issue of parsed.error.issues) {
-      const field = String(issue.path[0] ?? "form");
-      fieldErrors[field] ??= issue.message;
-    }
-    return { fieldErrors, formError: "Fix the highlighted fields." };
-  }
+  if (!parsed.success)
+    return { fieldErrors: fieldErrors(parsed.error), formError: "Fix the highlighted fields." };
 
   // "Asked at" companies are checked before anything is saved (D-057).
   const asked = readAskedAt(askedAtFromFormData(formData), new Date());
@@ -49,22 +42,17 @@ export async function saveQuestionAction(
   }
   await setCompanyLinks({ questionId: result.id }, asked.links, user);
   // Existing questions show the "Public sample" box; new ones are chosen when published.
-  if (formData.get("publicSampleField") === "1")
-    await setPublicSample(result.id, formData.get("publicSample") === "on", user);
+  if (parsed.data.id) await setPublicSample(result.id, formData.get("publicSample") === "on", user);
   // "Save and publish" (D-056): the question goes live straight away.
   let query = `saved=1${result.movedToDraft ? "&draft=1" : ""}`;
-  if (formData.get("intent") === "publish") {
-    const status = (await getQuestion(result.id))?.status;
-    if (status !== "PUBLISHED") {
-      const published = await transitionQuestion(result.id, "publish", user);
-      query = published.ok
-        ? "saved=1&published=1"
-        : `saved=1&error=${encodeURIComponent(published.error)}`;
-    }
+  if (formData.get("intent") === "publish" && !result.published) {
+    const published = await transitionQuestion(result.id, "publish", user);
+    query = published.ok
+      ? "saved=1&published=1"
+      : `saved=1&error=${encodeURIComponent(published.error)}`;
   }
   revalidatePath("/admin/questions");
-  updateTag(COMPANIES_TAG);
-  updateTag(PUBLIC_QUESTIONS_TAG);
+  refreshPublicPages();
   // "Then add another": a fresh form that keeps the classification and companies.
   if (!parsed.data.id && formData.get("next") === "on" && !query.includes("error="))
     redirect(`/admin/questions/new?copyFrom=${result.id}&${query}`);
@@ -81,8 +69,7 @@ export async function transitionQuestionAction(formData: FormData) {
 
   const result = await transitionQuestion(id, action.data, user);
   revalidatePath("/admin/questions");
-  updateTag(COMPANIES_TAG);
-  updateTag(PUBLIC_QUESTIONS_TAG);
+  refreshPublicPages();
   revalidatePath("/admin/drafts");
   revalidatePath(`/admin/questions/${id}`);
   redirect(
@@ -110,8 +97,7 @@ export async function bulkQuestionAction(_prev: BulkState, formData: FormData): 
 
   const { done, errors } = await bulkTransition(ids, action.data, user);
   revalidatePath("/admin/questions");
-  updateTag(COMPANIES_TAG);
-  updateTag(PUBLIC_QUESTIONS_TAG);
+  refreshPublicPages();
   revalidatePath("/admin/drafts");
   return {
     message: `${done} of ${ids.length} question${ids.length === 1 ? "" : "s"} updated.`,

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { JsonLd } from "@/components/shared/json-ld";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronRight, Timer } from "lucide-react";
@@ -98,10 +99,7 @@ async function Topic({ params, searchParams }: Props) {
 
   return (
     <div className="space-y-8">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-      />
+      <JsonLd data={jsonLd} />
       <nav
         aria-label="Breadcrumb"
         className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground"

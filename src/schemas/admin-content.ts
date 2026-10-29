@@ -4,6 +4,8 @@
 
 import { z } from "zod";
 import { CODING_LANGUAGE_IDS } from "@/lib/coding/languages";
+import { slugify } from "@/lib/utils";
+import { optionalNumber } from "@/schemas/company";
 
 export const SLUG_RULE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const EXTERNAL_ID_RULE = /^[A-Za-z0-9][A-Za-z0-9-]{0,63}$/;
@@ -234,11 +236,7 @@ export type InterviewTypeFormInput = z.infer<typeof interviewTypeFormSchema>;
 
 /** "Problem solving" → "problem-solving": the stable key old scorecards are stored under. */
 export function rubricKey(label: string): string {
-  return label
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
+  return slugify(label);
 }
 
 export function interviewTypeFormFromData(formData: FormData) {
@@ -296,20 +294,6 @@ export const adminAccessSchema = z.object({
 
 // ---------- company hiring process and sources (D-057) ----------
 
-const optionalInt = (min: number, max: number) =>
-  z
-    .string()
-    .optional()
-    .transform((value, ctx) => {
-      if (!value || !value.trim()) return null;
-      const n = Number(value);
-      if (!Number.isInteger(n) || n < min || n > max) {
-        ctx.addIssue({ code: "custom", message: `Enter a whole number from ${min} to ${max}.` });
-        return z.NEVER;
-      }
-      return n;
-    });
-
 export const roundFormSchema = z.object({
   companyId: z.string().min(1).max(40),
   roundId: z.string().min(1).max(40).optional(),
@@ -322,11 +306,8 @@ export const roundFormSchema = z.object({
     "HR_INTERVIEW",
     "MANAGERIAL_INTERVIEW",
   ]),
-  platform: z
-    .string()
-    .optional()
-    .transform((v) => (v && v.trim() ? v.trim() : null)),
-  durationMin: optionalInt(1, 600),
+  platform: optionalMarkdown,
+  durationMin: optionalNumber(1, 600, true),
   isElimination: z.enum(["", "yes", "no"]).transform((v) => (v === "" ? null : v === "yes")),
   description: optionalMarkdown,
 });

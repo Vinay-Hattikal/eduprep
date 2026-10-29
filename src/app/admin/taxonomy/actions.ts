@@ -1,10 +1,9 @@
 "use server";
 
-import { PUBLIC_QUESTIONS_TAG } from "@/server/services/public-questions";
-import { revalidatePath, updateTag } from "next/cache";
-import { COMPANIES_TAG } from "@/server/services/public-companies";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePermission } from "@/server/auth";
+import { refreshPublicPages } from "@/server/services/public-pages";
 import {
   createNodeSchema,
   createTaxonomyNode,
@@ -45,8 +44,7 @@ export async function createNodeAction(
   );
   if (!result.ok) return { error: result.error };
   revalidatePath("/admin/taxonomy");
-  updateTag(COMPANIES_TAG);
-  updateTag(PUBLIC_QUESTIONS_TAG);
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -71,7 +69,6 @@ export async function updateNodeAction(
   );
   if (!result.ok) return { error: result.error };
   revalidatePath("/admin/taxonomy");
-  updateTag(COMPANIES_TAG);
-  updateTag(PUBLIC_QUESTIONS_TAG);
+  refreshPublicPages();
   return { ok: true };
 }

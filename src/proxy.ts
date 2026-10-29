@@ -20,7 +20,7 @@ const publicLimiter = new PublicRateLimiter();
 
 export async function proxy(request: NextRequest) {
   if (isPublicContentPath(request.nextUrl.pathname)) {
-    const key = clientKey(request.headers);
+    const key = clientKey(request.headers, { exemptLocal: env().APP_ENV !== "production" });
     if (!key) return NextResponse.next();
     const verdict = publicLimiter.hit(
       key,

@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { TableSkeleton } from "@/components/shared/skeletons";
 import { DifficultyLabel } from "@/components/shared/status-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { formatDate, plainExcerpt } from "@/lib/format";
 import { requirePermission } from "@/server/auth";
 import { db } from "@/server/db";
@@ -14,7 +15,7 @@ import { DESIGN_KIND_LABELS } from "@/server/services/tracks";
 
 export const metadata: Metadata = { title: "Drafts" };
 
-const DRAFT = { in: ["DRAFT" as const, "IN_REVIEW" as const] };
+const DRAFT = { in: DRAFT_STATUSES };
 const LIMIT = 200;
 
 export default function DraftsPage() {

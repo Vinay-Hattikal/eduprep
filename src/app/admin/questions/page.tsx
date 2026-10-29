@@ -19,8 +19,6 @@ import { getTaxonomyTree, listQuestions } from "@/server/services/questions";
 
 export const metadata: Metadata = { title: "Questions" };
 
-const STATUSES = STATUS_CHOICES;
-
 function pick<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
   return typeof value === "string" && (allowed as readonly string[]).includes(value)
     ? (value as T)
@@ -58,7 +56,7 @@ async function QuestionBank({
   const filters = {
     q: typeof query.q === "string" ? query.q.trim().slice(0, 100) || undefined : undefined,
     subject: typeof query.subject === "string" ? query.subject || undefined : undefined,
-    status: pick(query.status, STATUSES),
+    status: pick(query.status, STATUS_CHOICES),
     difficulty: pick<Difficulty>(query.difficulty, ["EASY", "MEDIUM", "HARD"]),
     type: pick<QuestionType>(query.type, ["SINGLE", "MULTIPLE", "NUMERIC"]),
     page: Number(query.page) || 1,
@@ -95,7 +93,7 @@ async function QuestionBank({
         </NativeSelect>
         <NativeSelect name="status" defaultValue={filters.status ?? ""} aria-label="Status">
           <NativeSelectOption value="">Any status</NativeSelectOption>
-          {STATUSES.map((s) => (
+          {STATUS_CHOICES.map((s) => (
             <NativeSelectOption key={s} value={s}>
               {STATUS_LABELS[s]}
             </NativeSelectOption>

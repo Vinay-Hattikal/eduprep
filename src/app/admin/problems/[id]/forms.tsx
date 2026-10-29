@@ -84,8 +84,7 @@ export function ProblemForm({
   const errors = state.fieldErrors ?? {};
   const creating = !values.id;
   // "+ New topic" adds to the list and ticks the new topic (D-057).
-  const [topicList, setTopicList] = useState(topics);
-  const [checkedTopics, setCheckedTopics] = useState(values.topicIds);
+  const [addedTopics, setAddedTopics] = useState<{ id: string; name: string }[]>([]);
   const text = (
     name: keyof ProblemFormValues,
     label: string,
@@ -175,17 +174,14 @@ export function ProblemForm({
           id="topicIds"
           name="topicIds"
           legend="Topics"
-          options={topicList.map((t) => ({ value: t.id, label: t.name }))}
-          defaultValues={checkedTopics}
+          options={[...topics, ...addedTopics].map((t) => ({ value: t.id, label: t.name }))}
+          defaultValues={[...values.topicIds, ...addedTopics.map((t) => t.id)]}
           error={errors.topicIds}
           emptyText="No DSA topics yet. Add one below."
         />
         <QuickTopic
           subject="dsa"
-          onCreated={(topic) => {
-            setTopicList((list) => [...list, topic]);
-            setCheckedTopics((ids) => [...ids, topic.id]);
-          }}
+          onCreated={(topic) => setAddedTopics((list) => [...list, topic])}
         />
       </div>
       <CheckboxGroup

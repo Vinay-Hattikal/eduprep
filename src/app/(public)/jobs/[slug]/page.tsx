@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { JsonLd } from "@/components/shared/json-ld";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -103,13 +104,7 @@ async function JobDetail({
 
   return (
     <article className="space-y-8">
-      {job.open ? (
-        <script
-          type="application/ld+json"
-          // Escape "<" so content can never close the script tag.
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-        />
-      ) : null}
+      {job.open ? <JsonLd data={jsonLd} /> : null}
 
       <nav
         aria-label="Breadcrumb"

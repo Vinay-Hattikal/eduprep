@@ -3,6 +3,8 @@
 // and isn't shared between server instances, which is fine for slowing scrapers. Phase 6 can
 // move it to Redis or the CDN. Pure (clock passed in), so it's unit-tested.
 
+import { forwardedIp } from "@/lib/client-ip";
+
 export const PUBLIC_LIMITS = {
   /** Pages per window for ordinary visitors. A person reading answers stays far below this. */
   visitor: 60,
@@ -26,12 +28,11 @@ export function isKnownCrawler(userAgent: string | null): boolean {
  * The visitor's address as the hosting proxy reports it, or null when it reports none. With no
  * address there's nothing to limit by, and limiting everyone together would block real visitors.
  */
-export function clientKey(headers: Headers): string | null {
-  const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const key = forwarded || headers.get("x-real-ip")?.trim() || null;
-  // This machine itself (local development and tests). Behind hosting, the first forwarded
-  // address is the visitor's, never loopback.
-  if (key && /^(127\.|::1$|::ffff:127\.)/.test(key)) return null;
+export function clientKey(headers: Headers, { exemptLocal = false } = {}): string | null {
+  const key = forwardedIp(headers);
+  // This machine itself, in local development and tests only. In production the address is
+  // always counted, so a forged "127.0.0.1" can't skip the limit.
+  if (exemptLocal && key && /^(127\.|::1$|::ffff:127\.)/.test(key)) return null;
   return key;
 }
 
@@ -53,6 +54,8 @@ export class PublicRateLimiter {
     const id = `${crawler ? "bot" : "web"}:${key}`;
     let window = this.windows.get(id);
     if (!window || now - window.start >= PUBLIC_LIMITS.windowMs) {
+      // Re-inserting keeps the map in start-time order, so pruning can stop early.
+      this.windows.delete(id);
       if (this.windows.size >= this.maxKeys) this.prune(now);
       window = { start: now, count: 0 };
       this.windows.set(id, window);
@@ -65,10 +68,12 @@ export class PublicRateLimiter {
     };
   }
 
-  /** Drops finished windows so memory stays bounded. */
+  /** Drops finished windows (oldest first) so memory stays bounded. */
   private prune(now: number) {
-    for (const [id, w] of this.windows)
-      if (now - w.start >= PUBLIC_LIMITS.windowMs) this.windows.delete(id);
+    for (const [id, w] of this.windows) {
+      if (now - w.start < PUBLIC_LIMITS.windowMs) break;
+      this.windows.delete(id);
+    }
     // Still full (a flood of new addresses): start over rather than grow without bound.
     if (this.windows.size >= this.maxKeys) this.windows.clear();
   }

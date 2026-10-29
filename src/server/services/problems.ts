@@ -18,6 +18,7 @@ import {
 import { db } from "@/server/db";
 import { enqueueJob } from "@/server/jobs/queue";
 import { recordAudit } from "@/server/services/audit";
+import { touchCompaniesListing } from "@/server/services/company-links";
 
 export const PROBLEM_PAGE_SIZE = 25;
 
@@ -120,7 +121,16 @@ export type ProblemValues = {
 };
 
 export type ProblemSaveResult =
-  | { ok: true; id: string; created: boolean; movedToDraft: boolean; revalidating: boolean }
+  | {
+      ok: true;
+      id: string;
+      created: boolean;
+      movedToDraft: boolean;
+      revalidating: boolean;
+      /** After the save: published still, and whether the judge check still holds. */
+      published: boolean;
+      validated: boolean;
+    }
   | { ok: false; fieldErrors: Record<string, string>; formError?: string };
 
 const JUDGED_FIELDS = ["timeLimitMs", "memoryLimitMb", "checker"] as const;
@@ -194,7 +204,15 @@ export async function saveProblem(values: ProblemValues, actor: Actor): Promise<
       );
       return created;
     });
-    return { ok: true, id: problem.id, created: true, movedToDraft: false, revalidating: false };
+    return {
+      ok: true,
+      id: problem.id,
+      created: true,
+      movedToDraft: false,
+      revalidating: false,
+      published: false,
+      validated: false,
+    };
   }
 
   const changed: string[] = (Object.keys(data) as (keyof typeof data)[]).filter(
@@ -204,7 +222,15 @@ export async function saveProblem(values: ProblemValues, actor: Actor): Promise<
   if (JSON.stringify(beforeTopics) !== JSON.stringify(topics.map((t) => t.id)))
     changed.push("topics");
   if (!changed.length)
-    return { ok: true, id: before.id, created: false, movedToDraft: false, revalidating: false };
+    return {
+      ok: true,
+      id: before.id,
+      created: false,
+      movedToDraft: false,
+      revalidating: false,
+      published: before.status === "PUBLISHED",
+      validated: Boolean(before.validatedAt),
+    };
 
   const revalidating = changed.some((key) => (JUDGED_FIELDS as readonly string[]).includes(key));
   const movedToDraft = before.status !== "DRAFT";
@@ -232,7 +258,15 @@ export async function saveProblem(values: ProblemValues, actor: Actor): Promise<
     );
   });
   if (revalidating) await enqueueJob("problem.validate", { problemId: before.id });
-  return { ok: true, id: before.id, created: false, movedToDraft, revalidating };
+  return {
+    ok: true,
+    id: before.id,
+    created: false,
+    movedToDraft,
+    revalidating,
+    published: false,
+    validated: Boolean(before.validatedAt) && !revalidating,
+  };
 }
 
 // ---------- Solutions ----------
@@ -429,6 +463,8 @@ export async function transitionProblem(
         }),
       },
     });
+    if (action === "publish" || problem.status === "PUBLISHED")
+      await touchCompaniesListing(tx, { problemId: id });
     await recordAudit(
       {
         actorId: actor.id,

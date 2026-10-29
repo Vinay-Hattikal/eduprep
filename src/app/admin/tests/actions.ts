@@ -1,13 +1,12 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { blueprintFormSchema } from "@/schemas/blueprint";
 import { requirePermission } from "@/server/auth";
+import { refreshPublicPages } from "@/server/services/public-pages";
 import { saveBlueprint, transitionBlueprint } from "@/server/services/blueprints";
-import { PUBLIC_CATALOG_TAG } from "@/server/services/public-catalog";
-import { COMPANIES_TAG } from "@/server/services/public-companies";
 
 export type BlueprintFormState = { errors?: string[] };
 
@@ -37,8 +36,7 @@ export async function saveBlueprintAction(
   if (!result.ok) return { errors: Object.values(result.fieldErrors) };
   revalidatePath("/admin/tests");
   revalidatePath("/tests");
-  updateTag(PUBLIC_CATALOG_TAG);
-  updateTag(COMPANIES_TAG);
+  refreshPublicPages();
   redirect(`/admin/tests/${result.id}?saved=1`);
 }
 
@@ -51,8 +49,7 @@ export async function transitionBlueprintAction(formData: FormData) {
   const result = await transitionBlueprint(id, action, user);
   revalidatePath("/admin/tests");
   revalidatePath("/tests");
-  updateTag(PUBLIC_CATALOG_TAG);
-  updateTag(COMPANIES_TAG);
+  refreshPublicPages();
   redirect(
     `/admin/tests/${id}?${result.ok ? `done=${action}` : `errors=${encodeURIComponent(JSON.stringify(result.errors))}`}`,
   );

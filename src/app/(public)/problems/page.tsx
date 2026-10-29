@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Pagination } from "@/components/shared/pagination";
 import { PageSkeleton } from "@/components/shared/skeletons";
+import { DifficultyLabel } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { DIFFICULTY_LABELS } from "@/lib/content/workflow";
 import { cn } from "@/lib/utils";
 import { listPublicProblems } from "@/server/services/public-catalog";
 
@@ -41,12 +41,6 @@ export default function ProblemsPage(props: Props) {
     </main>
   );
 }
-
-const DIFFICULTY_TONES = {
-  EASY: "text-success",
-  MEDIUM: "text-warning",
-  HARD: "text-destructive",
-} as const;
 
 async function Problems({ searchParams }: Props) {
   const query = await searchParams;
@@ -99,9 +93,7 @@ async function Problems({ searchParams }: Props) {
               >
                 {p.title}
               </Link>
-              <span className={cn("text-sm font-medium", DIFFICULTY_TONES[p.difficulty])}>
-                {DIFFICULTY_LABELS[p.difficulty]}
-              </span>
+              <DifficultyLabel difficulty={p.difficulty} />
               <span className="flex flex-wrap gap-1">
                 {p.topics.map((t) => (
                   <Badge key={t.slug} variant="outline">

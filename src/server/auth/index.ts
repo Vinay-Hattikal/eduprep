@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { ProfileType, Role } from "@/generated/prisma/enums";
 import { can, type Permission } from "@/lib/permissions";
+import { forwardedIp } from "@/lib/client-ip";
 import { db } from "@/server/db";
 import { env } from "@/server/env";
 import {
@@ -135,10 +136,7 @@ export async function endSession(): Promise<void> {
 }
 
 /** The caller's IP as seen by the first proxy (for rate limits and the sessions list). */
-export function clientIp(requestHeaders: Headers): string | null {
-  const forwarded = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return (forwarded || requestHeaders.get("x-real-ip") || null)?.slice(0, 64) ?? null;
-}
+export const clientIp = forwardedIp;
 
 export async function requestIp(): Promise<string> {
   return clientIp(await headers()) ?? "unknown";

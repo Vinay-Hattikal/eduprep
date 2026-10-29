@@ -24,6 +24,9 @@ export const STATUS_LABELS: Record<ContentStatus, string> = {
   ARCHIVED: "Archived",
 };
 
+/** Statuses that count as a draft (old IN_REVIEW rows are drafts, D-056). */
+export const DRAFT_STATUSES: ContentStatus[] = ["DRAFT", "IN_REVIEW"];
+
 /** Statuses to offer in filters (IN_REVIEW is no longer used). */
 export const STATUS_CHOICES: ContentStatus[] = ["DRAFT", "PUBLISHED", "ARCHIVED"];
 
@@ -35,7 +38,7 @@ export const ACTION_LABELS: Record<ContentAction, string> = {
 };
 
 const TRANSITIONS: Record<ContentAction, { from: ContentStatus[]; to: ContentStatus }> = {
-  publish: { from: ["DRAFT", "IN_REVIEW"], to: "PUBLISHED" },
+  publish: { from: DRAFT_STATUSES, to: "PUBLISHED" },
   unpublish: { from: ["PUBLISHED"], to: "DRAFT" },
   archive: { from: ["DRAFT", "IN_REVIEW", "PUBLISHED"], to: "ARCHIVED" },
   restore: { from: ["ARCHIVED"], to: "DRAFT" },

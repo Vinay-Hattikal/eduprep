@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
@@ -10,6 +10,7 @@ import {
   sourceFormSchema,
 } from "@/schemas/admin-content";
 import { requirePermission } from "@/server/auth";
+import { refreshPublicPages } from "@/server/services/public-pages";
 import {
   addSource,
   deleteRound,
@@ -20,7 +21,6 @@ import {
   saveRound,
   saveSection,
 } from "@/server/services/company-hiring";
-import { COMPANIES_TAG } from "@/server/services/public-companies";
 
 export type HiringFormState = { fieldErrors?: Record<string, string>; formError?: string };
 
@@ -30,7 +30,7 @@ const direction = z.enum(["up", "down"]);
 /** Refreshes the admin and public pages, then returns to the right tab. */
 function done(slug: string, tab: "process" | "sources", query = "") {
   revalidatePath(`/admin/companies/${slug}`);
-  updateTag(COMPANIES_TAG);
+  refreshPublicPages();
   redirect(`/admin/companies/${slug}?tab=${tab}${query ? `&${query}` : ""}`);
 }
 

@@ -11,15 +11,23 @@ import { recordAudit } from "@/server/services/audit";
 // never send it back to draft (same as D-054 for imports).
 
 type Actor = { id: string };
-export type Item = { questionId: string } | { problemId: string };
+type Item = { questionId: string } | { problemId: string };
 
 /** Company pages list their questions, so their sitemap date moves when links change (D-058). */
-export async function touchCompanies(tx: Prisma.TransactionClient, ids: readonly string[]) {
+async function touchCompanies(tx: Prisma.TransactionClient, ids: readonly string[]) {
   if (ids.length)
     await tx.company.updateMany({
       where: { id: { in: [...ids] } },
       data: { updatedAt: new Date() },
     });
+}
+
+/** Touches every company page that lists this item (when it's published or unpublished). */
+export async function touchCompaniesListing(tx: Prisma.TransactionClient, item: Item) {
+  await tx.company.updateMany({
+    where: { items: { some: itemWhere(item) } },
+    data: { updatedAt: new Date() },
+  });
 }
 
 const itemWhere = (item: Item) =>
@@ -43,59 +51,52 @@ export async function companyLinksProblem(links: readonly AskedAt[]): Promise<st
 
 /**
  * Makes the item's company links exactly `links`. Kept links keep their round and report count;
- * their months are replaced by what the editor shows.
+ * their months are replaced by what the editor shows. False when nothing changed.
  */
 export async function setCompanyLinks(item: Item, links: readonly AskedAt[], actor: Actor) {
-  return db.$transaction((tx) => writeLinks(tx, item, links, actor));
-}
-
-async function writeLinks(
-  tx: Prisma.TransactionClient,
-  item: Item,
-  links: readonly AskedAt[],
-  actor: Actor,
-) {
   const where = itemWhere(item);
-  const existing = await tx.companyItem.findMany({ where });
-  const keep = new Set(links.map((l) => l.companyId));
-  const removed = existing.filter((l) => !keep.has(l.companyId));
-  const changed =
-    removed.length > 0 ||
-    links.some((l) => {
-      const before = existing.find((e) => e.companyId === l.companyId);
-      return !before || before.askedIn.join() !== l.askedIn.join();
+  return db.$transaction(async (tx) => {
+    const existing = new Map(
+      (await tx.companyItem.findMany({ where })).map((e) => [e.companyId, e]),
+    );
+    const keep = new Set(links.map((l) => l.companyId));
+    const removed = [...existing.values()].filter((e) => !keep.has(e.companyId));
+    const created = links.filter((l) => !existing.has(l.companyId));
+    const updated = links.filter((l) => {
+      const before = existing.get(l.companyId);
+      return before && before.askedIn.join() !== l.askedIn.join();
     });
-  if (!changed) return false;
+    if (!removed.length && !created.length && !updated.length) return false;
 
-  if (removed.length)
-    await tx.companyItem.deleteMany({ where: { id: { in: removed.map((r) => r.id) } } });
-  for (const link of links) {
-    const before = existing.find((e) => e.companyId === link.companyId);
-    if (before) {
-      if (before.askedIn.join() !== link.askedIn.join())
-        await tx.companyItem.update({ where: { id: before.id }, data: { askedIn: link.askedIn } });
-    } else {
-      await tx.companyItem.create({
-        data: { companyId: link.companyId, ...where, askedIn: link.askedIn },
+    if (removed.length)
+      await tx.companyItem.deleteMany({ where: { id: { in: removed.map((r) => r.id) } } });
+    if (created.length)
+      await tx.companyItem.createMany({
+        data: created.map((l) => ({ companyId: l.companyId, ...where, askedIn: l.askedIn })),
       });
-    }
-  }
-  await touchCompanies(tx, [
-    ...new Set([...removed.map((r) => r.companyId), ...links.map((l) => l.companyId)]),
-  ]);
-  const [entityType, entityId] =
-    "questionId" in item ? ["question", item.questionId] : ["problem", item.problemId];
-  await recordAudit(
-    {
-      actorId: actor.id,
-      action: `${entityType}.companies`,
-      entityType,
-      entityId,
-      after: { companies: links.map((l) => ({ companyId: l.companyId, askedIn: l.askedIn })) },
-    },
-    tx,
-  );
-  return true;
+    for (const l of updated)
+      await tx.companyItem.update({
+        where: { id: existing.get(l.companyId)!.id },
+        data: { askedIn: l.askedIn },
+      });
+
+    await touchCompanies(tx, [
+      ...new Set([...removed, ...created, ...updated].map((l) => l.companyId)),
+    ]);
+    const [entityType, entityId] =
+      "questionId" in item ? ["question", item.questionId] : ["problem", item.problemId];
+    await recordAudit(
+      {
+        actorId: actor.id,
+        action: `${entityType}.companies`,
+        entityType,
+        entityId,
+        after: { companies: links.map((l) => ({ companyId: l.companyId, askedIn: l.askedIn })) },
+      },
+      tx,
+    );
+    return true;
+  });
 }
 
 /** Links an existing question or problem to a company (no months). */
@@ -181,14 +182,17 @@ export async function searchLinkable(companyId: string, kind: "question" | "prob
 
 /** The next unused question ID after `id` (QA-PCT-0042 → QA-PCT-0043), or "". */
 export async function suggestNextQuestionId(id: string): Promise<string> {
-  let candidate = nextExternalId(id);
-  for (let i = 0; candidate && i < 50; i += 1) {
-    const taken = await db.question.findUnique({
-      where: { externalId: candidate },
-      select: { id: true },
-    });
-    if (!taken) return candidate;
-    candidate = nextExternalId(candidate);
-  }
-  return "";
+  // The next 50 IDs in sequence, checked in one query.
+  const candidates: string[] = [];
+  for (let next = nextExternalId(id); next && candidates.length < 50; next = nextExternalId(next))
+    candidates.push(next);
+  const taken = new Set(
+    (
+      await db.question.findMany({
+        where: { externalId: { in: candidates } },
+        select: { externalId: true },
+      })
+    ).map((q) => q.externalId),
+  );
+  return candidates.find((c) => !taken.has(c)) ?? "";
 }

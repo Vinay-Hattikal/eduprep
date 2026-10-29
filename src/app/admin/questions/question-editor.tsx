@@ -490,7 +490,6 @@ export function QuestionEditor({
             <CardContent className="space-y-2 text-sm">
               {v.id ? (
                 <>
-                  <input type="hidden" name="publicSampleField" value="1" />
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id="publicSample"

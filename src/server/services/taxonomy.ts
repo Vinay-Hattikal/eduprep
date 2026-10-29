@@ -1,6 +1,7 @@
 import "server-only";
 
 import { z } from "zod";
+import { slugify } from "@/lib/utils";
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/services/audit";
 
@@ -140,16 +141,6 @@ export async function updateTaxonomyNode(
   return { ok: true };
 }
 
-/** "Time & Work" → "time-work". */
-export function slugifyName(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
-
 /**
  * "+ New topic" from the question and problem editors (D-057): creates a topic from its name
  * alone. Topic slugs are unique across subjects (D-025), so a taken slug gets the subject's
@@ -171,15 +162,14 @@ export async function quickCreateTopic(
   if (subject.topics.some((t) => t.name.toLowerCase() === clean.toLowerCase()))
     return { ok: false, error: "This subject already has a topic with that name." };
 
-  const base = slugifyName(clean) || "topic";
+  const base = slugify(clean) || "topic";
   const candidates = [base, `${subject.slug}-${base}`, ...[2, 3, 4, 5].map((n) => `${base}-${n}`)];
-  let slug: string | null = null;
-  for (const candidate of candidates) {
-    if (!(await db.topic.findUnique({ where: { slug: candidate }, select: { id: true } }))) {
-      slug = candidate;
-      break;
-    }
-  }
+  const taken = new Set(
+    (await db.topic.findMany({ where: { slug: { in: candidates } }, select: { slug: true } })).map(
+      (t) => t.slug,
+    ),
+  );
+  const slug = candidates.find((c) => !taken.has(c)) ?? null;
   if (!slug) return { ok: false, error: "Couldn't make a unique slug. Use the Taxonomy page." };
 
   const topic = await db.topic.create({

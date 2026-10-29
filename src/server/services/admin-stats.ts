@@ -1,6 +1,7 @@
 import "server-only";
 
 import { ADMIN_ROLES } from "@/lib/permissions";
+import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { db } from "@/server/db";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -52,9 +53,9 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
     db.auditLog.count({ where: { createdAt: { gte: weekAgo } } }),
     db.question.count({ where: { status: "PUBLISHED" } }),
     db.question.count({ where: { status: { not: "ARCHIVED" } } }),
-    db.question.count({ where: { status: { in: ["DRAFT", "IN_REVIEW"] } } }),
-    db.problem.count({ where: { status: { in: ["DRAFT", "IN_REVIEW"] } } }),
-    db.designQuestion.count({ where: { status: { in: ["DRAFT", "IN_REVIEW"] } } }),
+    db.question.count({ where: { status: { in: DRAFT_STATUSES } } }),
+    db.problem.count({ where: { status: { in: DRAFT_STATUSES } } }),
+    db.designQuestion.count({ where: { status: { in: DRAFT_STATUSES } } }),
     db.importBatch.count({ where: { status: "PREVIEW_READY" } }),
     db.importBatch.count({ where: { status: "FAILED", createdAt: { gte: weekAgo } } }),
     db.company.count({

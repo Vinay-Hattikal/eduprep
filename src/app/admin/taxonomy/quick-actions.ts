@@ -1,11 +1,10 @@
 "use server";
 
-import { PUBLIC_QUESTIONS_TAG } from "@/server/services/public-questions";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePermission } from "@/server/auth";
+import { refreshPublicPages } from "@/server/services/public-pages";
 import { db } from "@/server/db";
-import { COMPANIES_TAG } from "@/server/services/public-companies";
 import { quickCreateTopic } from "@/server/services/taxonomy";
 
 export type QuickTopicResult =
@@ -28,8 +27,7 @@ export async function quickTopicAction(subject: string, name: string): Promise<Q
   const result = await quickCreateTopic(subjectId, input.data.name, user.id);
   if (result.ok) {
     revalidatePath("/admin/taxonomy");
-    updateTag(COMPANIES_TAG);
-    updateTag(PUBLIC_QUESTIONS_TAG);
+    refreshPublicPages();
   }
   return result;
 }

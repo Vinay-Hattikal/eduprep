@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowLeft, CheckCircle2, CircleAlert } from "lucide-react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { EMPTY_QUESTION, taxonomyOptions } from "@/app/admin/questions/editor-data";
 import { QuestionEditor } from "@/app/admin/questions/question-editor";
 import { PageHeader } from "@/components/shared/page-header";
@@ -111,12 +111,6 @@ async function NewQuestion({
               . This form keeps its subject, topic, difficulty and companies.
             </span>
           </AlertDescription>
-        </Alert>
-      ) : null}
-      {typeof query.error === "string" ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertDescription>{query.error}</AlertDescription>
         </Alert>
       ) : null}
       <QuestionEditor

@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { Markdown } from "@/components/shared/markdown";
-import { OPTION_LETTERS } from "@/lib/content/question-rules";
+import { codeFence, filledOptions, OPTION_LETTERS } from "@/lib/content/question-rules";
 import { cn } from "@/lib/utils";
 
 export type PreviewQuestion = {
@@ -18,7 +18,7 @@ export type PreviewQuestion = {
 
 /** How a question looks to a student, with the answer shown (admin preview). */
 export function QuestionPreview({ question }: { question: PreviewQuestion }) {
-  const options = question.options.slice(0, question.options.findLastIndex((o) => o.trim()) + 1);
+  const options = filledOptions(question.options);
 
   return (
     <div className="space-y-4">
@@ -35,13 +35,7 @@ export function QuestionPreview({ question }: { question: PreviewQuestion }) {
       )}
 
       {question.code ? (
-        <Markdown>
-          {"```" +
-            (question.codeLanguage === "pseudocode" ? "" : (question.codeLanguage ?? "")) +
-            "\n" +
-            question.code +
-            "\n```"}
-        </Markdown>
+        <Markdown>{codeFence(question.code, question.codeLanguage)}</Markdown>
       ) : null}
 
       {question.type === "NUMERIC" ? (

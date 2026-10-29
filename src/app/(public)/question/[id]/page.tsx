@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { JsonLd } from "@/components/shared/json-ld";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronRight } from "lucide-react";
@@ -8,13 +9,11 @@ import { PageSkeleton } from "@/components/shared/skeletons";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { siteConfig } from "@/config/site";
+import { formatMonth } from "@/lib/format";
 import { questionTitle, questionUrl } from "@/lib/content/public-question";
 import { getPublicQuestion } from "@/server/services/public-questions";
 
 type Props = PageProps<"/question/[id]">;
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const monthLabel = (ym: string) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const data = await getPublicQuestion((await params).id);
@@ -96,10 +95,7 @@ async function Question({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-      />
+      <JsonLd data={jsonLd} />
       <nav
         aria-label="Breadcrumb"
         className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
@@ -136,7 +132,7 @@ async function Question({ params }: Props) {
                 <Link prefetch={false} href={`/companies/${c.company.slug}`}>
                   <Badge variant="secondary" className="hover:bg-secondary/70">
                     {c.company.name}
-                    {c.askedIn.length ? ` · ${monthLabel(c.askedIn[0]!)}` : ""}
+                    {c.askedIn.length ? ` · ${formatMonth(c.askedIn[0]!)}` : ""}
                   </Badge>
                 </Link>
               </li>

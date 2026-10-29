@@ -3,7 +3,7 @@ import { CheckCircle2, Lock } from "lucide-react";
 import { Markdown } from "@/components/shared/markdown";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { OPTION_LETTERS } from "@/lib/content/question-rules";
+import { codeFence, OPTION_LETTERS } from "@/lib/content/question-rules";
 import type { PublicQuestion } from "@/lib/content/public-question";
 import { DIFFICULTY_LABELS } from "@/lib/content/workflow";
 import { cn } from "@/lib/utils";
@@ -59,13 +59,7 @@ export function PublicQuestionCard({
 
       <Markdown>{question.text}</Markdown>
       {question.code ? (
-        <Markdown>
-          {"```" +
-            (question.codeLanguage === "pseudocode" ? "" : (question.codeLanguage ?? "")) +
-            "\n" +
-            question.code +
-            "\n```"}
-        </Markdown>
+        <Markdown>{codeFence(question.code, question.codeLanguage)}</Markdown>
       ) : null}
 
       {question.type !== "NUMERIC" ? (

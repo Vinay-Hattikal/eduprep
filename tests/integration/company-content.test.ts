@@ -11,7 +11,7 @@ import {
   unlinkFromCompany,
 } from "@/server/services/company-links";
 import { transitionQuestion } from "@/server/services/questions";
-import { quickCreateTopic, slugifyName } from "@/server/services/taxonomy";
+import { quickCreateTopic } from "@/server/services/taxonomy";
 import { createUser, importFile, resetDatabase, template } from "./helpers";
 
 let admin: { id: string; roles: "ADMIN"[] };
@@ -131,6 +131,5 @@ describe("+ New topic", () => {
     expect((await db.topic.findUniqueOrThrow({ where: { id: other.topic.id } })).slug).toBe(
       "logical-reasoning-percentages",
     );
-    expect(slugifyName("Time & Work!")).toBe("time-work");
   });
 });

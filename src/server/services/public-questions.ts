@@ -115,8 +115,16 @@ export async function getPublicQuestion(urlId: string) {
   cacheTag(PUBLIC_QUESTIONS_TAG);
   cacheLife("hours");
 
+  // IDs are upper-case by convention, so the exact match (unique index) almost always hits;
+  // the case-insensitive scan only runs for an unusual ID.
+  const exact = await db.question.findUnique({
+    where: { externalId: urlId.toUpperCase() },
+    select: { id: true },
+  });
   const q = await db.question.findFirst({
-    where: { ...LIVE, externalId: { equals: urlId, mode: "insensitive" } },
+    where: exact
+      ? { ...LIVE, id: exact.id }
+      : { ...LIVE, externalId: { equals: urlId, mode: "insensitive" } },
     select: {
       ...QUESTION_FIELDS,
       id: true,

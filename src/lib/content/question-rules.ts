@@ -6,6 +6,16 @@ import type { QuestionType } from "@/generated/prisma/enums";
 export const OPTION_LETTERS = ["A", "B", "C", "D", "E"] as const;
 export type OptionLetter = (typeof OPTION_LETTERS)[number];
 
+/** Options up to the last filled one (blank trailing slots dropped). */
+export function filledOptions(options: readonly string[]): string[] {
+  return options.slice(0, options.findLastIndex((o) => o.trim()) + 1);
+}
+
+/** A question's code snippet as a fenced Markdown block ("pseudocode" gets no highlighting). */
+export function codeFence(code: string, language: string | null): string {
+  return "```" + (language === "pseudocode" ? "" : (language ?? "")) + "\n" + code + "\n```";
+}
+
 export const CODE_LANGUAGES = [
   "c",
   "cpp",

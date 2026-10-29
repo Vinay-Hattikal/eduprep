@@ -53,7 +53,11 @@ describe("public page rate limit (D-058, C.5)", () => {
     );
     expect(clientKey(new Headers({ "x-real-ip": "198.51.100.7" }))).toBe("198.51.100.7");
     expect(clientKey(new Headers())).toBeNull();
-    for (const local of ["127.0.0.1", "::1", "::ffff:127.0.0.1"])
-      expect(clientKey(new Headers({ "x-forwarded-for": local }))).toBeNull();
+    for (const local of ["127.0.0.1", "::1", "::ffff:127.0.0.1"]) {
+      const headers = new Headers({ "x-forwarded-for": local });
+      expect(clientKey(headers, { exemptLocal: true })).toBeNull();
+      // Production counts it, so a forged local address can't skip the limit.
+      expect(clientKey(headers)).toBe(local);
+    }
   });
 });

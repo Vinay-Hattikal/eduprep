@@ -4,6 +4,7 @@ import type { ContentStatus } from "@/generated/prisma/enums";
 import { isStale, type CompanyStatusAction } from "@/lib/content/companies";
 import { can } from "@/lib/permissions";
 import type { CompanyFormValues } from "@/schemas/company";
+import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { db } from "@/server/db";
 import type { CurrentUser } from "@/server/auth";
 import { recordAudit } from "@/server/services/audit";
@@ -19,7 +20,18 @@ export async function listCompanies() {
 
 export async function getCompanyBySlug(slug: string) {
   const company = await loadCompany(slug);
-  return company ? { ...company, stale: isStale(company.lastVerifiedAt, new Date()) } : null;
+  if (!company) return null;
+  // Counts only: the admin tabs list the linked items themselves (D-057).
+  const [questionCount, problemCount] = await Promise.all([
+    db.companyItem.count({ where: { companyId: company.id, questionId: { not: null } } }),
+    db.companyItem.count({ where: { companyId: company.id, problemId: { not: null } } }),
+  ]);
+  return {
+    ...company,
+    questionCount,
+    problemCount,
+    stale: isStale(company.lastVerifiedAt, new Date()),
+  };
 }
 
 function loadCompany(slug: string) {
@@ -36,19 +48,12 @@ function loadCompany(slug: string) {
         },
       },
       sources: { orderBy: { checkedOn: "desc" } },
-      items: {
-        orderBy: [{ question: { externalId: "asc" } }, { problem: { externalId: "asc" } }],
-        include: {
-          question: { select: { id: true, externalId: true, status: true, text: true } },
-          problem: { select: { id: true, externalId: true, status: true, title: true } },
-        },
-      },
     },
   });
 }
 
 export type CompanySaveResult =
-  | { ok: true; slug: string }
+  | { ok: true; id: string; slug: string; status: ContentStatus }
   | { ok: false; fieldErrors: Record<string, string>; formError?: string };
 
 export async function saveCompany(
@@ -68,7 +73,7 @@ export async function saveCompany(
       entityType: "company",
       entityId: created.id,
     });
-    return { ok: true, slug: created.slug };
+    return { ok: true, id: created.id, slug: created.slug, status: created.status };
   }
 
   const before = await db.company.findUnique({ where: { id } });
@@ -88,11 +93,11 @@ export async function saveCompany(
     before: { status: before.status },
     after: { status: updated.status },
   });
-  return { ok: true, slug: updated.slug };
+  return { ok: true, id: updated.id, slug: updated.slug, status: updated.status };
 }
 
 const STATUS_RULES: Record<CompanyStatusAction, { from: ContentStatus[]; to: ContentStatus }> = {
-  publish: { from: ["DRAFT", "IN_REVIEW"], to: "PUBLISHED" },
+  publish: { from: DRAFT_STATUSES, to: "PUBLISHED" },
   unpublish: { from: ["PUBLISHED"], to: "DRAFT" },
   archive: { from: ["DRAFT", "IN_REVIEW", "PUBLISHED"], to: "ARCHIVED" },
   restore: { from: ["ARCHIVED"], to: "DRAFT" },

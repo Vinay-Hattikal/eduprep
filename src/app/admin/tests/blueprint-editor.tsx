@@ -1,5 +1,6 @@
 "use client";
 
+import { slugify } from "@/lib/utils";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { saveBlueprintAction, type BlueprintFormState } from "@/app/admin/tests/actions";
@@ -47,12 +48,7 @@ export const EMPTY_BLUEPRINT: BlueprintForm = {
   sections: [emptySection()],
 };
 
-const slugify = (text: string) =>
-  text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80);
+const toSlug = (text: string) => slugify(text, 80);
 
 /** Edits a whole blueprint in the browser and sends it as one JSON document. */
 export function BlueprintEditor({
@@ -116,7 +112,7 @@ export function BlueprintEditor({
               value={value.title}
               onChange={(e) => {
                 set("title", e.target.value);
-                if (!slugTouched) set("slug", slugify(e.target.value));
+                if (!slugTouched) set("slug", toSlug(e.target.value));
               }}
             />
           </div>
