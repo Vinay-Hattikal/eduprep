@@ -1,6 +1,7 @@
 // Runs queued jobs: used by the worker process, scripts and integration tests.
 
 import { commitBatch, validateBatch } from "@/server/imports/pipeline";
+import { sendContestReminder, sendJobDigest } from "@/server/services/alerts";
 import { judgeSubmission, validateProblem } from "@/server/services/coding";
 import { finalizeContest } from "@/server/services/contests";
 import { scorecardOverdue, sendReminder, syncMeeting } from "@/server/services/interviews";
@@ -27,6 +28,8 @@ const handlers: { [T in JobType]: (payload: JobPayloads[T]) => Promise<void> } =
   "booking.reminder": ({ bookingId, when, startsAt }) => sendReminder(bookingId, when, startsAt),
   "scorecard.overdue": ({ bookingId, endsAt }) => scorecardOverdue(bookingId, endsAt),
   "contest.finalize": ({ contestId }) => finalizeContest(contestId),
+  "jobs.digest": ({ since }) => sendJobDigest(since),
+  "contest.reminder": ({ contestId, startsAt }) => sendContestReminder(contestId, startsAt),
 };
 
 export async function runJob(job: ClaimedJob): Promise<"done" | "retry" | "failed"> {

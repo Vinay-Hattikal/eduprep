@@ -19,6 +19,8 @@ export const JOB_TYPES = [
   "booking.reminder",
   "scorecard.overdue",
   "contest.finalize",
+  "jobs.digest",
+  "contest.reminder",
 ] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 
@@ -34,6 +36,9 @@ export type JobPayloads = {
   "booking.reminder": { bookingId: string; when: "24h" | "1h"; startsAt: string };
   "scorecard.overdue": { bookingId: string; endsAt: string };
   "contest.finalize": { contestId: string };
+  /** Covers jobs published after `since` (the previous digest). */
+  "jobs.digest": { since: string };
+  "contest.reminder": { contestId: string; startsAt: string };
 };
 
 /** A job to queue, for code that describes work without queuing it itself. */

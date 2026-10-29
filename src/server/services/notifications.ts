@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@/generated/prisma/client";
 import {
+  ALERT_TEMPLATES,
   MARKETING_TEMPLATES,
   renderTemplate,
   type TemplateData,
@@ -22,10 +23,11 @@ export async function notify<K extends TemplateName>(
 ): Promise<void> {
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { email: true, phoneNumber: true, marketingOptIn: true },
+    select: { email: true, phoneNumber: true, marketingOptIn: true, alertsOptIn: true },
   });
   if (!user) return;
   if (MARKETING_TEMPLATES.includes(template) && !user.marketingOptIn) return;
+  if (ALERT_TEMPLATES.includes(template) && !user.alertsOptIn) return;
   const { subject, body } = renderTemplate(template, data);
   const rows: Prisma.NotificationCreateManyInput[] = [];
   if (user.email) rows.push({ userId, channel: "EMAIL", template, to: user.email, subject, body });

@@ -9,6 +9,7 @@ import { env } from "@/server/env";
 import { BULLMQ_QUEUE, getDispatcher, redisConnection } from "@/server/jobs/dispatch";
 import { claimJob, claimNextJob, requeueStaleJobs } from "@/server/jobs/queue";
 import { runJob } from "@/server/jobs/runner";
+import { scheduleJobDigest } from "@/server/services/alerts";
 
 const config = env();
 const bull = config.QUEUE_DRIVER === "bullmq";
@@ -56,6 +57,8 @@ async function sweep() {
 
 async function main() {
   log(`started as ${workerId} (${config.QUEUE_DRIVER})`);
+  // The daily job-alert digest reschedules itself; this starts the chain the first time.
+  await scheduleJobDigest().catch((error) => log(`couldn't schedule the job digest: ${error}`));
   let close = async () => {};
   if (bull) {
     const { Worker } = await import("bullmq");

@@ -204,7 +204,7 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 | 7.4 | Moderated question discussions: replies, upvotes, flags, auto-hide, moderation queue, posting blocks (D-048) | ✅ |
 | 7.5 | Share cards for results, ranks and badges with generated images, WhatsApp and LinkedIn (D-053) | ✅ |
 | 7.6 | Badges and streak freezes, achievements page (D-052) | ✅ |
-| 7.7 | Job alerts by eligibility; contest reminders | ⬜ |
+| 7.7 | Job alerts by eligibility (daily digest); contest reminders (D-059) | ✅ |
 
 **Exit criteria:** met for 7.1–7.6: a student can find and apply to a job, take a weekly test and see their rank, report a drive, discuss a question, earn badges and freezes, and share them.
 

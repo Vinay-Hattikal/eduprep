@@ -40,6 +40,8 @@ model User {
   preferredLanguage   String?      @map("preferred_language") // c | cpp | java | python | javascript
   // Marketing and engagement messages; transactional messages are always sent (PRD 8.14).
   marketingOptIn      Boolean      @default(true) @map("marketing_opt_in")
+  // Job alerts and All-India mock reminders (D-059).
+  alertsOptIn         Boolean      @default(true) @map("alerts_opt_in")
   // Set by a moderator: the user can read discussions but not post (D-048).
   commentsBlockedAt   DateTime?    @map("comments_blocked_at")
   createdAt           DateTime     @default(now()) @map("created_at")

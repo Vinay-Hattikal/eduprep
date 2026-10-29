@@ -53,6 +53,11 @@ export type TemplateData = {
     points: number;
     note: string | null;
   };
+  "jobs.digest": {
+    name: string;
+    jobs: { title: string; company: string; slug: string; applyBy: string | null }[];
+  };
+  "contest.reminder": { name: string; contest: string; slug: string; startsAt: string };
   "contest.result": {
     name: string;
     contest: string;
@@ -154,6 +159,24 @@ If you didn't ask for it, ignore this message; nobody can use it without your ${
       ? `Hi ${d.name},\n\nThanks for reporting what ${d.company} asked. It's now on the company page${d.points ? ` and you earned ${d.points} points` : ""}.${signOff}`
       : `Hi ${d.name},\n\nWe couldn't publish your ${d.company} drive report.${d.note ? `\n\n${d.note}` : ""}${signOff}`,
   }),
+  "jobs.digest": (d) => ({
+    subject:
+      d.jobs.length === 1
+        ? `New job for you: ${d.jobs[0]!.title} at ${d.jobs[0]!.company}`
+        : `${d.jobs.length} new jobs you can apply for`,
+    body: `Hi ${d.name},\n\nNew openings that match your profile:\n\n${d.jobs
+      .map(
+        (j) =>
+          `• ${j.title} at ${j.company}${j.applyBy ? ` (apply by ${j.applyBy})` : ""}\n  ${url(`/jobs/${j.slug}`)}`,
+      )
+      .join(
+        "\n",
+      )}\n\nAll openings: ${url("/jobs")}\nTurn job alerts off on your account page: ${url("/account")}${signOff}`,
+  }),
+  "contest.reminder": (d) => ({
+    subject: `Tomorrow: ${d.contest}`,
+    body: `Hi ${d.name},\n\n${d.contest} opens ${formatSlot(new Date(d.startsAt))} (IST). One attempt, a live leaderboard and your All-India rank.\n\nSee the details and start when it opens: ${url(`/contests/${d.slug}`)}\n\nTurn reminders off on your account page: ${url("/account")}${signOff}`,
+  }),
   "contest.result": (d) => ({
     subject: `${d.contest}: you ranked ${d.rank.toLocaleString("en-IN")}`,
     body: `Hi ${d.name},\n\nThe results of ${d.contest} are final. You ranked ${d.rank.toLocaleString("en-IN")} of ${d.total.toLocaleString("en-IN")} (${d.percentile} percentile). Solutions are open now.\n\nYour result and the leaderboard: ${url(`/contests/${d.slug}`)}${signOff}`,
@@ -166,6 +189,9 @@ export function renderTemplate<K extends TemplateName>(name: K, data: TemplateDa
 
 /** Marketing templates respect the user's opt-out; everything above is transactional. */
 export const MARKETING_TEMPLATES: readonly TemplateName[] = [];
+
+/** Job alerts and contest reminders respect the user's alerts opt-out (D-059). */
+export const ALERT_TEMPLATES: readonly TemplateName[] = ["jobs.digest", "contest.reminder"];
 
 /** Minimal, safe HTML for email from the plain-text body (links made clickable). */
 export function emailHtml(subject: string, body: string): string {

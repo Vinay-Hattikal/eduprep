@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Gift, Receipt, Sparkles, Star, Video } from "lucide-react";
-import { setMarketingAction, signOutOthersAction } from "@/app/(student)/account/actions";
+import {
+  setAlertsAction,
+  setMarketingAction,
+  signOutOthersAction,
+} from "@/app/(student)/account/actions";
 import { PasswordForm } from "@/app/(student)/account/security";
 import { DataTable } from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
@@ -39,7 +43,10 @@ async function Account() {
   const user = await requirePermission("student.access");
   const [account, prefs, security, sessions, sessionId] = await Promise.all([
     getAccount(user),
-    db.user.findUniqueOrThrow({ where: { id: user.id }, select: { marketingOptIn: true } }),
+    db.user.findUniqueOrThrow({
+      where: { id: user.id },
+      select: { marketingOptIn: true, alertsOptIn: true },
+    }),
     accountSecurity(user.id),
     listSessions(user.id),
     currentSessionId(),
@@ -248,11 +255,22 @@ async function Account() {
             <h2>Messages</h2>
           </CardTitle>
           <CardDescription>
-            Booking, payment and scorecard messages are always sent. You can turn off tips and
-            offers.
+            Booking, payment and scorecard messages are always sent. You can turn off job alerts,
+            mock reminders, and tips and offers.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          <form
+            action={setAlertsAction}
+            className="flex flex-wrap items-center gap-3 text-sm"
+            data-testid="alerts-preference"
+          >
+            <span>Job alerts and All-India mock reminders: {prefs.alertsOptIn ? "on" : "off"}</span>
+            <input type="hidden" name="optIn" value={prefs.alertsOptIn ? "no" : "yes"} />
+            <Button type="submit" size="sm" variant="outline">
+              Turn {prefs.alertsOptIn ? "off" : "on"}
+            </Button>
+          </form>
           <form action={setMarketingAction} className="flex flex-wrap items-center gap-3 text-sm">
             <span>Tips and offers: {prefs.marketingOptIn ? "on" : "off"}</span>
             <input type="hidden" name="optIn" value={prefs.marketingOptIn ? "no" : "yes"} />

@@ -569,3 +569,12 @@ Every significant product or technical decision is recorded here, so humans and 
 - **Publish after import** publishes only rows the import created or changed (an unchanged row no longer republishes a draft), and a failure while publishing is recorded on the batch instead of leaving it stuck.
 - **Check and publish** reuses `transitionProblem`, and a save that already queues a judge check carries the publish request (no second check).
 - **Cache refresh:** every admin action calls one `refreshPublicPages()` (all public tags), which also fixes problem publishes not refreshing company pages. Question sitemaps are cached like the other public reads.
+
+## D-059: Job alerts and All-India mock reminders
+- Date: 2026-10-29
+- Status: Accepted
+- Decision:
+  - **Job alerts are a daily digest**, not a message per job: at 18:00 IST, each student gets one message listing up to 10 jobs published since the previous digest that match them. Freshers match when the audience fits and nothing in their profile fails the eligibility rules (missing details don't exclude anyone). Experienced candidates match on audience and years of experience. Closed jobs and jobs past their apply-by date are left out.
+  - The digest is a `jobs.digest` job that queues the next one when it finishes, covering the time since its own run, so nothing is missed or sent twice. The worker starts the chain at startup when none is queued.
+  - **Contest reminders:** publishing an All-India mock queues `contest.reminder` 24 h before the start (right away if that's past; none if it starts within the hour). It's skipped if the contest is unpublished or moved.
+  - **Opt-out:** `users.alerts_opt_in` (default on), toggled on the account page. `notify()` skips alert templates for students who turned them off. Messages go to the outbox until real email and WhatsApp are connected.

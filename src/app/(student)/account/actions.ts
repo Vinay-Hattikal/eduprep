@@ -14,6 +14,16 @@ export async function setMarketingAction(formData: FormData) {
   revalidatePath("/account");
 }
 
+/** Job alerts and All-India mock reminders (D-059). */
+export async function setAlertsAction(formData: FormData) {
+  const user = await requirePermission("student.access");
+  await db.user.update({
+    where: { id: user.id },
+    data: { alertsOptIn: formData.get("optIn") === "yes" },
+  });
+  revalidatePath("/account");
+}
+
 export type PasswordState = { error?: string; field?: string; done?: boolean };
 
 export async function changePasswordAction(

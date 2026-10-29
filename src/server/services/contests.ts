@@ -19,6 +19,7 @@ import { GRACE_MS, maxEnd } from "@/lib/tests/clock";
 import type { CurrentUser } from "@/server/auth";
 import { db } from "@/server/db";
 import { enqueueJob } from "@/server/jobs/queue";
+import { scheduleContestReminder } from "@/server/services/alerts";
 import { recordAudit } from "@/server/services/audit";
 import { awardBadges } from "@/server/services/engagement";
 import { notify } from "@/server/services/notifications";
@@ -593,6 +594,7 @@ export async function publishContest(
       maxAttempts: 5,
     },
   );
+  await scheduleContestReminder(id, contest.startsAt);
   return { ok: true };
 }
 
