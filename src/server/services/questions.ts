@@ -294,6 +294,17 @@ const HISTORY_REASONS: Record<ContentAction, string> = {
   restore: "restored",
 };
 
+type QuestionRow = Awaited<ReturnType<typeof db.question.findUniqueOrThrow>>;
+
+/** Why this question can't take the action, or null. */
+function transitionProblem(question: QuestionRow, action: ContentAction, actor: Actor) {
+  const blocker = transitionBlocker(action, question.status, actor);
+  if (blocker) return `${question.externalId}: ${blocker}`;
+  if (action === "publish" && hasErrors(checkQuestion(question)))
+    return `${question.externalId} fails the automatic checks. Open it and fix the errors.`;
+  return null;
+}
+
 /** Publishes, unpublishes, archives or restores a question. Publishing runs the automatic checks. */
 export async function transitionQuestion(
   id: string,
@@ -302,56 +313,18 @@ export async function transitionQuestion(
 ): Promise<TransitionResult> {
   const question = await db.question.findUnique({ where: { id } });
   if (!question) return { ok: false, error: "This question no longer exists." };
-
-  const blocker = transitionBlocker(action, question.status, actor);
-  if (blocker) return { ok: false, error: `${question.externalId}: ${blocker}` };
-  if (action === "publish" && hasErrors(checkQuestion(question))) {
-    return {
-      ok: false,
-      error: `${question.externalId} fails the automatic checks. Open it and fix the errors.`,
-    };
+  const problem = transitionProblem(question, action, actor);
+  if (problem) return { ok: false, error: problem };
+  if (action === "publish") {
+    await publishChecked([question], actor);
+    return { ok: true };
   }
 
   const status = nextStatus(action);
-  const now = new Date();
-  const data: Prisma.QuestionUpdateInput = {
-    status,
-    ...(action === "publish"
-      ? { publishedAt: now, reviewer: { connect: { id: actor.id } }, reviewNote: null }
-      : {}),
-  };
-
-  // Public samples (D-058): a newly published question shows its answer without sign-in
-  // until its topic has enough public samples.
-  const samplesPerTopic =
-    action === "publish" && !question.publicSample
-      ? await getSetting("seo.publicSamplesPerTopic")
-      : 0;
-
   await db.$transaction(async (tx) => {
-    if (samplesPerTopic > 0) {
-      // Only on the first publish, and never after an admin set the box by hand: a question
-      // that was made private on purpose must stay private when it's republished.
-      const [samples, decided] = await Promise.all([
-        tx.question.count({
-          where: { topicId: question.topicId, publicSample: true, status: "PUBLISHED" },
-        }),
-        tx.auditLog.count({
-          where: {
-            entityType: "question",
-            entityId: id,
-            action: {
-              in: ["question.publish", "question.public_sample", "question.private_answer"],
-            },
-          },
-        }),
-      ]);
-      if (!decided && samples < samplesPerTopic) data.publicSample = true;
-    }
-    const updated = await tx.question.update({ where: { id }, data });
-    // Publishing or unpublishing changes the company pages that list it (D-058).
-    if (action === "publish" || question.status === "PUBLISHED")
-      await touchCompaniesListing(tx, { questionId: id });
+    const updated = await tx.question.update({ where: { id }, data: { status } });
+    // Unpublishing changes the company pages that list it (D-058).
+    if (question.status === "PUBLISHED") await touchCompaniesListing(tx, { questionIds: [id] });
     await tx.contentVersion.create({
       data: {
         entityType: "question",
@@ -375,6 +348,129 @@ export async function transitionQuestion(
     );
   });
   return { ok: true };
+}
+
+/**
+ * Publishes many questions with the same rules as one at a time (imports, bulk actions), in a
+ * few queries per 500 questions instead of several per question. Returns why the rest didn't.
+ */
+export async function publishQuestions(ids: readonly string[], actor: Actor) {
+  const unique = [...new Set(ids)];
+  const questions = await db.question.findMany({
+    where: { id: { in: unique } },
+    orderBy: { externalId: "asc" },
+  });
+  const errors: string[] = [];
+  if (questions.length < unique.length)
+    errors.push(`${unique.length - questions.length} question(s) no longer exist.`);
+  const ready: QuestionRow[] = [];
+  for (const question of questions) {
+    const problem = transitionProblem(question, "publish", actor);
+    if (problem) errors.push(problem);
+    else ready.push(question);
+  }
+  await publishChecked(ready, actor);
+  return { done: ready.length, errors };
+}
+
+const PUBLISH_CHUNK = 500;
+
+/** Publishes questions that already passed transitionProblem. */
+async function publishChecked(questions: readonly QuestionRow[], actor: Actor) {
+  if (!questions.length) return;
+  const samplesPerTopic = await getSetting("seo.publicSamplesPerTopic");
+  for (let i = 0; i < questions.length; i += PUBLISH_CHUNK) {
+    const chunk = questions.slice(i, i + PUBLISH_CHUNK);
+    const ids = chunk.map((q) => q.id);
+    await db.$transaction(
+      async (tx) => {
+        const samples = await pickPublicSamples(tx, chunk, samplesPerTopic);
+        const data = {
+          status: "PUBLISHED" as const,
+          publishedAt: new Date(),
+          reviewerId: actor.id,
+          reviewNote: null,
+        };
+        const asSample = ids.filter((id) => samples.has(id));
+        const rest = ids.filter((id) => !samples.has(id));
+        if (asSample.length)
+          await tx.question.updateMany({
+            where: { id: { in: asSample } },
+            data: { ...data, publicSample: true },
+          });
+        if (rest.length) await tx.question.updateMany({ where: { id: { in: rest } }, data });
+
+        const updated = await tx.question.findMany({ where: { id: { in: ids } } });
+        await tx.contentVersion.createMany({
+          data: updated.map((q) => ({
+            entityType: "question",
+            entityId: q.id,
+            version: q.version,
+            snapshot: toSnapshot(q),
+            reason: HISTORY_REASONS.publish,
+            createdById: actor.id,
+          })),
+        });
+        await tx.auditLog.createMany({
+          data: chunk.map((q) => ({
+            actorId: actor.id,
+            action: "question.publish",
+            entityType: "question",
+            entityId: q.id,
+            before: { status: q.status },
+            after: { status: "PUBLISHED" },
+          })),
+        });
+        // Publishing changes the company pages that list them (D-058).
+        await touchCompaniesListing(tx, { questionIds: ids });
+      },
+      { timeout: 60_000 },
+    );
+  }
+}
+
+/**
+ * Public samples (D-058): a newly published question shows its answer without sign-in until
+ * its topic has `perTopic` public samples. Only on the first publish, and never after an admin
+ * set the box by hand: a question made private on purpose stays private when republished.
+ */
+async function pickPublicSamples(
+  tx: Prisma.TransactionClient,
+  questions: readonly QuestionRow[],
+  perTopic: number,
+): Promise<Set<string>> {
+  const candidates = perTopic > 0 ? questions.filter((q) => !q.publicSample) : [];
+  if (!candidates.length) return new Set();
+  const [counts, decided] = await Promise.all([
+    tx.question.groupBy({
+      by: ["topicId"],
+      where: {
+        topicId: { in: [...new Set(candidates.map((q) => q.topicId))] },
+        publicSample: true,
+        status: "PUBLISHED",
+      },
+      _count: { _all: true },
+    }),
+    tx.auditLog.findMany({
+      where: {
+        entityType: "question",
+        entityId: { in: candidates.map((q) => q.id) },
+        action: { in: ["question.publish", "question.public_sample", "question.private_answer"] },
+      },
+      select: { entityId: true },
+      distinct: ["entityId"],
+    }),
+  ]);
+  const have = new Map(counts.map((c) => [c.topicId, c._count._all]));
+  const skip = new Set(decided.map((d) => d.entityId));
+  const picked = new Set<string>();
+  for (const q of candidates) {
+    const count = have.get(q.topicId) ?? 0;
+    if (skip.has(q.id) || count >= perTopic) continue;
+    picked.add(q.id);
+    have.set(q.topicId, count + 1);
+  }
+  return picked;
 }
 
 /** Marks a question as a public sample (answer shown without sign-in) or not (D-058). */
@@ -421,6 +517,7 @@ export async function bulkPublicSample(ids: string[], value: boolean, actor: Act
 }
 
 export async function bulkTransition(ids: string[], action: ContentAction, actor: Actor) {
+  if (action === "publish") return publishQuestions(ids.slice(0, 200), actor);
   let done = 0;
   const errors: string[] = [];
   for (const id of ids.slice(0, 200)) {

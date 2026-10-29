@@ -10,7 +10,7 @@ import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { db } from "@/server/db";
 import { setCompanyStatus } from "@/server/services/companies";
 import { setDesignStatus } from "@/server/services/design-questions";
-import { transitionQuestion } from "@/server/services/questions";
+import { publishQuestions } from "@/server/services/questions";
 
 /** Import types whose items can be published straight after the import. */
 export const PUBLISHABLE_IMPORTS: readonly ImportType[] = [
@@ -59,8 +59,13 @@ export async function publishImported(batchId: string, type: ImportType, actorId
       where: { id: { in: ids }, status: { in: DRAFT_STATUSES } },
       select: { id: true },
     });
-    for (const { id } of drafts)
-      if ((await transitionQuestion(id, "publish", actor)).ok) published += 1;
+    // In bulk: a large import publishes in seconds rather than minutes.
+    published = (
+      await publishQuestions(
+        drafts.map((d) => d.id),
+        actor,
+      )
+    ).done;
   } else if (type === "DESIGN_QUESTIONS") {
     const drafts = await db.designQuestion.findMany({
       where: { id: { in: ids }, status: { in: DRAFT_STATUSES } },

@@ -473,7 +473,7 @@ export async function transitionProblem(
       },
     });
     if (action === "publish" || problem.status === "PUBLISHED")
-      await touchCompaniesListing(tx, { problemId: id });
+      await touchCompaniesListing(tx, { problemIds: [id] });
     await recordAudit(
       {
         actorId: actor.id,
