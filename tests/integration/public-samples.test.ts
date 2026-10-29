@@ -82,6 +82,18 @@ describe("public samples", () => {
     ).toBe(3);
   });
 
+  it("never re-marks a question an admin made private, when it's republished", async () => {
+    // Plenty of room in the topic, so only the admin's earlier choice can keep it private.
+    await db.setting.update({ where: { key: "seo.publicSamplesPerTopic" }, data: { value: 50 } });
+    const { questions } = await draftsInOneTopic();
+    const first = questions[0]!; // published once, then made private by hand above
+    await transitionQuestion(first.id, "unpublish", admin);
+    expect(await transitionQuestion(first.id, "publish", admin)).toEqual({ ok: true });
+    expect((await db.question.findUniqueOrThrow({ where: { id: first.id } })).publicSample).toBe(
+      false,
+    );
+  });
+
   it("turns off the automatic choice with 0", async () => {
     await db.setting.update({ where: { key: "seo.publicSamplesPerTopic" }, data: { value: 0 } });
     const { questions } = await draftsInOneTopic();

@@ -39,7 +39,14 @@ export async function publishImported(batchId: string, type: ImportType, actorId
     ...new Set(
       (
         await db.importRow.findMany({
-          where: { batchId, status: "IMPORTED", entityId: { not: null } },
+          // Only what this import created or changed: an unchanged row must not republish a
+          // draft that an admin unpublished on purpose.
+          where: {
+            batchId,
+            status: "IMPORTED",
+            action: { in: ["CREATE", "UPDATE"] },
+            entityId: { not: null },
+          },
           select: { entityId: true },
         })
       ).map((row) => row.entityId!),

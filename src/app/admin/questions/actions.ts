@@ -90,6 +90,8 @@ export async function bulkQuestionAction(_prev: BulkState, formData: FormData): 
   if (action.data === "sample-on" || action.data === "sample-off") {
     const changed = await bulkPublicSample(ids, action.data === "sample-on", user);
     revalidatePath("/admin/questions");
+    // Public pages show or hide these answers, so their caches must refresh now.
+    refreshPublicPages();
     return {
       message: `${changed} of ${ids.length} question${ids.length === 1 ? "" : "s"} changed.`,
     };

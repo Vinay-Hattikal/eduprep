@@ -53,6 +53,8 @@ const schema = z
     WHATSAPP_PHONE_NUMBER_ID: optional,
     WHATSAPP_TEMPLATE: z.string().default("account_update"),
 
+    // Public-page rate limit (D-058): public proxies in front of the app (CDN + host = 2).
+    TRUSTED_PROXY_HOPS: z.coerce.number().int().min(1).max(5).default(1),
     // Background jobs (D-029, D-046)
     QUEUE_DRIVER: z.enum(["postgres", "bullmq"]).default("postgres"),
     REDIS_URL: optional,

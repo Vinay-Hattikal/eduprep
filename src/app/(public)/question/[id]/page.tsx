@@ -100,19 +100,15 @@ async function Question({ params }: Props) {
         aria-label="Breadcrumb"
         className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
       >
-        <Link prefetch={false} href="/questions" className="hover:text-foreground">
+        <Link href="/questions" className="hover:text-foreground">
           Questions
         </Link>
         <ChevronRight className="size-4" aria-hidden="true" />
-        <Link
-          prefetch={false}
-          href={`/questions/${subject.slug}`}
-          className="hover:text-foreground"
-        >
+        <Link href={`/questions/${subject.slug}`} className="hover:text-foreground">
           {subject.name}
         </Link>
         <ChevronRight className="size-4" aria-hidden="true" />
-        <Link prefetch={false} href={topicHref} className="hover:text-foreground">
+        <Link href={topicHref} className="hover:text-foreground">
           {topic.name}
         </Link>
       </nav>
@@ -129,7 +125,7 @@ async function Question({ params }: Props) {
           <ul className="flex flex-wrap gap-2">
             {companies.map((c) => (
               <li key={c.company.slug}>
-                <Link prefetch={false} href={`/companies/${c.company.slug}`}>
+                <Link href={`/companies/${c.company.slug}`}>
                   <Badge variant="secondary" className="hover:bg-secondary/70">
                     {c.company.name}
                     {c.askedIn.length ? ` · ${formatMonth(c.askedIn[0]!)}` : ""}
@@ -152,11 +148,7 @@ async function Question({ params }: Props) {
             <ul className="divide-y">
               {related.map((r) => (
                 <li key={r.externalId} className="py-2.5 first:pt-0 last:pb-0">
-                  <Link
-                    prefetch={false}
-                    href={questionUrl(r.externalId)}
-                    className="text-sm hover:text-primary"
-                  >
+                  <Link href={questionUrl(r.externalId)} className="text-sm hover:text-primary">
                     {questionTitle(r.text, 100)}
                   </Link>
                   {r.publicSample ? (
@@ -165,11 +157,7 @@ async function Question({ params }: Props) {
                 </li>
               ))}
             </ul>
-            <Link
-              prefetch={false}
-              href={topicHref}
-              className="mt-4 inline-block text-sm font-medium text-primary"
-            >
+            <Link href={topicHref} className="mt-4 inline-block text-sm font-medium text-primary">
               All {topic.name} questions →
             </Link>
           </CardContent>

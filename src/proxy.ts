@@ -10,9 +10,9 @@ import { SESSION_COOKIE, verifySessionToken } from "@/server/auth/session-token"
 import { env } from "@/server/env";
 import {
   clientKey,
-  isKnownCrawler,
   isPublicContentPath,
   PublicRateLimiter,
+  visitKind,
 } from "@/lib/public-rate-limit";
 
 // One per server process (the proxy runs in Node.js and stays loaded between requests).
@@ -20,13 +20,12 @@ const publicLimiter = new PublicRateLimiter();
 
 export async function proxy(request: NextRequest) {
   if (isPublicContentPath(request.nextUrl.pathname)) {
-    const key = clientKey(request.headers, { exemptLocal: env().APP_ENV !== "production" });
+    const key = clientKey(request.headers, {
+      trustedHops: env().TRUSTED_PROXY_HOPS,
+      exemptLocal: env().APP_ENV !== "production",
+    });
     if (!key) return NextResponse.next();
-    const verdict = publicLimiter.hit(
-      key,
-      isKnownCrawler(request.headers.get("user-agent")),
-      Date.now(),
-    );
+    const verdict = publicLimiter.hit(key, visitKind(request.headers), Date.now());
     if (verdict.ok) return NextResponse.next();
     return new NextResponse("Too many pages too quickly. Please wait a minute and try again.", {
       status: 429,

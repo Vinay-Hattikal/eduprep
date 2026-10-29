@@ -161,12 +161,18 @@ export async function getPublicQuestion(urlId: string) {
 export const SITEMAP_PAGE_SIZE = 40_000;
 
 export async function publicQuestionSitemapPages() {
+  "use cache";
+  cacheTag(PUBLIC_QUESTIONS_TAG);
+  cacheLife("hours");
   const total = await db.question.count({ where: LIVE });
   return Math.max(1, Math.ceil(total / SITEMAP_PAGE_SIZE));
 }
 
 /** One sitemap file's worth of question and topic URLs. Topics go in the first file. */
 export async function publicQuestionSitemap(page: number) {
+  "use cache";
+  cacheTag(PUBLIC_QUESTIONS_TAG);
+  cacheLife("hours");
   const [questions, topics] = await Promise.all([
     db.question.findMany({
       where: LIVE,

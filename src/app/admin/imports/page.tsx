@@ -67,7 +67,7 @@ async function UploadCard() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <UploadForm types={types} canReplace={user.roles.includes("ADMIN")} />
+        <UploadForm types={types} canReplace={can(user.roles, "settings.manage")} />
       </CardContent>
     </Card>
   );

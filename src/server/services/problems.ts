@@ -148,7 +148,12 @@ export async function listDsaTopics() {
  * Creates a draft problem, or updates one. Edits never stay published (D-010): the problem goes
  * back to draft. Changing limits or the checker re-runs the judge check (D-034).
  */
-export async function saveProblem(values: ProblemValues, actor: Actor): Promise<ProblemSaveResult> {
+export async function saveProblem(
+  values: ProblemValues,
+  actor: Actor,
+  /** "Save and publish": a judge check this save triggers also publishes when it passes. */
+  { publishAfterCheck = false } = {},
+): Promise<ProblemSaveResult> {
   const fieldErrors: Record<string, string> = {};
   if (!isValidChecker(values.checker))
     fieldErrors.checker = "Use exact, ignore_whitespace or float:1e-6.";
@@ -257,7 +262,11 @@ export async function saveProblem(values: ProblemValues, actor: Actor): Promise<
       tx,
     );
   });
-  if (revalidating) await enqueueJob("problem.validate", { problemId: before.id });
+  if (revalidating)
+    await enqueueJob("problem.validate", {
+      problemId: before.id,
+      ...(publishAfterCheck && { publishBy: actor.id }),
+    });
   return {
     ok: true,
     id: before.id,

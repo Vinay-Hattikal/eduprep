@@ -138,6 +138,18 @@ describe("coding problem editor", () => {
     expect(after.validatedAt).not.toBeNull();
   });
 
+  it("save and publish with a changed limit queues one judge check that publishes", async () => {
+    await db.job.deleteMany({ where: { type: "problem.validate" } });
+    const saved = await saveProblem(problemValues({ id: problemId, timeLimitMs: 2500 }), admin(), {
+      publishAfterCheck: true,
+    });
+    expect(saved).toMatchObject({ ok: true, revalidating: true, validated: false });
+    const jobs = await db.job.findMany({ where: { type: "problem.validate" } });
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]!.payload).toMatchObject({ problemId, publishBy: adminId });
+    await drainJobs();
+  });
+
   it("won't drop a language that still has starter code", async () => {
     const result = await saveProblem(problemValues({ id: problemId, languages: ["cpp"] }), admin());
     expect(result).toMatchObject({

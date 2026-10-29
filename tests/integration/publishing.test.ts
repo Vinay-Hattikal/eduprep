@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { drainJobs } from "@/server/jobs/runner";
 import { requestValidation } from "@/server/services/problems";
+import { transitionQuestion } from "@/server/services/questions";
 import { createUser, importFile, resetDatabase, template } from "./helpers";
 
 let adminId: string;
@@ -57,6 +58,22 @@ describe("publish after import", () => {
       where: { action: "question.publish", actorId: adminId },
     });
     expect(audit).toBe(batch.publishedCount);
+  });
+
+  it("doesn't republish an unpublished question the file leaves unchanged", async () => {
+    const question = await db.question.findFirstOrThrow({ where: { status: "PUBLISHED" } });
+    await transitionQuestion(question.id, "unpublish", { id: adminId, roles: ["ADMIN"] });
+    const again = await importFile(
+      "MCQ",
+      "mcq/quantitative-aptitude.csv",
+      await template("mcq/quantitative-aptitude.csv"),
+      adminId,
+      { publish: true },
+    );
+    expect(again.publishedCount).toBe(0);
+    expect((await db.question.findUniqueOrThrow({ where: { id: question.id } })).status).toBe(
+      "DRAFT",
+    );
   });
 
   it("publishes design questions", async () => {

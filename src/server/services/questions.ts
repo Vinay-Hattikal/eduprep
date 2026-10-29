@@ -330,10 +330,23 @@ export async function transitionQuestion(
 
   await db.$transaction(async (tx) => {
     if (samplesPerTopic > 0) {
-      const samples = await tx.question.count({
-        where: { topicId: question.topicId, publicSample: true, status: "PUBLISHED" },
-      });
-      if (samples < samplesPerTopic) data.publicSample = true;
+      // Only on the first publish, and never after an admin set the box by hand: a question
+      // that was made private on purpose must stay private when it's republished.
+      const [samples, decided] = await Promise.all([
+        tx.question.count({
+          where: { topicId: question.topicId, publicSample: true, status: "PUBLISHED" },
+        }),
+        tx.auditLog.count({
+          where: {
+            entityType: "question",
+            entityId: id,
+            action: {
+              in: ["question.publish", "question.public_sample", "question.private_answer"],
+            },
+          },
+        }),
+      ]);
+      if (!decided && samples < samplesPerTopic) data.publicSample = true;
     }
     const updated = await tx.question.update({ where: { id }, data });
     // Publishing or unpublishing changes the company pages that list it (D-058).

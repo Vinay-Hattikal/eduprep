@@ -337,6 +337,18 @@ export async function commitBatch(batchId: string): Promise<void> {
     });
   }
 
+  // "Publish after import" (D-056). The import itself has succeeded by now, so a problem while
+  // publishing is recorded on the batch instead of leaving it stuck in COMMITTING.
+  let publishedCount = 0;
+  let publishError: string | null = null;
+  if (publishBy && !publishesThroughJudge(batch.type) && imported > 0) {
+    try {
+      publishedCount = await publishImported(batchId, batch.type, publishBy);
+    } catch (error) {
+      publishError = `Imported, but publishing stopped part-way: ${error instanceof Error ? error.message.split("\n").pop() : "unknown error"}. Publish the rest from Drafts.`;
+    }
+  }
+
   await db.importBatch.update({
     where: { id: batchId },
     data: {
@@ -344,11 +356,8 @@ export async function commitBatch(batchId: string): Promise<void> {
       error:
         imported === 0 && failed > 0
           ? "No rows could be imported. Download the failed rows to see why."
-          : null,
-      publishedCount:
-        publishBy && !publishesThroughJudge(batch.type) && imported > 0
-          ? await publishImported(batchId, batch.type, publishBy)
-          : 0,
+          : publishError,
+      publishedCount,
       createdCount: count("IMPORTED", "CREATE"),
       updatedCount: count("IMPORTED", "UPDATE"),
       unchangedCount: count("IMPORTED", "UNCHANGED"),

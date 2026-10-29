@@ -65,7 +65,10 @@ export async function saveProblemAction(
   const linkError = asked.error ?? (await companyLinksProblem(asked.links));
   if (linkError) return { fieldErrors: { companies: linkError }, formError: linkError };
   const { hints, ...values } = parsed.data;
-  const result = await saveProblem({ ...values, hints: hints.filter(Boolean) }, user);
+  const publish = formData.get("intent") === "publish";
+  const result = await saveProblem({ ...values, hints: hints.filter(Boolean) }, user, {
+    publishAfterCheck: publish,
+  });
   if (!result.ok)
     return {
       fieldErrors: result.fieldErrors,
@@ -77,9 +80,10 @@ export async function saveProblemAction(
   if (result.created) back(result.id, "created=1");
 
   // "Save and publish" (D-056): publish now if the judge check still holds, else check first.
-  if (formData.get("intent") === "publish" && !result.published) {
+  if (publish && !result.published) {
     if (!result.validated) {
-      await requestValidation(result.id, user.id);
+      // A check this save already queued carries the publish request; otherwise queue one.
+      if (!result.revalidating) await requestValidation(result.id, user.id);
       back(result.id, "saved=1&validating=1&publishing=1");
     }
     const published = await transitionProblem(result.id, "publish", user);
