@@ -339,7 +339,7 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
             </Card>
           ) : null}
 
-          <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
+          <Suspense fallback={<Skeleton className="h-56 w-full rounded-xl" />}>
             <RecentDrives companyId={company.id} companyName={company.name} slug={company.slug} />
           </Suspense>
 
@@ -403,9 +403,6 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
         </div>
 
         <aside className="space-y-6">
-          <Suspense fallback={null}>
-            <OpenJobs companyId={company.id} companyName={company.name} />
-          </Suspense>
           <Card>
             <CardHeader>
               <CardTitle>
@@ -443,7 +440,7 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
                   <Row label="Batches" value={company.gradYears.join(", ")} />
                 ) : null}
               </dl>
-              <Suspense fallback={<Skeleton className="h-20 w-full" />}>
+              <Suspense fallback={<Skeleton className="h-16 w-full" />}>
                 <PersonalEligibility
                   rules={{
                     minCgpa: company.minCgpa,
@@ -515,6 +512,10 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
               </ul>
             </CardContent>
           </Card>
+          {/* Last in the column: it streams in after the page, so it must not push cards down. */}
+          <Suspense fallback={null}>
+            <OpenJobs companyId={company.id} companyName={company.name} />
+          </Suspense>
         </aside>
       </div>
     </article>

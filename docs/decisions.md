@@ -589,3 +589,11 @@ Every significant product or technical decision is recorded here, so humans and 
 - Date: 2026-10-29
 - Status: Accepted
 - Decision: admin › Imports takes a ZIP of a whole content folder (the layout in `folder.ts`, max 25 MB, 500 files). A `content_packs` row records it, and a `pack.import` job imports the files one by one in dependency order through the normal pipeline. Each file is an ordinary import batch (`import_batches.pack_id`), so previews, failed rows and undo work as usual. The job runs each file's validate, confirm and commit steps itself instead of queueing them, so the next file sees the previous one committed and no other worker runs the same step. A single top-level folder in the ZIP is ignored, as is Mac metadata. Files outside the layout are listed, not imported. "Publish after import" applies to every file. `npm run content:import` uses the same per-file function.
+
+## D-062: Social sharing previews and a performance budget
+- Date: 2026-10-29
+- Status: Accepted
+- Decision:
+  - **Preview images:** public question, coding problem, company and mock test pages each have a generated 1200×630 `opengraph-image` (one shared design in `src/lib/og-card.tsx`, also used by share cards), and the site has a default one. They read the same cached data as the pages, so they cost nothing extra once cached. A missing page's image is a 404. The root metadata sets `twitter:card` to `summary_large_image`.
+  - **Performance budget:** `e2e/performance.spec.ts` loads the main public pages in a fresh browser and fails if Largest Contentful Paint is over 2.5 s, layout shift over 0.1, JavaScript over 450 KB or the page over 900 KB (compressed). It runs with the e2e suite on the production build. Raise a budget only with a reason in progress.md.
+  - It caught a layout shift of 0.21 on company pages: "Open jobs" streamed in at the top of the side column and pushed it down. It's now last in the column, and the placeholders match what replaces them (0 now).
