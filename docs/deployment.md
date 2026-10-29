@@ -127,7 +127,18 @@ Whatever the choice:
 
 ☐ Restore last night's backup into a scratch database once before launch.
 
-## 10. Before launch
+## 10. Search engines and public pages (D-058)
+
+- [ ] Set `NEXT_PUBLIC_APP_URL` to the real domain: canonical links, sitemaps and structured data use it.
+- [ ] Add the site to Google Search Console and Bing Webmaster Tools; submit `/sitemap.xml` and
+      `/sitemaps/questions` (both are also listed in `/robots.txt`).
+- [ ] The host or CDN must pass the visitor's address in `X-Forwarded-For` and **replace** any
+      value the visitor sent. The public-page rate limit (60 pages a minute per visitor, 300 for
+      search crawlers) reads it; without it the limit is skipped. With several app servers, move
+      the limit to Redis or the CDN's rate limiting, because the built-in one is per server.
+- [ ] Check a few pages in Google's Rich Results Test (breadcrumbs, quiz) after launch.
+
+## 11. Before launch
 
 - [ ] Every ☐ above done on staging.
 - [ ] `APP_ENV=production`, `AUTH_MODE=live`, no `mock` or `outbox` drivers.

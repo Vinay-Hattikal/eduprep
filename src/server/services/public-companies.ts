@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cacheLife, cacheTag } from "next/cache";
+import { toPublicQuestion } from "@/lib/content/public-question";
 import { db } from "@/server/db";
 
 /** Cache tag for everything shown on public company pages. Admin actions call updateTag(). */
@@ -62,7 +63,7 @@ export async function getPublishedCompany(slug: string) {
   });
   if (!company) return null;
 
-  const [reported, questionCount, problems] = await Promise.all([
+  const [reported, questionCount, problems, samples, mocks] = await Promise.all([
     db.companyItem.findMany({
       where: {
         companyId: company.id,
@@ -86,6 +87,37 @@ export async function getPublishedCompany(slug: string) {
         problem: { select: { slug: true, title: true, difficulty: true } },
       },
     }),
+    // Public sample questions this company asks, shown with answers (D-058, C.5).
+    db.question.findMany({
+      where: {
+        status: "PUBLISHED",
+        publicSample: true,
+        companies: { some: { companyId: company.id } },
+      },
+      orderBy: { externalId: "asc" },
+      take: 5,
+      select: {
+        externalId: true,
+        type: true,
+        text: true,
+        code: true,
+        codeLanguage: true,
+        options: true,
+        difficulty: true,
+        publicSample: true,
+        correctOptions: true,
+        numericAnswer: true,
+        tolerance: true,
+        explanation: true,
+        passage: { select: { title: true, body: true } },
+        topic: { select: { slug: true, subject: { select: { slug: true } } } },
+      },
+    }),
+    db.testBlueprint.findMany({
+      where: { companyId: company.id, status: "PUBLISHED" },
+      orderBy: { title: "asc" },
+      select: { slug: true, title: true, kind: true },
+    }),
   ]);
   // The filters above guarantee the relation is present; narrow the types to match.
   const recentQuestions = reported.flatMap(({ question, ...item }) =>
@@ -95,5 +127,11 @@ export async function getPublishedCompany(slug: string) {
     problem ? [{ ...item, problem }] : [],
   );
 
-  return { ...company, recentQuestions, questionCount, codingProblems };
+  const sampleQuestions = samples.map(({ passage, topic, ...q }) => ({
+    ...toPublicQuestion(q),
+    passage,
+    topic,
+  }));
+
+  return { ...company, recentQuestions, questionCount, codingProblems, sampleQuestions, mocks };
 }

@@ -536,7 +536,7 @@ Every significant product or technical decision is recorded here, so humans and 
 
 ## D-058: Public content for search and preview
 - Date: 2026-10-28
-- Status: Accepted (C.1–C.4 built; C.5 planned)
+- Status: Accepted (C.1–C.5 built)
 - Context: search engines only see the home, company and job pages. The question bank, the main source of search traffic ("TCS NQT percentage questions"), is behind sign-in, so Google never sees it. The owner wants pages to rank and visitors to preview the platform without signing in.
 - Decision (owner chose "samples only"):
   - **Every published question's text and options can be public.** The answer and explanation are public only for **public samples**. The rest say "Sign up free to see the answer", and visitors and search engines see the same page (no cloaking).
@@ -558,3 +558,7 @@ Every significant product or technical decision is recorded here, so humans and 
 - `/mock-tests` and `/mock-tests/[slug]`: a published test's format (sections, question counts, minutes, marks, negative marking, going back, topics, platform style, instructions). Never its questions. "Take this mock test" links to `/tests/[slug]`.
 - Both are in the main sitemap, cached with the `public-catalog` tag (refreshed by the problem, test and company-link admin actions).
 - The public header now shows content pages only (Companies, Questions, Coding, Mock tests, Jobs, Pricing) from the large breakpoint up; the landing-page section links stay in the footer.
+
+### D-058 addendum: company pages and scraping limits (C.5), 2026-10-29
+- Public company pages show up to 5 public sample questions with answers, the company's mock tests, and link "recently asked" questions to `/question/[id]`, section topics to the public topic pages, and coding problems to `/problems/[slug]`. Signed-in practice links remain where they were.
+- **Rate limit:** the proxy counts page loads of `/question*`, `/questions*`, `/problems*` and `/mock-tests*` per visitor address: 60 per minute, or 300 for user agents that say they're search crawlers. Over the limit, the visitor gets a 429 with `Retry-After`. It's in memory per server process (no database call per page view), and requests without a forwarded address, or from this machine, aren't limited. Long link lists on public pages don't preload, so a reader uses about one request per page. Phase 6: the host must set `X-Forwarded-For` (deployment.md §10), and with several servers, move the limit to Redis or the CDN.

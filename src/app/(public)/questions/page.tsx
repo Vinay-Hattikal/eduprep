@@ -45,7 +45,11 @@ async function Subjects() {
             <CardTitle className="flex items-center gap-2">
               <BookOpenCheck className="size-5 text-primary" aria-hidden="true" />
               <h2>
-                <Link href={`/questions/${subject.slug}`} className="hover:underline">
+                <Link
+                  prefetch={false}
+                  href={`/questions/${subject.slug}`}
+                  className="hover:underline"
+                >
                   {subject.name}
                 </Link>
               </h2>
@@ -59,6 +63,7 @@ async function Subjects() {
               {subject.topics.map((topic) => (
                 <li key={topic.id}>
                   <Link
+                    prefetch={false}
                     href={`/questions/${subject.slug}/${topic.slug}`}
                     className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm hover:bg-secondary/50"
                   >

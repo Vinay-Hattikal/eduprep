@@ -16,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { AddTargetButton } from "@/app/(public)/companies/client-forms";
+import { PublicQuestionCard } from "@/components/content/public-question-card";
 import { Markdown } from "@/components/shared/markdown";
 import { PageSkeleton } from "@/components/shared/skeletons";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { siteConfig } from "@/config/site";
 import { CATEGORY_LABELS, LEVEL_LABELS, ROUND_TYPE_LABELS } from "@/lib/content/companies";
+import { questionUrl } from "@/lib/content/public-question";
 import { DIFFICULTY_LABELS } from "@/lib/content/workflow";
 import { formatDate, plainExcerpt } from "@/lib/format";
 import { checkEligibility, overallEligibility } from "@/lib/learning/eligibility";
@@ -217,7 +219,7 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
                                     {section.topics.map((topic) => (
                                       <Link
                                         key={topic.slug}
-                                        href={`/practice/session?topic=${topic.slug}`}
+                                        href={`/questions/${topic.subject.slug}/${topic.slug}`}
                                         className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground"
                                       >
                                         {topic.name}
@@ -251,6 +253,58 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
             </CardContent>
           </Card>
 
+          {company.sampleQuestions.length ? (
+            <section className="space-y-3" aria-labelledby="sample-questions">
+              <h2 id="sample-questions" className="text-xl font-semibold">
+                Sample questions with answers
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                From {company.name}&apos;s question bank. Open an answer to see how it&apos;s
+                solved.
+              </p>
+              <ol className="space-y-4">
+                {company.sampleQuestions.map((q, i) => (
+                  <li key={q.externalId}>
+                    <PublicQuestionCard
+                      question={q}
+                      number={i + 1}
+                      titleHref={questionUrl(q.externalId)}
+                      practiceHref={`/practice/session?company=${company.slug}`}
+                      headingLevel="h3"
+                    />
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
+
+          {company.mocks.length ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  <h2>Mock tests</h2>
+                </CardTitle>
+                <CardDescription>
+                  Practise in {company.name}&apos;s test format: same sections, timers and marking.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="divide-y">
+                  {company.mocks.map((m) => (
+                    <li key={m.slug} className="py-2.5 first:pt-0 last:pb-0">
+                      <Link
+                        href={`/mock-tests/${m.slug}`}
+                        className="text-sm font-medium hover:underline"
+                      >
+                        {m.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ) : null}
+
           {company.recentQuestions.length ? (
             <Card>
               <CardHeader>
@@ -266,7 +320,12 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
                 <ul className="divide-y">
                   {company.recentQuestions.map((item) => (
                     <li key={item.question.externalId} className="space-y-1 py-3 first:pt-0">
-                      <p className="text-sm">{plainExcerpt(item.question.text, 180)}</p>
+                      <Link
+                        href={questionUrl(item.question.externalId)}
+                        className="block text-sm hover:text-primary"
+                      >
+                        {plainExcerpt(item.question.text, 180)}
+                      </Link>
                       <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span>{item.question.topic.name}</span>
                         <span className="inline-flex items-center gap-1">
@@ -333,7 +392,7 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
                       className="flex min-w-0 items-center justify-between gap-3 py-2.5 first:pt-0"
                     >
                       <Link
-                        href={`/coding/${item.problem.slug}`}
+                        href={`/problems/${item.problem.slug}`}
                         className="min-w-0 truncate text-sm font-medium hover:underline"
                       >
                         {item.problem.title}

@@ -31,4 +31,12 @@ test("an admin marks a question as a public sample", async ({ page }, testInfo) 
     "data-state",
     wasChecked ? "unchecked" : "checked",
   );
+
+  // Put it back: other tests use this question as a public sample.
+  await page.getByTestId("public-sample").click();
+  await page.getByTestId("save-publish-question").click();
+  await expect(page.getByTestId("public-sample")).toHaveAttribute(
+    "data-state",
+    wasChecked ? "checked" : "unchecked",
+  );
 });

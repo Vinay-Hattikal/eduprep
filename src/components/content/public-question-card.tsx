@@ -37,7 +37,7 @@ export function PublicQuestionCard({
       <div className="flex flex-wrap items-center gap-2">
         <Heading className="text-sm font-semibold">
           {titleHref ? (
-            <Link href={titleHref} className="text-primary hover:underline">
+            <Link prefetch={false} href={titleHref} className="text-primary hover:underline">
               {label}
             </Link>
           ) : (
@@ -111,10 +111,14 @@ export function PublicQuestionCard({
           </p>
           <div className="flex gap-2">
             <Button asChild size="sm">
-              <Link href="/sign-up">Sign up free</Link>
+              <Link prefetch={false} href="/sign-up">
+                Sign up free
+              </Link>
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link href={practiceHref}>Practise</Link>
+              <Link prefetch={false} href={practiceHref}>
+                Practise
+              </Link>
             </Button>
           </div>
         </div>

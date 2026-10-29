@@ -5,7 +5,7 @@ Where the project stands right now. **Update at the end of every work session.**
 - Task list and status for every phase: [plan.md](plan.md)
 - This file: current focus, known issues, session log
 
-Last updated: 2026-10-29 (public coding problems and mock tests, D-058)
+Last updated: 2026-10-29 (public pages complete, D-058)
 
 ---
 
@@ -116,6 +116,8 @@ See PRD section 14.
 ## Session log
 
 Newest first. One line per session: date, who, what changed, what's next.
+
+- 2026-10-29 · Claude · **C.5 (D-058), public pages complete:** company pages show sample questions with answers and their mock tests, and link topics, questions and problems to the public pages. Public question, problem and mock pages are rate-limited per visitor (60 a minute, 300 for crawlers; 429 with Retry-After; in memory, skipped without a forwarded address). Long link lists don't preload. `deployment.md` §10 has the search-engine launch steps. Fixed while here: e2e tests left QA-PCT-0001's public-sample flag flipped; the test now puts it back. Verified: `npm run check` (296 unit), 128/128 integration, full e2e 96 passed, 0 failed. Next: the owner adds content; remaining Phase 6 work waits for keys and hosting.
 
 - 2026-10-29 · Claude · **C.4 (D-058):** public `/problems` and `/problems/[slug]` (statement and sample tests only; hidden tests never queried) and `/mock-tests` and `/mock-tests/[slug]` (format only), in the sitemap, with the header showing content pages. Verified: `npm run check` (291 unit), 128/128 integration, full e2e 93 passed, 0 failed (new `public-catalog` spec checks that hidden test data isn't in the page). Next: C.5 company pages and scraping limits.
 

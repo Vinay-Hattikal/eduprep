@@ -59,7 +59,7 @@ async function Subject({ params }: { params: PageProps<"/questions/[subject]">["
         aria-label="Breadcrumb"
         className="flex items-center gap-1 text-sm text-muted-foreground"
       >
-        <Link href="/questions" className="hover:text-foreground">
+        <Link prefetch={false} href="/questions" className="hover:text-foreground">
           Questions
         </Link>
         <ChevronRight className="size-4" aria-hidden="true" />
@@ -79,6 +79,7 @@ async function Subject({ params }: { params: PageProps<"/questions/[subject]">["
         {subject.topics.map((topic) => (
           <li key={topic.id}>
             <Link
+              prefetch={false}
               href={`/questions/${subject.slug}/${topic.slug}`}
               className="flex items-center justify-between gap-3 rounded-xl border p-4 hover:bg-secondary/40"
             >

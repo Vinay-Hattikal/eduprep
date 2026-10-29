@@ -7,6 +7,7 @@ import { blueprintFormSchema } from "@/schemas/blueprint";
 import { requirePermission } from "@/server/auth";
 import { saveBlueprint, transitionBlueprint } from "@/server/services/blueprints";
 import { PUBLIC_CATALOG_TAG } from "@/server/services/public-catalog";
+import { COMPANIES_TAG } from "@/server/services/public-companies";
 
 export type BlueprintFormState = { errors?: string[] };
 
@@ -37,6 +38,7 @@ export async function saveBlueprintAction(
   revalidatePath("/admin/tests");
   revalidatePath("/tests");
   updateTag(PUBLIC_CATALOG_TAG);
+  updateTag(COMPANIES_TAG);
   redirect(`/admin/tests/${result.id}?saved=1`);
 }
 
@@ -50,6 +52,7 @@ export async function transitionBlueprintAction(formData: FormData) {
   revalidatePath("/admin/tests");
   revalidatePath("/tests");
   updateTag(PUBLIC_CATALOG_TAG);
+  updateTag(COMPANIES_TAG);
   redirect(
     `/admin/tests/${id}?${result.ok ? `done=${action}` : `errors=${encodeURIComponent(JSON.stringify(result.errors))}`}`,
   );

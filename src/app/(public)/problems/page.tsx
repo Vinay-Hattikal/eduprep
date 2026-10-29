@@ -59,6 +59,7 @@ async function Problems({ searchParams }: Props) {
       {topics.length ? (
         <nav aria-label="Topics" className="flex flex-wrap gap-2">
           <Link
+            prefetch={false}
             href="/problems"
             className={cn(
               "rounded-full border px-3 py-1 text-sm",
@@ -69,6 +70,7 @@ async function Problems({ searchParams }: Props) {
           </Link>
           {topics.map((t) => (
             <Link
+              prefetch={false}
               key={t.slug}
               href={`/problems?topic=${t.slug}`}
               className={cn(
@@ -90,7 +92,11 @@ async function Problems({ searchParams }: Props) {
         <ul className="divide-y rounded-xl border">
           {problems.map((p) => (
             <li key={p.slug} className="flex flex-wrap items-center gap-x-4 gap-y-1 p-4">
-              <Link href={`/problems/${p.slug}`} className="font-medium hover:text-primary">
+              <Link
+                prefetch={false}
+                href={`/problems/${p.slug}`}
+                className="font-medium hover:text-primary"
+              >
                 {p.title}
               </Link>
               <span className={cn("text-sm font-medium", DIFFICULTY_TONES[p.difficulty])}>

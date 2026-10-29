@@ -254,7 +254,9 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 | C.2 | "Public sample" flag per question (editor, bulk), automatic first N per topic (setting) | ✅ |
 | C.3 | Public topic pages and question pages (samples show answers; others ask to sign up), structured data, split sitemaps | ✅ |
 | C.4 | Public coding problem statements and mock test landing pages | ✅ |
-| C.5 | Company pages: sample questions and links to their topics; rate limits against scraping | ⬜ |
+| C.5 | Company pages: sample questions and links to their topics; rate limits against scraping | ✅ |
+
+**Exit criteria:** met. A visitor without an account can browse subjects, topics, questions (sample answers), coding problem statements, mock-test formats and company pages that link them together. Everything is in the sitemaps, answers to non-samples and hidden tests never reach the page, and bulk loading is slowed (e2e `public-questions`, `public-catalog`, `company-seo`).
 
 ---
 
