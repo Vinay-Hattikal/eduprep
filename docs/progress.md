@@ -5,7 +5,7 @@ Where the project stands right now. **Update at the end of every work session.**
 - Task list and status for every phase: [plan.md](plan.md)
 - This file: current focus, known issues, session log
 
-Last updated: 2026-10-29 (public question pages, D-058)
+Last updated: 2026-10-29 (public coding problems and mock tests, D-058)
 
 ---
 
@@ -116,6 +116,8 @@ See PRD section 14.
 ## Session log
 
 Newest first. One line per session: date, who, what changed, what's next.
+
+- 2026-10-29 · Claude · **C.4 (D-058):** public `/problems` and `/problems/[slug]` (statement and sample tests only; hidden tests never queried) and `/mock-tests` and `/mock-tests/[slug]` (format only), in the sitemap, with the header showing content pages. Verified: `npm run check` (291 unit), 128/128 integration, full e2e 93 passed, 0 failed (new `public-catalog` spec checks that hidden test data isn't in the page). Next: C.5 company pages and scraping limits.
 
 - 2026-10-29 · Claude · **C.3 public question pages (D-058):** `/questions`, `/questions/[subject]`, `/questions/[subject]/[topic]` and `/question/[id]` without sign-in. Samples show answers, the rest show a sign-up prompt, and answers are never sent for non-samples (unit-tested). Breadcrumb and Quiz structured data, `noindex` for thin topics, split question sitemaps listed in robots.txt, and "Questions" in the site menu. Fixed while here: the password-reset e2e test typed before the page was ready (the known flake); it now waits. Verified: `npm run check` (289 unit), integration 128 (one judge compile timeout under load, passed on re-run), full e2e 86 passed (the reset test, fixed and re-run). Next: C.4 coding problems and mock tests in public.
 

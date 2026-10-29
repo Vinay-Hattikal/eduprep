@@ -9,6 +9,8 @@ import { env } from "@/server/env";
 const allLinks = [
   { href: "/companies", label: "Companies" },
   { href: "/questions", label: "Questions" },
+  { href: "/problems", label: "Coding" },
+  { href: "/mock-tests", label: "Mock tests" },
   { href: "/jobs", label: "Jobs" },
   { href: "/pricing", label: "Pricing" },
   { href: "/#features", label: "Features" },
@@ -24,16 +26,19 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-4 sm:px-6">
           <Logo />
-          <nav aria-label="Main" className="hidden items-center gap-6 text-sm md:flex">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-muted-foreground transition-colors hover:text-foreground"
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav aria-label="Main" className="hidden items-center gap-5 text-sm lg:flex">
+            {/* Content pages only; the landing page's section links stay in the footer. */}
+            {links
+              .filter((link) => !link.href.startsWith("/#"))
+              .map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {link.label}
+                </Link>
+              ))}
           </nav>
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             <ThemeToggle />

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { askedAtFromFormData, readAskedAt } from "@/lib/content/asked-at";
 import { requirePermission } from "@/server/auth";
 import { companyLinksProblem, setCompanyLinks } from "@/server/services/company-links";
+import { PUBLIC_CATALOG_TAG } from "@/server/services/public-catalog";
 import { COMPANIES_TAG } from "@/server/services/public-companies";
 import { fieldErrors, problemFormFromData, solutionFormSchema } from "@/schemas/admin-content";
 import {
@@ -28,6 +29,7 @@ export async function validateProblemAction(formData: FormData) {
   const problemId = id.parse(formData.get("id"));
   await requestValidation(problemId);
   revalidatePath(`/admin/problems/${problemId}`);
+  updateTag(PUBLIC_CATALOG_TAG);
   back(problemId, "validating=1");
 }
 
@@ -42,11 +44,14 @@ export async function transitionProblemAction(formData: FormData) {
   if (action.data === "publish" && formData.get("afterCheck") === "1") {
     await requestValidation(problemId, user.id);
     revalidatePath(`/admin/problems/${problemId}`);
+    updateTag(PUBLIC_CATALOG_TAG);
     back(problemId, "validating=1&publishing=1");
   }
   const result = await transitionProblem(problemId, action.data!, user);
   revalidatePath("/admin/problems");
+  updateTag(PUBLIC_CATALOG_TAG);
   revalidatePath(`/admin/problems/${problemId}`);
+  updateTag(PUBLIC_CATALOG_TAG);
   back(problemId, result.ok ? `done=${action.data}` : `error=${encodeURIComponent(result.error)}`);
 }
 
@@ -73,6 +78,7 @@ export async function saveProblemAction(
   await setCompanyLinks({ problemId: result.id }, asked.links, user);
   updateTag(COMPANIES_TAG);
   revalidatePath("/admin/problems");
+  updateTag(PUBLIC_CATALOG_TAG);
   if (result.created) back(result.id, "created=1");
   // "Save and publish" (D-056): publish now if the judge check still holds, else check first.
   if (formData.get("intent") === "publish") {
@@ -107,6 +113,7 @@ export async function saveSolutionAction(
   const result = await saveSolution(parsed.data, user);
   if (!result.ok) return { formError: result.error };
   revalidatePath(`/admin/problems/${parsed.data.problemId}`);
+  updateTag(PUBLIC_CATALOG_TAG);
   back(parsed.data.problemId, `solution=saved${result.revalidating ? "&validating=1" : ""}`);
   return {};
 }
@@ -116,6 +123,7 @@ export async function deleteSolutionAction(formData: FormData) {
   const problemId = id.parse(formData.get("problemId"));
   const result = await deleteSolution(problemId, id.parse(formData.get("solutionId")), user);
   revalidatePath(`/admin/problems/${problemId}`);
+  updateTag(PUBLIC_CATALOG_TAG);
   back(problemId, `solution=deleted${result.revalidating ? "&validating=1" : ""}`);
 }
 
@@ -140,6 +148,7 @@ export async function addTestCaseAction(
     user,
   );
   revalidatePath(`/admin/problems/${values.problemId}`);
+  updateTag(PUBLIC_CATALOG_TAG);
   back(values.problemId, "test=added&validating=1");
   return {};
 }
@@ -149,5 +158,6 @@ export async function deleteTestCaseAction(formData: FormData) {
   const problemId = id.parse(formData.get("problemId"));
   await deleteTestCase(problemId, id.parse(formData.get("testId")), user);
   revalidatePath(`/admin/problems/${problemId}`);
+  updateTag(PUBLIC_CATALOG_TAG);
   back(problemId, "test=deleted&validating=1");
 }

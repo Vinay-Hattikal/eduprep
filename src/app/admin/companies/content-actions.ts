@@ -1,5 +1,6 @@
 "use server";
 
+import { PUBLIC_CATALOG_TAG } from "@/server/services/public-catalog";
 import { PUBLIC_QUESTIONS_TAG } from "@/server/services/public-questions";
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
@@ -16,6 +17,7 @@ function back(companySlug: string, itemKind: "question" | "problem", query: stri
   revalidatePath(`/admin/companies/${companySlug}`);
   updateTag(COMPANIES_TAG);
   updateTag(PUBLIC_QUESTIONS_TAG);
+  updateTag(PUBLIC_CATALOG_TAG);
   redirect(
     `/admin/companies/${companySlug}?tab=${itemKind === "question" ? "questions" : "coding"}${query}`,
   );

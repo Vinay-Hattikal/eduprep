@@ -253,7 +253,7 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 | C.1 | Sitemap: pricing, legal, become-interviewer, experience pages; company "last modified" follows its content | ✅ |
 | C.2 | "Public sample" flag per question (editor, bulk), automatic first N per topic (setting) | ✅ |
 | C.3 | Public topic pages and question pages (samples show answers; others ask to sign up), structured data, split sitemaps | ✅ |
-| C.4 | Public coding problem statements and mock test landing pages | ⬜ |
+| C.4 | Public coding problem statements and mock test landing pages | ✅ |
 | C.5 | Company pages: sample questions and links to their topics; rate limits against scraping | ⬜ |
 
 ---

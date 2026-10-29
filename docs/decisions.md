@@ -536,7 +536,7 @@ Every significant product or technical decision is recorded here, so humans and 
 
 ## D-058: Public content for search and preview
 - Date: 2026-10-28
-- Status: Accepted (C.1–C.3 built; C.4–C.5 planned)
+- Status: Accepted (C.1–C.4 built; C.5 planned)
 - Context: search engines only see the home, company and job pages. The question bank, the main source of search traffic ("TCS NQT percentage questions"), is behind sign-in, so Google never sees it. The owner wants pages to rank and visitors to preview the platform without signing in.
 - Decision (owner chose "samples only"):
   - **Every published question's text and options can be public.** The answer and explanation are public only for **public samples**. The rest say "Sign up free to see the answer", and visitors and search engines see the same page (no cloaking).
@@ -552,3 +552,9 @@ Every significant product or technical decision is recorded here, so humans and 
 - Topics with fewer than 5 published questions are `noindex, follow` and left out of the sitemap.
 - Sitemaps: `/sitemaps/questions` (index) and `/sitemaps/questions/[n]` (40,000 URLs each), built with route handlers so builds never need the database, and listed in robots.txt.
 - Caching: `"use cache"` with the `public-questions` tag. Admin question, taxonomy and company-link actions refresh it. Changes made by imports in the worker show within an hour.
+
+### D-058 addendum: public coding problems and mock tests (C.4), 2026-10-29
+- `/problems` (list with topic filter; filtered and later pages are `noindex, follow`) and `/problems/[slug]`: statement, formats, constraints, limits, languages, sample tests and "asked at". Hidden tests, solutions, hints and editorials are never read for these pages (only `isSample` tests are queried, and `toPublicProblem` keeps samples only). "Solve this problem" links to the signed-in workspace `/coding/[slug]`.
+- `/mock-tests` and `/mock-tests/[slug]`: a published test's format (sections, question counts, minutes, marks, negative marking, going back, topics, platform style, instructions). Never its questions. "Take this mock test" links to `/tests/[slug]`.
+- Both are in the main sitemap, cached with the `public-catalog` tag (refreshed by the problem, test and company-link admin actions).
+- The public header now shows content pages only (Companies, Questions, Coding, Mock tests, Jobs, Pricing) from the large breakpoint up; the landing-page section links stay in the footer.
