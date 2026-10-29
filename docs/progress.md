@@ -99,7 +99,6 @@ Phase 6, mocked or replaced until then (D-020, D-022, D-029):
 - **E2E tests share the local dev database.** They reset the seeded students and publish the sample content at start (`content:sample -- --publish --reset-students`), and leave a few `QA-E2E-…` and `e2e-…` items behind. Integration tests use their own `eduprep_test` database.
 - **Contest answers count for mastery and the daily streak** like any test. Results emails go to every participant at once through the queue; fine for thousands, revisit for very large contests.
 - **Job apply clicks from signed-out visitors count every click** (no way to tell repeat visitors apart). Signed-in students count once.
-- **Readiness uses MCQ sections only.** Coding mastery is recorded (DSA topics) but company readiness doesn't weigh coding sections yet.
 - **The local judge is not a sandbox** (D-033). Fine for development and CI; production must use Judge0 on its own server (task 6.15). Its timings on Windows are noisier than on Linux.
 - **Local database rebuilt as UTF-8** (D-037). The previous one is kept as `eduprep_win1252_backup` in the local cluster; drop it when you no longer need it.
 - **The Google Calendar + Meet driver hasn't run against Google yet** (no credentials here). It's written to the Calendar API and switched on with `MEETING_DRIVER=google`; test it with a Workspace service account before launch.

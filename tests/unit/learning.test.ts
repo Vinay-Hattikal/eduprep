@@ -133,13 +133,22 @@ describe("streak", () => {
 });
 
 describe("readiness", () => {
-  it("spreads each section's questions across its topics", () => {
+  it("spreads each section's minutes across its topics", () => {
     const weights = topicWeights([
-      { questionCount: 20, topicIds: ["pct", "tw"] },
-      { questionCount: 10, topicIds: ["pct"] },
-      { questionCount: 5, topicIds: [] },
+      { minutes: 20, topicIds: ["pct", "tw"] },
+      { minutes: 10, topicIds: ["pct"] },
+      { minutes: 5, topicIds: [] },
     ]);
     expect(Object.fromEntries(weights)).toEqual({ pct: 20, tw: 10 });
+  });
+
+  it("weights a coding section by its time, not its two problems (D-060)", () => {
+    const weights = topicWeights([
+      { minutes: 40, topicIds: ["quant"] }, // 30 MCQs
+      { minutes: 40, topicIds: ["arrays"] }, // 2 coding problems
+    ]);
+    expect(weights.get("arrays")).toBe(weights.get("quant"));
+    expect(computeReadiness(weights, new Map([["quant", 100]])).score).toBe(50);
   });
 
   it("weights mastery by topic importance and suggests the biggest gains", () => {

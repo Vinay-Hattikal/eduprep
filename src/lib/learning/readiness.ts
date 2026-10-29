@@ -1,17 +1,18 @@
 // Readiness for a company (PRD 4.7, 8.6): mastery of the topics its tests cover, weighted by
-// how many questions each topic is likely to carry.
+// how much test time each topic is likely to take (D-060).
 
-export type SectionInput = { questionCount: number; topicIds: string[] };
+export type SectionInput = { minutes: number; topicIds: string[] };
 
 /**
- * Weight per topic: each MCQ section's questions are shared evenly by its topics.
- * A topic in several sections adds up.
+ * Weight per topic: each test section's minutes are shared evenly by its topics. Minutes, not
+ * question counts, so a coding section (two problems in 45 minutes) counts as much as an MCQ
+ * section of the same length. A topic in several sections adds up.
  */
 export function topicWeights(sections: SectionInput[]): Map<string, number> {
   const weights = new Map<string, number>();
   for (const section of sections) {
     if (section.topicIds.length === 0) continue;
-    const share = section.questionCount / section.topicIds.length;
+    const share = section.minutes / section.topicIds.length;
     for (const topicId of section.topicIds)
       weights.set(topicId, (weights.get(topicId) ?? 0) + share);
   }

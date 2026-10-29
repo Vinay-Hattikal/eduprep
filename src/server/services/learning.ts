@@ -39,10 +39,10 @@ export async function getTargetReadiness(
           name: true,
           rounds: {
             select: {
+              // MCQ and coding sections: coding submissions build DSA topic mastery (D-060).
               sections: {
-                where: { type: "MCQ" },
                 select: {
-                  questionCount: true,
+                  minutes: true,
                   topics: { select: { id: true, slug: true, name: true } },
                 },
               },
@@ -60,7 +60,7 @@ export async function getTargetReadiness(
     const readiness = computeReadiness(
       topicWeights(
         sections.map((s) => ({
-          questionCount: s.questionCount,
+          minutes: s.minutes,
           topicIds: s.topics.map((t) => t.id),
         })),
       ),

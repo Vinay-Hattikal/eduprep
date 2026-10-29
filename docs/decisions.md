@@ -578,3 +578,9 @@ Every significant product or technical decision is recorded here, so humans and 
   - The digest is a `jobs.digest` job that queues the next one when it finishes, covering the time since its own run, so nothing is missed or sent twice. The worker starts the chain at startup when none is queued.
   - **Contest reminders:** publishing an All-India mock queues `contest.reminder` 24 h before the start (right away if that's past; none if it starts within the hour). It's skipped if the contest is unpublished or moved.
   - **Opt-out:** `users.alerts_opt_in` (default on), toggled on the account page. `notify()` skips alert templates for students who turned them off. Messages go to the outbox until real email and WhatsApp are connected.
+
+## D-060: Readiness counts coding, weighted by test time
+- Date: 2026-10-29
+- Status: Accepted (supersedes D-032's MCQ-only readiness)
+- Context: readiness used MCQ sections only, weighted by question count, so coding practice never moved it although coding submissions already build DSA topic mastery.
+- Decision: every test section counts, MCQ and coding. Each section's **minutes** are shared by its topics (not its question count), so a 40-minute coding section with 2 problems weighs as much as a 40-minute aptitude section with 30 questions. MCQ-only companies keep nearly the same scores, because their sections' time is usually proportional to their questions.
