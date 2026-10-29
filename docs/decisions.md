@@ -536,7 +536,7 @@ Every significant product or technical decision is recorded here, so humans and 
 
 ## D-058: Public content for search and preview
 - Date: 2026-10-28
-- Status: Accepted (C.1–C.2 built; C.3–C.5 planned)
+- Status: Accepted (C.1–C.3 built; C.4–C.5 planned)
 - Context: search engines only see the home, company and job pages. The question bank, the main source of search traffic ("TCS NQT percentage questions"), is behind sign-in, so Google never sees it. The owner wants pages to rank and visitors to preview the platform without signing in.
 - Decision (owner chose "samples only"):
   - **Every published question's text and options can be public.** The answer and explanation are public only for **public samples**. The rest say "Sign up free to see the answer", and visitors and search engines see the same page (no cloaking).
@@ -544,3 +544,11 @@ Every significant product or technical decision is recorded here, so humans and 
   - **Stays private:** questions inside mock tests and All-India contests, hidden tests, editorials and model answers beyond the samples, user data, and paid company packs.
   - **Sitemap:** adds pricing, become-interviewer, the legal pages, and the interview-experience pages of companies that have approved ones. A company's "last modified" moves when its rounds, sections, sources, linked questions, or the publishing of a linked question change.
   - **Planned public pages (C.3–C.5):** one address per question (shared by every company that asks it), topic pages with samples first, coding problem statements with samples, mock test landing pages, more on company pages, structured data, split sitemaps, rate limits against scraping, and keeping topics with very few questions out of the index.
+
+### D-058 addendum: public question pages (C.3), 2026-10-29
+- URLs: `/questions` (subjects and topics), `/questions/[subject]`, `/questions/[subject]/[topic]` (20 per page, samples first), `/question/[id]` (lower-case ID, one address per question however many companies ask it).
+- Page data goes through `toPublicQuestion`, which drops answer fields unless the question is a public sample. Samples show "Show answer and explanation" in a collapsed section. The rest show "Sign up free to see the answer" to everyone.
+- Structured data: BreadcrumbList everywhere, and Quiz with Question and acceptedAnswer for samples only.
+- Topics with fewer than 5 published questions are `noindex, follow` and left out of the sitemap.
+- Sitemaps: `/sitemaps/questions` (index) and `/sitemaps/questions/[n]` (40,000 URLs each), built with route handlers so builds never need the database, and listed in robots.txt.
+- Caching: `"use cache"` with the `public-questions` tag. Admin question, taxonomy and company-link actions refresh it. Changes made by imports in the worker show within an hour.

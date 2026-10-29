@@ -8,6 +8,7 @@ import { env } from "@/server/env";
 
 const allLinks = [
   { href: "/companies", label: "Companies" },
+  { href: "/questions", label: "Questions" },
   { href: "/jobs", label: "Jobs" },
   { href: "/pricing", label: "Pricing" },
   { href: "/#features", label: "Features" },

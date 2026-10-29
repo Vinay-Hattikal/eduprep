@@ -27,6 +27,7 @@ export default function robots(): MetadataRoute.Robots {
         "/s/",
       ],
     },
-    sitemap: `${siteConfig.url}/sitemap.xml`,
+    // Question pages have their own sitemap index, split into files (D-058).
+    sitemap: [`${siteConfig.url}/sitemap.xml`, `${siteConfig.url}/sitemaps/questions`],
   };
 }

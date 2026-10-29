@@ -1,5 +1,6 @@
 "use server";
 
+import { PUBLIC_QUESTIONS_TAG } from "@/server/services/public-questions";
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -14,6 +15,7 @@ const slug = z.string().min(1).max(80);
 function back(companySlug: string, itemKind: "question" | "problem", query: string) {
   revalidatePath(`/admin/companies/${companySlug}`);
   updateTag(COMPANIES_TAG);
+  updateTag(PUBLIC_QUESTIONS_TAG);
   redirect(
     `/admin/companies/${companySlug}?tab=${itemKind === "question" ? "questions" : "coding"}${query}`,
   );

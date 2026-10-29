@@ -1,5 +1,6 @@
 "use server";
 
+import { PUBLIC_QUESTIONS_TAG } from "@/server/services/public-questions";
 import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 import { requirePermission } from "@/server/auth";
@@ -28,6 +29,7 @@ export async function quickTopicAction(subject: string, name: string): Promise<Q
   if (result.ok) {
     revalidatePath("/admin/taxonomy");
     updateTag(COMPANIES_TAG);
+    updateTag(PUBLIC_QUESTIONS_TAG);
   }
   return result;
 }

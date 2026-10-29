@@ -77,6 +77,9 @@ test("reset a forgotten password", async ({ page }) => {
 
   await page.goto("/sign-in");
   await page.getByRole("link", { name: "Forgot password?" }).click();
+  // Wait for the form to be interactive: a submit before hydration just reloads the page.
+  await page.waitForURL("/forgot-password");
+  await page.waitForLoadState("networkidle");
   await page.getByLabel("Email").fill(email);
   await page.getByTestId("forgot-submit").click();
   await expect(page).toHaveURL(/\/reset-password\?email=/);

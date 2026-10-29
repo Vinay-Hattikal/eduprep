@@ -5,7 +5,7 @@ Where the project stands right now. **Update at the end of every work session.**
 - Task list and status for every phase: [plan.md](plan.md)
 - This file: current focus, known issues, session log
 
-Last updated: 2026-10-29 (public samples and sitemap, D-058)
+Last updated: 2026-10-29 (public question pages, D-058)
 
 ---
 
@@ -99,7 +99,6 @@ Phase 6, mocked or replaced until then (D-020, D-022, D-029):
 - **E2E tests share the local dev database.** They reset the seeded students and publish the sample content at start (`content:sample -- --publish --reset-students`), and leave a few `QA-E2E-…` and `e2e-…` items behind. Integration tests use their own `eduprep_test` database.
 - **Contest answers count for mastery and the daily streak** like any test. Results emails go to every participant at once through the queue; fine for thousands, revisit for very large contests.
 - **Job apply clicks from signed-out visitors count every click** (no way to tell repeat visitors apart). Signed-in students count once.
-- **The phone password-reset e2e test is slightly flaky** under load (a 5 s URL wait after the server action). It passed on re-run.
 - **Readiness uses MCQ sections only.** Coding mastery is recorded (DSA topics) but company readiness doesn't weigh coding sections yet.
 - **The local judge is not a sandbox** (D-033). Fine for development and CI; production must use Judge0 on its own server (task 6.15). Its timings on Windows are noisier than on Linux.
 - **Local database rebuilt as UTF-8** (D-037). The previous one is kept as `eduprep_win1252_backup` in the local cluster; drop it when you no longer need it.
@@ -117,6 +116,8 @@ See PRD section 14.
 ## Session log
 
 Newest first. One line per session: date, who, what changed, what's next.
+
+- 2026-10-29 · Claude · **C.3 public question pages (D-058):** `/questions`, `/questions/[subject]`, `/questions/[subject]/[topic]` and `/question/[id]` without sign-in. Samples show answers, the rest show a sign-up prompt, and answers are never sent for non-samples (unit-tested). Breadcrumb and Quiz structured data, `noindex` for thin topics, split question sitemaps listed in robots.txt, and "Questions" in the site menu. Fixed while here: the password-reset e2e test typed before the page was ready (the known flake); it now waits. Verified: `npm run check` (289 unit), integration 128 (one judge compile timeout under load, passed on re-run), full e2e 86 passed (the reset test, fixed and re-run). Next: C.4 coding problems and mock tests in public.
 
 - 2026-10-29 · Claude · **C.1–C.2 (D-058):** "Public sample" flag on questions (editor box, bulk actions, "Public sample" badge, automatic first N per topic with the `seo.publicSamplesPerTopic` setting). The sitemap adds pricing, legal, become-interviewer and experience pages. A company's last-modified date follows its rounds, sources, links and linked-question publishing. Verified: `npm run check`, 128/128 integration (new `public-samples`), full e2e 82 passed (new `seo` spec fixed and re-run; the known-flaky phone password reset passed on re-run). Next: C.3 public topic and question pages.
 

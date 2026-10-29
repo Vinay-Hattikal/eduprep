@@ -1,5 +1,6 @@
 "use server";
 
+import { PUBLIC_QUESTIONS_TAG } from "@/server/services/public-questions";
 import { revalidatePath, updateTag } from "next/cache";
 import { COMPANIES_TAG } from "@/server/services/public-companies";
 import { redirect } from "next/navigation";
@@ -63,6 +64,7 @@ export async function saveQuestionAction(
   }
   revalidatePath("/admin/questions");
   updateTag(COMPANIES_TAG);
+  updateTag(PUBLIC_QUESTIONS_TAG);
   // "Then add another": a fresh form that keeps the classification and companies.
   if (!parsed.data.id && formData.get("next") === "on" && !query.includes("error="))
     redirect(`/admin/questions/new?copyFrom=${result.id}&${query}`);
@@ -80,6 +82,7 @@ export async function transitionQuestionAction(formData: FormData) {
   const result = await transitionQuestion(id, action.data, user);
   revalidatePath("/admin/questions");
   updateTag(COMPANIES_TAG);
+  updateTag(PUBLIC_QUESTIONS_TAG);
   revalidatePath("/admin/drafts");
   revalidatePath(`/admin/questions/${id}`);
   redirect(
@@ -108,6 +111,7 @@ export async function bulkQuestionAction(_prev: BulkState, formData: FormData): 
   const { done, errors } = await bulkTransition(ids, action.data, user);
   revalidatePath("/admin/questions");
   updateTag(COMPANIES_TAG);
+  updateTag(PUBLIC_QUESTIONS_TAG);
   revalidatePath("/admin/drafts");
   return {
     message: `${done} of ${ids.length} question${ids.length === 1 ? "" : "s"} updated.`,
