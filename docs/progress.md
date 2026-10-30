@@ -5,7 +5,7 @@ Where the project stands right now. **Update at the end of every work session.**
 - Task list and status for every phase: [plan.md](plan.md)
 - This file: current focus, known issues, session log
 
-Last updated: 2026-10-30 (company workspace part 2, step 1: D-067)
+Last updated: 2026-10-31 (company workspace part 2, steps 1–2: D-067)
 
 ---
 
@@ -113,6 +113,8 @@ See PRD section 14.
 ## Session log
 
 Newest first. One line per session: date, who, what changed, what's next.
+
+- 2026-10-31 · Claude · **Company workspace step 2 (D-067):** Interview questions tab (design questions gain Technical interview and HR / behavioural kinds; companies are `company_items` links with a round), import for a company, copy a hiring pattern, and "+ New passage" in the question editor. `/code-review` (10 fixes, among them re-imports that re-drafted questions and links drifting when rounds moved) and `/simplify` (round links by id, the design import on the shared company-link rules, shared link parts, batch publish). Verified: `npm run check` (317 unit), 153/153 integration, full e2e 105 passed, 0 failed. Next: step 3 (community tab, previews, companies list).
 
 - 2026-10-30 · Claude · **Company workspace part 2, step 1 (D-067):** an Overview tab with a 9-item checklist, a progress bar and "Next:" on every tab; coverage per section topic ("Strings 0/20 · add") linking to a new question or problem with the topic picked; coding problems link back to their company and take pasted tests in bulk; "Publish everything" with a preview of what goes live and what stays draft and why. Then `/code-review` (10 findings fixed: mock blockers in the preview, archived companies, a test-numbering race, blank lines in pasted tests, shared pool rules, among others) and `/simplify`. Verified: `npm run check` (316 unit), 147/147 integration, full e2e 104 passed, 0 failed. Next: Step 2 (interview questions tab, import for a company, copy pattern, passages), after the owner decides how HR questions are stored.
 
