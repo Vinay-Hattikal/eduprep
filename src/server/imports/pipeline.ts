@@ -268,7 +268,7 @@ export async function commitBatch(batchId: string): Promise<void> {
     try {
       const outcomes = await db.$transaction(
         (tx) => definition.commit(chunk, { tx, actorId: batch.confirmedById, batchId }),
-        { timeout: 120_000, maxWait: 10_000 },
+        { timeout: 120_000 },
       );
       allOutcomes.push(...outcomes);
       for (const outcome of outcomes) {

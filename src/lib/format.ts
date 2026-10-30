@@ -59,6 +59,11 @@ export function formatPaise(paise: number): string {
 }
 
 /** First characters of Markdown as plain text, for lists. */
+/** Cuts text to `max` characters, ending with "…" when it was longer. */
+export function truncate(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
 export function plainExcerpt(markdown: string, maxLength: number): string {
   const text = markdown
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "[image]")
@@ -66,7 +71,7 @@ export function plainExcerpt(markdown: string, maxLength: number): string {
     .replace(/[*_`#>$\\]/g, "")
     .replace(/\s+/g, " ")
     .trim();
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1).trimEnd()}…` : text;
+  return truncate(text, maxLength);
 }
 
 /** "Ravi Kumar" → "Ravi K.": how students appear on leaderboards and in discussions. */

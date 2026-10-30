@@ -161,8 +161,14 @@ export async function quoteOrder(
   if (code) {
     coupon = await db.coupon.findUnique({ where: { code } });
     if (coupon) {
-      const problem =
-        couponProblem(coupon, product.kind, now) ?? (await couponInUse(coupon, user.id, now));
+      const { usedByMe, pending } = await couponUsage(coupon.id, user.id, now);
+      const problem = usedByMe
+        ? "You've already used this code."
+        : couponProblem(
+            { ...coupon, redemptions: coupon.redemptions + pending },
+            product.kind,
+            now,
+          );
       if (problem) return { ok: false, error: problem, field: "code" };
     } else {
       referral = await db.referralCode.findUnique({ where: { code } });
@@ -200,28 +206,19 @@ const COUPON_HOLD_MS = 30 * 60_000;
  * Redemptions are only counted when an order is paid, and a payment can't be refused, so the
  * limit is enforced here: a student uses a code once, and open checkouts hold their redemption.
  */
-async function couponInUse(
-  coupon: { id: string; maxRedemptions: number | null; redemptions: number },
-  userId: string,
-  now: Date,
-): Promise<string | null> {
-  const [used, pending] = await Promise.all([
-    db.order.count({
-      where: { userId, couponId: coupon.id, status: { in: ["PAID", "REFUNDED"] } },
-    }),
+async function couponUsage(couponId: string, userId: string, now: Date) {
+  const [usedByMe, pending] = await Promise.all([
+    db.order.count({ where: { userId, couponId, status: { in: ["PAID", "REFUNDED"] } } }),
     db.order.count({
       where: {
-        couponId: coupon.id,
+        couponId,
         status: "CREATED",
         userId: { not: userId },
         createdAt: { gt: new Date(now.getTime() - COUPON_HOLD_MS) },
       },
     }),
   ]);
-  if (used) return "You've already used this code.";
-  if (coupon.maxRedemptions !== null && coupon.redemptions + pending >= coupon.maxRedemptions)
-    return "This code has been used up.";
-  return null;
+  return { usedByMe: usedByMe > 0, pending };
 }
 
 export type CreateOrderResult =

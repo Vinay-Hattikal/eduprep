@@ -37,18 +37,6 @@ const QUESTIONS = 20;
  */
 const BUDGET_P95_MS = { start: 3_000, view: 1_000, save: 750, advance: 2_000, submit: 3_500 };
 
-const PYTHON = `import sys
-d = sys.stdin.read().split()
-n, t = int(d[0]), int(d[1])
-seen = set()
-ok = False
-for x in map(int, d[2:2 + n]):
-    if t - x in seen:
-        ok = True
-    seen.add(x)
-print("YES" if ok else "NO")
-`;
-
 // ---------- measuring ----------
 
 const timings = new Map<string, number[]>();
@@ -87,7 +75,7 @@ function report(title: string, seconds: number) {
 }
 
 /** Runs `fn` over `items`, at most `limit` at a time. */
-async function pool<T>(items: readonly T[], limit: number, fn: (item: T) => Promise<void>) {
+async function pool<T>(items: readonly T[], limit: number, fn: (item: T) => Promise<unknown>) {
   let next = 0;
   await Promise.all(
     Array.from({ length: Math.min(limit, items.length) }, async () => {
@@ -100,6 +88,8 @@ async function pool<T>(items: readonly T[], limit: number, fn: (item: T) => Prom
 
 let adminId: string;
 let problemId: string;
+/** The problem's reference solution, from the imported template. */
+let python: string;
 let students: CurrentUser[] = [];
 
 beforeAll(async () => {
@@ -117,6 +107,11 @@ beforeAll(async () => {
   const problem = await db.problem.findUniqueOrThrow({ where: { externalId: "CODE-ARR-0001" } });
   await transitionProblem(problem.id, "publish", admin);
   problemId = problem.id;
+  python = (
+    await db.problemSolution.findUniqueOrThrow({
+      where: { problemId_kind_language: { problemId, kind: "REFERENCE", language: "python" } },
+    })
+  ).code;
 
   // A pool of published questions, so each student draws a different set.
   const topic = await db.topic.findUniqueOrThrow({ where: { slug: "percentages" } });
@@ -238,7 +233,7 @@ describe("load", () => {
         const result = await createSubmission(student, {
           problemId,
           language: "python",
-          code: PYTHON,
+          code: python,
           kind: "SUBMIT",
         });
         if (result.status !== "queued") throw new Error(JSON.stringify(result));

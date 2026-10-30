@@ -297,7 +297,7 @@ const HISTORY_REASONS: Record<ContentAction, string> = {
 type QuestionRow = Awaited<ReturnType<typeof db.question.findUniqueOrThrow>>;
 
 /** Why this question can't take the action, or null. */
-function transitionProblem(question: QuestionRow, action: ContentAction, actor: Actor) {
+function transitionError(question: QuestionRow, action: ContentAction, actor: Actor) {
   const blocker = transitionBlocker(action, question.status, actor);
   if (blocker) return `${question.externalId}: ${blocker}`;
   if (action === "publish" && hasErrors(checkQuestion(question)))
@@ -313,8 +313,8 @@ export async function transitionQuestion(
 ): Promise<TransitionResult> {
   const question = await db.question.findUnique({ where: { id } });
   if (!question) return { ok: false, error: "This question no longer exists." };
-  const problem = transitionProblem(question, action, actor);
-  if (problem) return { ok: false, error: problem };
+  const error = transitionError(question, action, actor);
+  if (error) return { ok: false, error };
   if (action === "publish") {
     const stale = await publishChecked([question], actor);
     return stale.length
@@ -326,7 +326,7 @@ export async function transitionQuestion(
   await db.$transaction(async (tx) => {
     const updated = await tx.question.update({ where: { id }, data: { status } });
     // Unpublishing changes the company pages that list it (D-058).
-    if (question.status === "PUBLISHED") await touchCompaniesListing(tx, { questionIds: [id] });
+    if (question.status === "PUBLISHED") await touchCompaniesListing(tx, { questionId: id });
     await tx.contentVersion.create({
       data: {
         entityType: "question",
@@ -367,8 +367,8 @@ export async function publishQuestions(ids: readonly string[], actor: Actor) {
     errors.push(`${unique.length - questions.length} question(s) no longer exist.`);
   const ready: QuestionRow[] = [];
   for (const question of questions) {
-    const problem = transitionProblem(question, "publish", actor);
-    if (problem) errors.push(problem);
+    const error = transitionError(question, "publish", actor);
+    if (error) errors.push(error);
     else ready.push(question);
   }
   const stale = await publishChecked(ready, actor);
@@ -380,7 +380,7 @@ export async function publishQuestions(ids: readonly string[], actor: Actor) {
 const PUBLISH_CHUNK = 500;
 
 /**
- * Publishes questions that already passed transitionProblem. Returns the ones skipped because
+ * Publishes questions that already passed transitionError. Returns the ones skipped because
  * they changed after the check (edited or archived while a large publish was running).
  */
 async function publishChecked(
@@ -401,8 +401,9 @@ async function publishChecked(
           SELECT id, updated_at FROM questions
            WHERE id = ANY(${checked.map((q) => q.id)}) FOR UPDATE`;
         const version = new Map(current.map((r) => [r.id, r.updated_at.getTime()]));
-        const chunk = checked.filter((q) => version.get(q.id) === q.updatedAt.getTime());
-        stale.push(...checked.filter((q) => !chunk.includes(q)));
+        const chunk: QuestionRow[] = [];
+        for (const q of checked)
+          (version.get(q.id) === q.updatedAt.getTime() ? chunk : stale).push(q);
         if (!chunk.length) return;
         const ids = chunk.map((q) => q.id);
         const samples = await pickPublicSamples(tx, chunk, samplesPerTopic);
@@ -421,13 +422,12 @@ async function publishChecked(
           });
         if (rest.length) await tx.question.updateMany({ where: { id: { in: rest } }, data });
 
-        const updated = await tx.question.findMany({ where: { id: { in: ids } } });
         await tx.contentVersion.createMany({
-          data: updated.map((q) => ({
+          data: chunk.map((q) => ({
             entityType: "question",
             entityId: q.id,
             version: q.version,
-            snapshot: toSnapshot(q),
+            snapshot: toSnapshot({ ...q, ...data }),
             reason: HISTORY_REASONS.publish,
             createdById: actor.id,
           })),
@@ -443,9 +443,9 @@ async function publishChecked(
           })),
         });
         // Publishing changes the company pages that list them (D-058).
-        await touchCompaniesListing(tx, { questionIds: ids });
+        await touchCompaniesListing(tx, { questionId: { in: ids } });
       },
-      { timeout: 60_000, maxWait: 30_000 },
+      { timeout: 60_000 },
     );
   }
   return stale;
@@ -539,10 +539,11 @@ export async function bulkPublicSample(ids: string[], value: boolean, actor: Act
 }
 
 export async function bulkTransition(ids: string[], action: ContentAction, actor: Actor) {
-  if (action === "publish") return publishQuestions(ids.slice(0, 200), actor);
+  const batch = ids.slice(0, 200);
+  if (action === "publish") return publishQuestions(batch, actor);
   let done = 0;
   const errors: string[] = [];
-  for (const id of ids.slice(0, 200)) {
+  for (const id of batch) {
     const result = await transitionQuestion(id, action, actor);
     if (result.ok) done += 1;
     else errors.push(result.error);

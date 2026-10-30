@@ -3,6 +3,7 @@
 
 import { ImageResponse } from "next/og";
 import { siteConfig } from "@/config/site";
+import { truncate } from "@/lib/format";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
@@ -29,12 +30,8 @@ function titleSize(title: string): number {
   return 46;
 }
 
-function clip(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
-}
-
 export function ogImage(card: OgCard, init?: ResponseInit): ImageResponse {
-  const title = clip(card.title, 140);
+  const title = truncate(card.title, 140);
   return new ImageResponse(
     <div
       style={{
@@ -83,7 +80,7 @@ export function ogImage(card: OgCard, init?: ResponseInit): ImageResponse {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {card.eyebrow ? (
-          <div style={{ fontSize: 34, color: "#475569" }}>{clip(card.eyebrow, 60)}</div>
+          <div style={{ fontSize: 34, color: "#475569" }}>{truncate(card.eyebrow, 60)}</div>
         ) : null}
         <div
           style={{
@@ -97,7 +94,7 @@ export function ogImage(card: OgCard, init?: ResponseInit): ImageResponse {
         </div>
         {card.detail ? (
           <div style={{ fontSize: 40, fontWeight: 700, color: HIGHLIGHT }}>
-            {clip(card.detail, 50)}
+            {truncate(card.detail, 50)}
           </div>
         ) : null}
       </div>
@@ -115,21 +112,14 @@ export function ogImage(card: OgCard, init?: ResponseInit): ImageResponse {
         <div style={{ display: "flex", flexDirection: "column" }}>
           {card.footer?.strong ? (
             <div style={{ fontSize: 36, fontWeight: 700, color: "#0f172a" }}>
-              {clip(card.footer.strong, 40)}
+              {truncate(card.footer.strong, 40)}
             </div>
           ) : null}
-          {card.footer?.text ? <div>{clip(card.footer.text, 60)}</div> : null}
+          {card.footer?.text ? <div>{truncate(card.footer.text, 60)}</div> : null}
         </div>
         <div>{siteConfig.url.replace(/^https?:\/\//, "")}</div>
       </div>
     </div>,
     { ...OG_SIZE, ...init },
   );
-}
-
-/** "Asked at Acme, Globex and 2 more" for the card footer. */
-export function askedAt(names: string[]): string | undefined {
-  if (!names.length) return undefined;
-  const shown = names.slice(0, 2).join(", ");
-  return names.length > 2 ? `Asked at ${shown} and ${names.length - 2} more` : `Asked at ${shown}`;
 }

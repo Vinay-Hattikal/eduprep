@@ -79,17 +79,14 @@ async function consumeCode(
   if (!row || row.expiresAt <= now) return expired;
   // Every check uses up a try first, in one statement, so guesses sent in parallel can't get
   // past the limit by all reading the count before any of them adds to it.
-  const claimed = await db.verificationCode.updateMany({
+  const [claimed] = await db.verificationCode.updateManyAndReturn({
     where: { id: row.id, consumedAt: null, attempts: { lt: MAX_CODE_ATTEMPTS } },
     data: { attempts: { increment: 1 } },
+    select: { attempts: true },
   });
-  if (!claimed.count) return expired;
+  if (!claimed) return expired;
   if (!codeMatches(code, row.codeHash, env().AUTH_SECRET)) {
-    const { attempts } = await db.verificationCode.findUniqueOrThrow({
-      where: { id: row.id },
-      select: { attempts: true },
-    });
-    const left = MAX_CODE_ATTEMPTS - attempts;
+    const left = MAX_CODE_ATTEMPTS - claimed.attempts;
     return {
       ok: false,
       error:

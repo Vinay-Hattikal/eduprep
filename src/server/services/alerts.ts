@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Prisma } from "@/generated/prisma/client";
+
 import {
   contestReminderAt,
   DIGEST_MAX_JOBS,
@@ -17,22 +19,10 @@ import { notify } from "@/server/services/notifications";
 
 const BATCH = 500;
 
-/**
- * Students on this page who already got a message (a retried or re-run job sends to the rest
- * only). `after` and `bodyHas` say which message: this digest, or this contest's reminder.
- */
-async function alreadySent(
-  userIds: string[],
-  template: "jobs.digest" | "contest.reminder",
-  filter: { after?: Date; bodyHas?: string },
-) {
+/** Students on this page who already got this message (a retried job sends to the rest only). */
+async function alreadySent(userIds: string[], where: Prisma.NotificationWhereInput) {
   const rows = await db.notification.findMany({
-    where: {
-      userId: { in: userIds },
-      template,
-      ...(filter.after && { createdAt: { gte: filter.after } }),
-      ...(filter.bodyHas && { body: { contains: filter.bodyHas } }),
-    },
+    where: { userId: { in: userIds }, ...where },
     select: { userId: true },
     distinct: ["userId"],
   });
@@ -100,8 +90,7 @@ export async function sendJobDigest(since: string, now = new Date()) {
     for await (const students of alertStudents()) {
       const sent = await alreadySent(
         students.map((s) => s.id),
-        "jobs.digest",
-        { after: runStart },
+        { template: "jobs.digest", createdAt: { gte: runStart } },
       );
       for (const student of students) {
         if (sent.has(student.id)) continue;
@@ -181,10 +170,14 @@ export async function sendContestReminder(contestId: string, startsAt: string) {
   if (!contest || contest.status !== "PUBLISHED" || contest.startsAt.toISOString() !== startsAt)
     return;
   for await (const students of alertStudents()) {
+    // Bounded to recent messages so the check stays cheap as reminders pile up.
     const sent = await alreadySent(
       students.map((s) => s.id),
-      "contest.reminder",
-      { bodyHas: `/contests/${contest.slug}` },
+      {
+        template: "contest.reminder",
+        createdAt: { gte: new Date(Date.now() - 30 * 86_400_000) },
+        body: { contains: `/contests/${contest.slug}` },
+      },
     );
     for (const student of students) {
       if (sent.has(student.id)) continue;

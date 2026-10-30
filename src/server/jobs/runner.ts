@@ -7,7 +7,7 @@ import { judgeSubmission, validateProblem } from "@/server/services/coding";
 import { finalizeContest } from "@/server/services/contests";
 import { scorecardOverdue, sendReminder, syncMeeting } from "@/server/services/interviews";
 import { sendNotification } from "@/server/services/notifications";
-import { autoSubmitSitting } from "@/server/services/tests";
+import { autoSubmitSitting, rescoreSubmittedSitting } from "@/server/services/tests";
 import {
   claimNextJob,
   completeJob,
@@ -20,7 +20,10 @@ import {
 const handlers: { [T in JobType]: (payload: JobPayloads[T]) => Promise<void> } = {
   "import.validate": ({ batchId }) => validateBatch(batchId),
   "import.commit": ({ batchId }) => commitBatch(batchId),
-  "code.judge": ({ submissionId }) => judgeSubmission(submissionId),
+  "code.judge": async ({ submissionId }) => {
+    const sittingItemId = await judgeSubmission(submissionId);
+    if (sittingItemId) await rescoreSubmittedSitting(sittingItemId);
+  },
   "problem.validate": ({ problemId, publishBy }) =>
     validateProblem(problemId, undefined, publishBy),
   "test.autosubmit": ({ sittingId }) => autoSubmitSitting(sittingId),

@@ -25,13 +25,12 @@ async function touchCompanies(tx: Prisma.TransactionClient, ids: readonly string
 /** Touches every company page that lists these items (when they're published or unpublished). */
 export async function touchCompaniesListing(
   tx: Prisma.TransactionClient,
-  items: { questionIds: readonly string[] } | { problemIds: readonly string[] },
+  items: Prisma.CompanyItemWhereInput,
 ) {
-  const some =
-    "questionIds" in items
-      ? { questionId: { in: [...items.questionIds] } }
-      : { problemId: { in: [...items.problemIds] } };
-  await tx.company.updateMany({ where: { items: { some } }, data: { updatedAt: new Date() } });
+  await tx.company.updateMany({
+    where: { items: { some: items } },
+    data: { updatedAt: new Date() },
+  });
 }
 
 const itemWhere = (item: Item) =>

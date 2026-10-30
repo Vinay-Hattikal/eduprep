@@ -67,3 +67,10 @@ export function askedAtFromFormData(formData: FormData): AskedAtInput[] {
   const months = formData.getAll("askedIn").map(String);
   return ids.map((companyId, i) => ({ companyId, askedIn: months[i] ?? "" }));
 }
+
+/** "Asked at Acme, Globex and 2 more" for share images. */
+export function askedAt(names: string[]): string | undefined {
+  if (!names.length) return undefined;
+  const shown = names.slice(0, 2).join(", ");
+  return names.length > 2 ? `Asked at ${shown} and ${names.length - 2} more` : `Asked at ${shown}`;
+}

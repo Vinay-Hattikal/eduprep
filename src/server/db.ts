@@ -7,7 +7,9 @@ import { env } from "@/server/env";
 function createClient() {
   const { DATABASE_URL, DATABASE_POOL_SIZE } = env();
   const adapter = new PrismaPg({ connectionString: DATABASE_URL, max: DATABASE_POOL_SIZE });
-  return new PrismaClient({ adapter });
+  // Under load every connection can be busy; a transaction waits for one rather than failing
+  // after Prisma's 2 s default (load test, D-065). Calls set longer timeouts where they need them.
+  return new PrismaClient({ adapter, transactionOptions: { maxWait: 15_000 } });
 }
 
 // Reuse one client across hot reloads in development.

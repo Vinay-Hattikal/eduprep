@@ -419,12 +419,20 @@ export async function listSubmissions(userId: string, problemId: string, take = 
 }
 
 /** Job "code.judge": runs a queued submission. */
-export async function judgeSubmission(submissionId: string, now = () => new Date()): Promise<void> {
+/**
+ * Judges a submission. Returns the test item it answered, when it's a SUBMIT inside a test, so
+ * the caller can re-score a test that was submitted while the code waited (D-065 review).
+ */
+export async function judgeSubmission(
+  submissionId: string,
+  now = () => new Date(),
+): Promise<string | null> {
   const submission = await db.submission.findUnique({
     where: { id: submissionId },
     include: { problem: { include: { testCases: { orderBy: { order: "asc" } } } } },
   });
-  if (!submission || (submission.verdict !== "PENDING" && submission.verdict !== "RUNNING")) return;
+  if (!submission || (submission.verdict !== "PENDING" && submission.verdict !== "RUNNING"))
+    return null;
   const { problem } = submission;
   await db.submission.update({ where: { id: submission.id }, data: { verdict: "RUNNING" } });
 
@@ -480,11 +488,7 @@ export async function judgeSubmission(submissionId: string, now = () => new Date
       rules,
     );
   });
-  if (submission.kind === "SUBMIT" && submission.sittingItemId) {
-    // tests.ts imports this module, so load it on demand.
-    const { rescoreSubmittedSitting } = await import("@/server/services/tests");
-    await rescoreSubmittedSitting(submission.sittingItemId);
-  }
+  return submission.kind === "SUBMIT" ? submission.sittingItemId : null;
 }
 
 /** A practice SUBMIT: attempts, first solve, DSA mastery and the daily streak. */

@@ -6,7 +6,7 @@
 // to any other site, plugins, <base> hijacking, forms posting elsewhere and being framed.
 // Third parties: Razorpay Checkout only. Add an origin here when an integration needs one.
 
-const RAZORPAY = ["https://checkout.razorpay.com", "https://api.razorpay.com"];
+const RAZORPAY_CHECKOUT = "https://checkout.razorpay.com";
 
 export function contentSecurityPolicy(options: { dev: boolean; https: boolean }): string {
   const directives: Record<string, string[]> = {
@@ -16,7 +16,7 @@ export function contentSecurityPolicy(options: { dev: boolean; https: boolean })
       "'unsafe-inline'",
       // React's dev build uses eval for error overlays; production never does.
       ...(options.dev ? ["'unsafe-eval'"] : []),
-      "https://checkout.razorpay.com",
+      RAZORPAY_CHECKOUT,
     ],
     "style-src": ["'self'", "'unsafe-inline'"],
     // Content may embed images from other sites (Markdown image links).
@@ -27,7 +27,7 @@ export function contentSecurityPolicy(options: { dev: boolean; https: boolean })
       "https://*.razorpay.com",
       ...(options.dev ? ["ws:", "wss:"] : []), // hot reload
     ],
-    "frame-src": RAZORPAY,
+    "frame-src": [RAZORPAY_CHECKOUT, "https://api.razorpay.com"],
     "worker-src": ["'self'", "blob:"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],

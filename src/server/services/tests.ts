@@ -84,10 +84,6 @@ export type TestCard = {
   locked: boolean;
 };
 
-// Starting and submitting are the busiest moments (everyone at a contest's start and end). Under
-// load they queue for a database connection rather than failing after Prisma's 2 s default (D-065).
-const SITTING_TX_WAIT_MS = 15_000;
-
 const blueprintCardSelect = {
   slug: true,
   title: true,
@@ -389,7 +385,7 @@ export async function startSitting(
       });
       return { status: "started", sittingId: sitting.id };
     },
-    { timeout: 20_000, maxWait: SITTING_TX_WAIT_MS },
+    { timeout: 20_000 },
   );
 
   if (result.status === "started") {
@@ -771,7 +767,7 @@ export async function finishSitting(
       await recordTestAnswers(tx, sitting.userId, scored, now, rules);
       return { userId: sitting.userId, contestId: sitting.contestId };
     },
-    { timeout: 30_000, maxWait: SITTING_TX_WAIT_MS },
+    { timeout: 30_000 },
   );
   if (finished) {
     const count = await db.testSitting.count({

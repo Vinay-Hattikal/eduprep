@@ -1,5 +1,6 @@
 import { DIFFICULTY_LABELS } from "@/lib/content/workflow";
-import { askedAt, OG_CONTENT_TYPE, OG_SIZE, ogImage } from "@/lib/og-card";
+import { askedAt } from "@/lib/content/asked-at";
+import { OG_CONTENT_TYPE, OG_SIZE, ogImage } from "@/lib/og-card";
 import { getPublicProblem } from "@/server/services/public-catalog";
 
 export const alt = "A coding problem";

@@ -73,7 +73,6 @@ test("public pages stay within the performance budget", async ({ browser }, test
     const context = await browser.newContext();
     const page = await context.newPage();
     await page.goto(path); // warm the server's cache; the budget is for the page, not a cold start
-    await context.clearCookies();
     await context.close();
 
     const fresh = await browser.newContext();

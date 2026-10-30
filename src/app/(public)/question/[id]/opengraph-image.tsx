@@ -1,6 +1,7 @@
 import { questionTitle } from "@/lib/content/public-question";
 import { DIFFICULTY_LABELS } from "@/lib/content/workflow";
-import { askedAt, OG_CONTENT_TYPE, OG_SIZE, ogImage } from "@/lib/og-card";
+import { askedAt } from "@/lib/content/asked-at";
+import { OG_CONTENT_TYPE, OG_SIZE, ogImage } from "@/lib/og-card";
 import { getPublicQuestion } from "@/server/services/public-questions";
 
 export const alt = "A placement practice question";
