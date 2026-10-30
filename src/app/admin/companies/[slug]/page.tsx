@@ -73,7 +73,7 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
     db.testBlueprint.findFirst({
       where: { companyId: company.id, kind: "COMPANY_MOCK", status: { not: "ARCHIVED" } },
       orderBy: { status: "desc" },
-      select: { slug: true },
+      select: { id: true },
     }),
   ]);
   const published = query.published === "1";
@@ -103,9 +103,7 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
             </Button>
             {mock ? (
               <Button asChild variant="outline" size="sm">
-                <Link href={`/tests/${mock.slug}`}>
-                  <ExternalLink /> Try mock
-                </Link>
+                <Link href={`/admin/tests/${mock.id}`}>Mock test</Link>
               </Button>
             ) : null}
           </>
@@ -322,7 +320,7 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
       {tab === "interview" ? (
         <InterviewQuestions company={company} canEdit={canEdit} query={query} />
       ) : null}
-      {tab === "community" ? <CommunityTab company={company} query={query} /> : null}
+      {tab === "community" ? <CommunityTab company={company} /> : null}
       {tab === "mocks" ? (
         <CompanyMocks
           company={company}

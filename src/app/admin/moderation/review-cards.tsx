@@ -105,7 +105,6 @@ export function DriveReportReview({ report, back }: { report: DriveReport; back:
           <span className="text-muted-foreground">
             {report.user.name} ({report.user.email}) · sent {formatDateTime(report.createdAt)}
           </span>
-          <TurnIntoQuestion report={report} />
         </div>
       </CardHeader>
       <CardContent>

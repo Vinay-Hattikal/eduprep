@@ -97,11 +97,12 @@ export async function listMyDriveReports(userId: string) {
 export async function listDriveReportsForModeration(
   status: ExperienceStatus = "PENDING",
   companyId?: string,
+  take = 100,
 ) {
   return db.driveReport.findMany({
     where: { status, ...(companyId && { companyId }) },
     orderBy: { createdAt: status === "PENDING" ? "asc" : "desc" },
-    take: 100,
+    take,
     include: {
       company: { select: { name: true, slug: true } },
       user: { select: { name: true, email: true } },

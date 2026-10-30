@@ -80,8 +80,8 @@ async function NewQuestion({
   // that company in the drive's month.
   const reportId = param(query.fromReport);
   const report = reportId
-    ? await db.driveReport.findUnique({
-        where: { id: reportId },
+    ? await db.driveReport.findFirst({
+        where: { id: reportId, status: "APPROVED" },
         select: { questions: true, driveDate: true, companyId: true },
       })
     : null;

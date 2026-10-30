@@ -137,3 +137,66 @@ describe("company readiness", () => {
     });
   });
 });
+
+describe("coding coverage", () => {
+  it("counts published, judge-checked problems per coding topic, and those tagged", async () => {
+    const arrays = await db.topic.findUniqueOrThrow({ where: { slug: "arrays" } });
+    const company = await db.company.create({
+      data: {
+        slug: "coding-co",
+        name: "Coding Co",
+        level: "STANDARD",
+        category: "PRODUCT",
+        hiringFor: ["FRESHER"],
+        overview: "A product company that hires through a coding test with two problems in it.",
+        lastVerifiedAt: new Date(),
+        rounds: {
+          create: {
+            order: 1,
+            name: "Coding test",
+            type: "CODING_TEST",
+            sections: {
+              create: {
+                order: 1,
+                name: "Coding",
+                type: "CODING",
+                questionCount: 2,
+                minutes: 60,
+                topics: { connect: { id: arrays.id } },
+              },
+            },
+          },
+        },
+      },
+    });
+    const problem = (n: number, status: "PUBLISHED" | "DRAFT", validated: boolean) =>
+      db.problem.create({
+        data: {
+          externalId: `CODE-CC-${n}`,
+          slug: `coding-co-${n}`,
+          title: `Problem ${n}`,
+          difficulty: "EASY",
+          statement: "Sum the numbers.",
+          inputFormat: "Numbers.",
+          outputFormat: "Their sum.",
+          constraints: "Small.",
+          timeLimitMs: 1000,
+          memoryLimitMb: 256,
+          status,
+          validatedAt: validated ? new Date() : null,
+          topics: { connect: { id: arrays.id } },
+        },
+      });
+    const tagged = await problem(1, "PUBLISHED", true);
+    await problem(2, "PUBLISHED", true);
+    await problem(3, "PUBLISHED", false); // not judge-checked: a mock can't draw it
+    await problem(4, "DRAFT", true);
+    await db.companyItem.create({ data: { companyId: company.id, problemId: tagged.id } });
+
+    const r = await companyReadiness((await getCompanyBySlug("coding-co"))!);
+    expect(r.coverage).toEqual([
+      expect.objectContaining({ type: "CODING", need: 2, available: 2, tagged: 1 }),
+    ]);
+    expect(r.items.find((i) => i.key === "coverage")?.done).toBe(true);
+  });
+});

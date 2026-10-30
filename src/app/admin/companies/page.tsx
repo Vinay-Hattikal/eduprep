@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { CATEGORY_LABELS, LEVEL_LABELS } from "@/lib/content/companies";
+import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { formatDate } from "@/lib/format";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePermission } from "@/server/auth";
@@ -85,6 +86,9 @@ const SORTS = {
 } as const;
 
 type Filter = keyof typeof FILTERS;
+/** Archived companies sort after the rest: there's nothing left to do on them. */
+const progress = (c: { status: string; readiness: { done: number; total: number } }) =>
+  c.status === "ARCHIVED" ? 2 : c.readiness.done / c.readiness.total;
 type Sort = keyof typeof SORTS;
 const pick = <T extends string>(value: unknown, options: Record<T, string>, fallback: T): T =>
   typeof value === "string" && value in options ? (value as T) : fallback;
@@ -103,18 +107,18 @@ async function CompanyList({
   const companies = all
     .filter((c) =>
       filter === "not-ready"
-        ? c.readiness.done < c.readiness.total
+        ? c.status !== "ARCHIVED" && c.readiness.done < c.readiness.total
         : filter === "stale"
           ? c.stale
           : filter === "draft"
-            ? c.status === "DRAFT" || c.status === "IN_REVIEW"
+            ? DRAFT_STATUSES.includes(c.status)
             : filter === "published"
               ? c.status === "PUBLISHED"
               : true,
     )
     .sort((a, b) =>
       sort === "progress"
-        ? a.readiness.done / a.readiness.total - b.readiness.done / b.readiness.total
+        ? progress(a) - progress(b)
         : sort === "verified"
           ? a.lastVerifiedAt.getTime() - b.lastVerifiedAt.getTime()
           : 0,
@@ -190,7 +194,7 @@ function CompanyTable({ companies }: { companies: Awaited<ReturnType<typeof list
               <span className="tabular text-sm font-medium">
                 {c.readiness.done}/{c.readiness.total}
               </span>
-              {c.readiness.next ? (
+              {c.readiness.next && c.status !== "ARCHIVED" ? (
                 <p className="text-xs text-muted-foreground">Next: {c.readiness.next.label}</p>
               ) : null}
             </div>

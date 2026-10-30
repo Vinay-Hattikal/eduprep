@@ -1,5 +1,6 @@
 import "server-only";
 
+import { Prisma } from "@/generated/prisma/client";
 import type { ContentStatus, RoundType, SectionType } from "@/generated/prisma/enums";
 import {
   coverageNeeds,
@@ -10,7 +11,7 @@ import {
 import { isStale } from "@/lib/content/companies";
 import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { db } from "@/server/db";
-import { problemPool, questionPool } from "@/server/services/blueprints";
+import { questionPool } from "@/server/services/blueprints";
 
 // The company checklist (D-067): the Overview tab for one company, the companies list for all.
 // The same counts either way: a few grouped queries, whatever the number of companies.
@@ -101,22 +102,21 @@ async function poolCounts(companies: readonly ReadinessCompany[], taggedFor?: st
         _count: { _all: true },
       })
       .then((rows) => new Map(rows.map((r) => [`MCQ:${r.topicId}`, r._count._all])));
-  const counted = (where: object) =>
-    Promise.all(
-      coding.map(
-        async (id) =>
-          [
-            `CODING:${id}`,
-            await db.problem.count({ where: { ...problemPool(id), ...where } }),
-          ] as const,
-      ),
-    ).then((rows) => new Map(rows));
+  // Problems sit in topics through the join table, so they are counted there in one query, with
+  // the same rule as problemPool in blueprints.ts: published and passed the judge check.
+  const counted = (companyId?: string) =>
+    db.$queryRaw<{ topicId: string; n: number }[]>`
+      SELECT pt."B" AS "topicId", count(*)::int AS n
+        FROM "_ProblemToTopic" pt JOIN problems p ON p.id = pt."A"
+       WHERE pt."B" = ANY(${coding}) AND p.status = 'PUBLISHED' AND p.validated_at IS NOT NULL
+         ${companyId ? Prisma.sql`AND EXISTS (SELECT 1 FROM company_items ci WHERE ci.problem_id = p.id AND ci.company_id = ${companyId})` : Prisma.empty}
+       GROUP BY 1`.then((rows) => new Map(rows.map((r) => [`CODING:${r.topicId}`, r.n])));
 
   const [mcqAll, mcqTagged, codingAll, codingTagged] = await Promise.all([
     mcq.length ? grouped({}) : new Map<string, number>(),
     mcq.length && tagged ? grouped(tagged) : new Map<string, number>(),
-    counted({}),
-    tagged ? counted(tagged) : new Map<string, number>(),
+    coding.length ? counted() : new Map<string, number>(),
+    coding.length && taggedFor ? counted(taggedFor) : new Map<string, number>(),
   ]);
   return (type: SectionType, topicId: string) => ({
     available: (type === "MCQ" ? mcqAll : codingAll).get(`${type}:${topicId}`) ?? 0,
@@ -134,6 +134,7 @@ export async function companiesReadiness(
   const now = new Date();
   return new Map(
     companies.map((company) => {
+      const linked = counts(company.id);
       const coverage: Coverage[] = [...coverageNeeds(company.rounds).values()].map((n) => ({
         ...n,
         ...pools(n.type, n.topicId),
@@ -145,7 +146,7 @@ export async function companiesReadiness(
         stale: isStale(company.lastVerifiedAt, now),
         sources: company.sources,
         rounds: company.rounds,
-        ...counts(company.id),
+        ...linked,
         coverage,
       });
       return [
@@ -156,7 +157,7 @@ export async function companiesReadiness(
           total: items.length,
           next: nextStep(items),
           coverage,
-          counts: counts(company.id),
+          counts: linked,
         },
       ] as const;
     }),

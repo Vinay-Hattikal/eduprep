@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { CircleAlert, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   DriveReportReview,
   ExperienceReview,
   TurnIntoQuestion,
 } from "@/app/admin/moderation/review-cards";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,29 +22,19 @@ import { listPostingsForAdmin } from "@/server/services/job-postings";
  */
 export async function CommunityTab({
   company,
-  query,
 }: {
   company: { id: string; slug: string; name: string };
-  query: Record<string, string | string[] | undefined>;
 }) {
   const [experiences, reports, approved, postings] = await Promise.all([
     listForModeration("PENDING", company.id),
     listDriveReportsForModeration("PENDING", company.id),
-    listDriveReportsForModeration("APPROVED", company.id),
+    listDriveReportsForModeration("APPROVED", company.id, 10),
     listPostingsForAdmin(undefined, company.id),
   ]);
   const back = companyTabHref(company.slug, "community");
-  const error = typeof query.error === "string" ? query.error : null;
 
   return (
     <div className="space-y-6">
-      {error ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-
       <section className="space-y-3" aria-labelledby="community-review">
         <h2 id="community-review" className="text-lg font-semibold tracking-tight">
           To review{" "}
@@ -79,7 +68,7 @@ export async function CommunityTab({
         <CardContent>
           {approved.length ? (
             <ul className="divide-y rounded-lg border">
-              {approved.slice(0, 10).map((report) => (
+              {approved.map((report) => (
                 <li
                   key={report.id}
                   className="flex flex-wrap items-center gap-x-3 gap-y-1 p-3 text-sm"
