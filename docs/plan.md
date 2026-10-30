@@ -244,6 +244,128 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 
 ---
 
+## Company workspace, part 2 (owner's plan, 2026-10-30, proposed D-067)
+
+**Goal:** an admin picks or creates a company and fills in everything for it from one place: profile, hiring process, MCQs, coding problems with tests and solutions, interview questions and mocks. The admin can see at a glance what's missing and publish it all when ready. Builds on the company workspace (D-057). No new roles, no review step (D-056).
+
+**Status: proposed, waiting for the owner's approval.** Nothing below is built yet.
+
+### Step 1: see what's missing, finish coding problems in place, publish everything
+
+| # | Task | Status |
+|---|---|---|
+| D.1 | Company checklist and progress panel | ⬜ |
+| D.2 | Question coverage per test section | ⬜ |
+| D.3 | Guided coding flow inside the workspace | ⬜ |
+| D.4 | "Publish everything" for a company | ⬜ |
+| D.5 | Next-step prompts after each save | ⬜ |
+
+**D.1 Checklist and progress panel.** A new first tab, **Overview**, and a progress bar ("6 of 9 done") under the company name on every tab.
+- Checklist items, each with a ✓/✗, a short reason and a "Fix" link to the right tab:
+  - Profile: overview written, level and category set, eligibility filled (or marked "none published").
+  - Hiring process: at least one round; every test round has sections; every section has topics.
+  - Sources: at least one source; last verified within `STALE_AFTER_MONTHS`.
+  - MCQ questions: number linked, and how many are published / draft / failing the automatic checks.
+  - Coding: number linked, and how many are published / waiting for the judge check / failing it.
+  - Coverage: every section can be drawn (D.2).
+  - Mock test: at least one company mock, and whether it's published.
+  - Company itself published.
+- One service, `companyReadiness(companyId)` in `src/server/services/company-readiness.ts`, runs grouped counts (about 6 queries, no per-item loops). It returns the items, so the panel, the companies list and the tests share it.
+- The admin companies list gets a "Progress" column (e.g. 6/9) and a filter "Not ready".
+- Tests: unit tests for the pure rules that turn counts into checklist items; an integration test for `companyReadiness` on a half-built company; e2e that a new company shows the checklist and that items turn ✓ as content is added.
+
+**D.2 Question coverage per section.** On the Hiring process tab, each section shows "Percentages: 6 published / 7 needed" in red when short.
+- "Needed" is worked out the same way "Create mock" splits the section's questions across its topics (`draftFromCompany`), so the warning matches what the mock test will need. The split is moved to a shared pure function so both use the same numbers.
+- Counts published questions in each topic (all questions in the topic, which is what a mock draws from), and separately how many of those are tagged with this company.
+- Each short topic links to "Add question" with the company, subject and topic already filled in.
+- Coding sections count published problems in their topics the same way.
+- Tests: unit tests for the split; integration test for the counts; the e2e from D.1 checks the red badge and the link.
+
+**D.3 Guided coding flow.** Today "Add problem" from the Coding tab ends on the general problem page. It will instead show a step bar while the problem is opened from a company (`?company=<slug>`, kept on every link and redirect):
+1. Problem (statement, formats, limits, topics; already tagged with the company)
+2. Test cases (at least 1 sample and 5 hidden, the judge check's rule; counter shows progress)
+3. Reference solution (and optional starter code)
+4. Judge check (runs automatically after 2 and 3; the step shows running / passed / failed with the reason)
+5. Publish (enabled once the check passes; "Publish when the check passes" is offered while it's running, which already exists as `publishBy`)
+- After publishing: "Back to <company>" and "Add another problem for <company>" (opens a blank problem tagged with the company, like "Then add another" for MCQs).
+- Test cases: a "Paste several" box (input and output blocks separated by a line with `---`) next to the single-test form, so 10 tests don't take 10 saves.
+- No new tables; the existing problem page and forms get the step bar and the company context.
+- Tests: e2e: from the Coding tab, create a problem, paste tests, add a reference solution, wait for the judge check, publish, land back on the company with the problem listed as published.
+
+**D.4 Publish everything.** A button on the Overview tab: "Publish <company> and its content".
+- First a confirmation listing what will happen: N draft questions, M problems with passed judge checks, the company mock, the company itself. It also lists what will stay draft and why (fails the automatic checks, no judge pass, no source).
+- Uses the existing rules only: `publishQuestions` (D-064) for questions, `transitionProblem` for problems that passed the check, `transitionBlueprint` for the mock, `setCompanyStatus` for the company. Nothing gets published that the single buttons would refuse.
+- Refreshes the public pages once at the end (`refreshPublicPages()`), audited as `company.publish_all` with the counts.
+- Only content tagged with this company; questions shared with other companies are published too (publishing is global), which the confirmation says.
+- Tests: integration test with a mix of ready and broken items (only the ready ones go live, the result lists the rest); e2e for the button.
+
+**D.5 Next-step prompts.** After creating a company: "Next: add its rounds" (link to Hiring process). After the first round: "Next: add sources". After the hiring process is complete: "Next: add questions for <first short topic>". These are driven by the D.1 checklist (the first unfinished item), so they need no extra rules.
+
+**Exit criteria (Step 1):** an admin creates a company, follows the prompts and the checklist to a fully ✓ company without leaving the workspace (including a coding problem with tests, solution and a passed judge check), and publishes it all with one button. e2e `company-workspace` covers it on desktop and at 360 px.
+
+### Step 2: interview questions, import and copy for a company
+
+| # | Task | Status |
+|---|---|---|
+| D.6 | Interview questions tab (design, technical and HR questions per round) | ⬜ |
+| D.7 | Import for this company | ⬜ |
+| D.8 | Copy the hiring pattern from another company | ⬜ |
+| D.9 | Passages from the workspace | ⬜ |
+
+**D.6 Interview questions tab.** Today system-design questions store their companies as a list of slugs (`design_questions.companies`), and interview rounds have no questions.
+- **Data change:** `company_items` gets a third optional link, `design_question_id`, with the same "exactly one of" rule and a unique (company, design question). A migration copies every slug in `design_questions.companies` into `company_items` and then drops the column, so there's one way to say "this company asks it". The design-question import keeps its `companies` column and writes links instead.
+- `company_items.round_order` (exists, unused in the editors) is shown and editable for every link, so a question can say "asked in round 3, Technical interview".
+- New tab **Interview questions**, grouped by interview round (Technical, HR, Managerial, Group discussion), with "Add question" (opens the design-question editor tagged with the company and round), "Link existing" and "Unlink", like the MCQ and Coding tabs.
+- HR and managerial questions: the design-question editor already has kinds; add an **HR** kind (prompt, what a good answer covers, follow-ups) if the existing kinds don't fit. To confirm with the owner before building.
+- The public company page and the student design bank read the new links. The checklist (D.1) gets "Interview rounds have questions" for companies with interview rounds.
+- Tests: migration test (slugs become links, nothing lost); integration for link/unlink and the public page; e2e for the tab.
+
+**D.7 Import for this company.** An "Import" button on the MCQ, Coding and Interview tabs and on Overview.
+- Opens the normal import page with the company preset: rows with an empty `companies` column are tagged with this company, and rows naming other companies keep them. Accepts single CSV/XLSX files and the content-pack ZIP (D-061).
+- "Publish after import" is offered as today. After the import, the batch page links back to the company.
+- Implemented as an import option (`defaultCompany`) passed through `createImportBatch` to the MCQ, coding and design definitions; validation still checks every row as now.
+- Tests: integration (blank rows get the company, explicit ones are kept); e2e upload from the company page.
+
+**D.8 Copy the hiring pattern.** On the Hiring process tab of a company with no rounds: "Copy from another company" with a company picker.
+- Copies rounds, sections, section topics, eligibility and pay (each one optional by checkbox). Never copies sources (facts must be checked per company, D-019) or questions (they can be linked instead).
+- The new rounds are ordinary drafts; the company stays draft.
+- Tests: integration (deep copy, source not copied); e2e copy then edit one section.
+
+**D.9 Passages from the workspace.** Reading-comprehension questions need a passage first. In the question editor opened from a company, "+ New passage" opens a small form (title, body) in place and fills the passage ID, like "+ New topic" (B.5). The MCQ tab groups questions that share a passage.
+- Tests: e2e: create a passage and two questions on it from the company page.
+
+**Exit criteria (Step 2):** a company's interview rounds have their questions in the workspace, a CSV for one company imports without typing the company on every row, a sister company starts from a copied pattern, and RC passages are added without leaving the company.
+
+### Step 3: community content in context and previews
+
+| # | Task | Status |
+|---|---|---|
+| D.10 | Community tab: experiences, drive reports, jobs for this company | ⬜ |
+| D.11 | Preview links and "view as student" | ⬜ |
+| D.12 | Companies list: sort and filter by progress, last verified, content counts | ⬜ |
+
+**D.10 Community tab.** Read and moderate what students and employers add about this company without going to three admin pages:
+- Interview experiences (pending / approved / rejected, approve or reject in place, same actions as admin › Experiences).
+- "Asked in recent drives" reports (same actions as admin › Drive reports), with "Turn into a question" that opens the question editor prefilled with the report's text, tagged with the company and the drive month.
+- Job postings for this company (open / closed, link to edit, "Post a job" prefilled).
+- Counts on the tab label ("Community · 3 pending").
+- Reuses the existing services and actions; only the lists are new.
+- Tests: e2e approve a report from the tab and see it on the public company page.
+
+**D.11 Preview links.** In the header: "View public page" (opens `/companies/<slug>`, or a draft preview for admins), "View as student" (the signed-in company page with readiness and eligibility, for the admin's own test profile), and "View mock" for the company mock.
+- Draft preview: the public company page renders for admins when the company is a draft, with a "Draft: only admins see this" banner, and stays `noindex`.
+- Tests: e2e: a draft company's page 404s for visitors and shows the banner for the admin.
+
+**D.12 Companies list.** Sort by progress, last verified or name; filter Not ready / Stale / Draft / Published; columns for MCQs, coding, mocks and pending community items. Uses `companyReadiness` (D.1) in one grouped query for the page.
+
+**Exit criteria (Step 3):** the companies list shows which companies need work and why; everything students send about a company is handled from its workspace; an admin can check a company exactly as a visitor or student will see it before publishing.
+
+### Order and size
+
+Step 1 first (D.1 → D.2 → D.3 → D.4 → D.5): it's what makes daily content entry faster. Step 2 needs one migration (D.6) and an owner decision on HR questions. Step 3 is independent and can come later. Each task ships on its own branch with tests and a decision note, as before.
+
+---
+
 ## Public pages for search and preview (D-058)
 
 **Goal:** search engines index the question bank and visitors can try the platform before signing up, without giving the whole bank away.
