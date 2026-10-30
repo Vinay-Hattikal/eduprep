@@ -8,6 +8,7 @@ import { TableSkeleton } from "@/components/shared/skeletons";
 import { ContentStatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { CATEGORY_LABELS, LEVEL_LABELS } from "@/lib/content/companies";
 import { formatDate } from "@/lib/format";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,7 @@ import { topCompanyRequests } from "@/server/services/reports";
 
 export const metadata: Metadata = { title: "Companies" };
 
-export default function CompaniesPage() {
+export default function CompaniesPage({ searchParams }: PageProps<"/admin/companies">) {
   return (
     <div className="space-y-6">
       <PageHeader
@@ -32,7 +33,7 @@ export default function CompaniesPage() {
         }
       />
       <Suspense fallback={<TableSkeleton />}>
-        <CompanyList />
+        <CompanyList searchParams={searchParams} />
       </Suspense>
       <Suspense fallback={null}>
         <RequestedCompanies />
@@ -70,10 +71,85 @@ async function RequestedCompanies() {
   );
 }
 
-async function CompanyList() {
-  await requirePermission("companies.manage");
-  const companies = await listCompanies();
+const FILTERS = {
+  all: "All companies",
+  "not-ready": "Not ready",
+  stale: "Not verified lately",
+  draft: "Drafts",
+  published: "Published",
+} as const;
+const SORTS = {
+  name: "Name",
+  progress: "Least ready first",
+  verified: "Oldest check first",
+} as const;
 
+type Filter = keyof typeof FILTERS;
+type Sort = keyof typeof SORTS;
+const pick = <T extends string>(value: unknown, options: Record<T, string>, fallback: T): T =>
+  typeof value === "string" && value in options ? (value as T) : fallback;
+
+/** Companies with progress (D-067): filter to what needs work, sort by readiness or age. */
+async function CompanyList({
+  searchParams,
+}: {
+  searchParams: PageProps<"/admin/companies">["searchParams"];
+}) {
+  await requirePermission("companies.manage");
+  const query = await searchParams;
+  const filter = pick<Filter>(query.filter, FILTERS, "all");
+  const sort = pick<Sort>(query.sort, SORTS, "name");
+  const all = await listCompanies();
+  const companies = all
+    .filter((c) =>
+      filter === "not-ready"
+        ? c.readiness.done < c.readiness.total
+        : filter === "stale"
+          ? c.stale
+          : filter === "draft"
+            ? c.status === "DRAFT" || c.status === "IN_REVIEW"
+            : filter === "published"
+              ? c.status === "PUBLISHED"
+              : true,
+    )
+    .sort((a, b) =>
+      sort === "progress"
+        ? a.readiness.done / a.readiness.total - b.readiness.done / b.readiness.total
+        : sort === "verified"
+          ? a.lastVerifiedAt.getTime() - b.lastVerifiedAt.getTime()
+          : 0,
+    );
+
+  return (
+    <div className="space-y-4">
+      <form className="flex flex-wrap items-end gap-2" aria-label="Filter companies">
+        <NativeSelect name="filter" defaultValue={filter} aria-label="Show" size="sm">
+          {Object.entries(FILTERS).map(([value, label]) => (
+            <NativeSelectOption key={value} value={value}>
+              {label}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+        <NativeSelect name="sort" defaultValue={sort} aria-label="Sort" size="sm">
+          {Object.entries(SORTS).map(([value, label]) => (
+            <NativeSelectOption key={value} value={value}>
+              {label}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+        <Button type="submit" size="sm" variant="secondary">
+          Apply
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          {companies.length} of {all.length}
+        </span>
+      </form>
+      <CompanyTable companies={companies} />
+    </div>
+  );
+}
+
+function CompanyTable({ companies }: { companies: Awaited<ReturnType<typeof listCompanies>> }) {
   return (
     <DataTable
       caption="Companies"
@@ -107,14 +183,34 @@ async function CompanyList() {
         },
         { key: "status", header: "Status", cell: (c) => <ContentStatusBadge status={c.status} /> },
         {
+          key: "progress",
+          header: "Progress",
+          cell: (c) => (
+            <div className="min-w-32 space-y-1" data-testid="company-progress-cell">
+              <span className="tabular text-sm font-medium">
+                {c.readiness.done}/{c.readiness.total}
+              </span>
+              {c.readiness.next ? (
+                <p className="text-xs text-muted-foreground">Next: {c.readiness.next.label}</p>
+              ) : null}
+            </div>
+          ),
+        },
+        {
           key: "content",
           header: "Content",
           hideOnMobile: true,
-          cell: (c) => (
-            <span className="tabular text-sm text-muted-foreground">
-              {c._count.rounds} rounds · {c._count.items} questions · {c._count.sources} sources
-            </span>
-          ),
+          cell: (c) => {
+            const n = c.readiness.counts;
+            const live = (x: { published: number; draft: number }) =>
+              `${x.published}${x.draft ? ` (+${x.draft} draft)` : ""}`;
+            return (
+              <span className="tabular text-sm text-muted-foreground">
+                {live(n.questions)} MCQs · {live(n.problems)} coding · {live(n.interviews)}{" "}
+                interview · {n.mocks.published} mocks
+              </span>
+            );
+          },
         },
         {
           key: "verified",

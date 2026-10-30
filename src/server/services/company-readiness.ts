@@ -1,120 +1,176 @@
 import "server-only";
 
+import type { ContentStatus, RoundType, SectionType } from "@/generated/prisma/enums";
 import {
   coverageNeeds,
   nextStep,
   readinessChecklist,
   type Coverage,
 } from "@/lib/content/company-readiness";
+import { isStale } from "@/lib/content/companies";
 import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { db } from "@/server/db";
 import { problemPool, questionPool } from "@/server/services/blueprints";
-import type { getCompanyBySlug } from "@/server/services/companies";
 
-// The admin Overview tab's checklist (D-067): grouped counts, a handful of queries per company.
+// The company checklist (D-067): the Overview tab for one company, the companies list for all.
+// The same counts either way: a few grouped queries, whatever the number of companies.
 
-type Company = NonNullable<Awaited<ReturnType<typeof getCompanyBySlug>>>;
+type ReadinessCompany = {
+  id: string;
+  status: ContentStatus;
+  overview: string;
+  hiringFor: readonly string[];
+  lastVerifiedAt: Date;
+  sources: number;
+  rounds: readonly {
+    type: RoundType;
+    sections: readonly {
+      type: SectionType;
+      questionCount: number;
+      topics: readonly { id: string; name: string }[];
+    }[];
+  }[];
+};
 
-/** Published items per section topic, against what the company mock will need. */
-async function sectionCoverage(company: Company): Promise<Coverage[]> {
-  const needs = [...coverageNeeds(company.rounds).values()];
-  const mcqTopics = needs.filter((n) => n.type === "MCQ").map((n) => n.topicId);
-  const tagged = { companies: { some: { companyId: company.id } } };
-  const count = (rows: { topicId: string; _count: { _all: number } }[], topicId: string) =>
-    rows.find((r) => r.topicId === topicId)?._count._all ?? 0;
+type StatusRow = { companyId: string; status: ContentStatus; checked?: boolean; n: number };
 
-  // MCQs: one grouped count per question. Coding sections have a few topics: one count each.
-  const [mcqAll, mcqTagged, coding] = await Promise.all([
-    mcqTopics.length
-      ? db.question.groupBy({
-          by: ["topicId"],
-          where: questionPool({ in: mcqTopics }),
-          _count: { _all: true },
-        })
-      : [],
-    mcqTopics.length
-      ? db.question.groupBy({
-          by: ["topicId"],
-          where: { ...questionPool({ in: mcqTopics }), ...tagged },
-          _count: { _all: true },
-        })
-      : [],
-    Promise.all(
-      needs
-        .filter((n) => n.type === "CODING")
-        .map(async (n) => {
-          const [available, mine] = await Promise.all([
-            db.problem.count({ where: problemPool(n.topicId) }),
-            db.problem.count({ where: { ...problemPool(n.topicId), ...tagged } }),
-          ]);
-          return [n.topicId, { available, tagged: mine }] as const;
-        }),
-    ).then((rows) => new Map(rows)),
+/** Linked questions, problems and interview questions per company and status. */
+async function linkedCounts(ids: string[]) {
+  const [questions, problems, interviews, mocks] = await Promise.all([
+    db.$queryRaw<StatusRow[]>`
+      SELECT ci.company_id AS "companyId", q.status, count(*)::int AS n
+        FROM company_items ci JOIN questions q ON q.id = ci.question_id
+       WHERE ci.company_id = ANY(${ids}) AND q.status <> 'ARCHIVED'
+       GROUP BY 1, 2`,
+    db.$queryRaw<StatusRow[]>`
+      SELECT ci.company_id AS "companyId", p.status, p.validated_at IS NOT NULL AS checked,
+             count(*)::int AS n
+        FROM company_items ci JOIN problems p ON p.id = ci.problem_id
+       WHERE ci.company_id = ANY(${ids}) AND p.status <> 'ARCHIVED'
+       GROUP BY 1, 2, 3`,
+    db.$queryRaw<StatusRow[]>`
+      SELECT ci.company_id AS "companyId", d.status, count(*)::int AS n
+        FROM company_items ci JOIN design_questions d ON d.id = ci.design_question_id
+       WHERE ci.company_id = ANY(${ids}) AND d.status <> 'ARCHIVED'
+       GROUP BY 1, 2`,
+    db.testBlueprint.groupBy({
+      by: ["companyId", "status"],
+      where: { companyId: { in: ids }, kind: "COMPANY_MOCK", status: { not: "ARCHIVED" } },
+      _count: { _all: true },
+    }),
   ]);
+  const byStatus = (rows: StatusRow[], companyId: string) => {
+    const mine = rows.filter((r) => r.companyId === companyId);
+    return {
+      published: mine.filter((r) => r.status === "PUBLISHED").reduce((n, r) => n + r.n, 0),
+      draft: mine
+        .filter((r) => (DRAFT_STATUSES as readonly string[]).includes(r.status))
+        .reduce((n, r) => n + r.n, 0),
+      checked: mine
+        .filter((r) => r.status !== "PUBLISHED" && r.checked)
+        .reduce((n, r) => n + r.n, 0),
+    };
+  };
+  const mockRows = mocks.map((m) => ({
+    companyId: m.companyId!,
+    status: m.status,
+    n: m._count._all,
+  }));
+  return (companyId: string) => ({
+    questions: byStatus(questions, companyId),
+    problems: byStatus(problems, companyId),
+    interviews: byStatus(interviews, companyId),
+    mocks: byStatus(mockRows, companyId),
+  });
+}
 
-  return needs.map((n) =>
-    n.type === "MCQ"
-      ? { ...n, available: count(mcqAll, n.topicId), tagged: count(mcqTagged, n.topicId) }
-      : { ...n, ...coding.get(n.topicId)! },
+/**
+ * Published items in every topic the companies' mocks need: one grouped count for MCQ topics, one
+ * count per coding topic. `taggedFor` adds how many of them are tagged with that company.
+ */
+async function poolCounts(companies: readonly ReadinessCompany[], taggedFor?: string) {
+  const needs = companies.flatMap((c) => [...coverageNeeds(c.rounds).values()]);
+  const mcq = [...new Set(needs.filter((n) => n.type === "MCQ").map((n) => n.topicId))];
+  const coding = [...new Set(needs.filter((n) => n.type === "CODING").map((n) => n.topicId))];
+  const tagged = taggedFor ? { companies: { some: { companyId: taggedFor } } } : null;
+  const grouped = (where: object) =>
+    db.question
+      .groupBy({
+        by: ["topicId"],
+        where: { ...questionPool({ in: mcq }), ...where },
+        _count: { _all: true },
+      })
+      .then((rows) => new Map(rows.map((r) => [`MCQ:${r.topicId}`, r._count._all])));
+  const counted = (where: object) =>
+    Promise.all(
+      coding.map(
+        async (id) =>
+          [
+            `CODING:${id}`,
+            await db.problem.count({ where: { ...problemPool(id), ...where } }),
+          ] as const,
+      ),
+    ).then((rows) => new Map(rows));
+
+  const [mcqAll, mcqTagged, codingAll, codingTagged] = await Promise.all([
+    mcq.length ? grouped({}) : new Map<string, number>(),
+    mcq.length && tagged ? grouped(tagged) : new Map<string, number>(),
+    counted({}),
+    tagged ? counted(tagged) : new Map<string, number>(),
+  ]);
+  return (type: SectionType, topicId: string) => ({
+    available: (type === "MCQ" ? mcqAll : codingAll).get(`${type}:${topicId}`) ?? 0,
+    tagged: (type === "MCQ" ? mcqTagged : codingTagged).get(`${type}:${topicId}`) ?? 0,
+  });
+}
+
+/** The checklist, progress and next step of each company, by id. */
+export async function companiesReadiness(
+  companies: readonly ReadinessCompany[],
+  { taggedFor }: { taggedFor?: string } = {},
+) {
+  const ids = companies.map((c) => c.id);
+  const [counts, pools] = await Promise.all([linkedCounts(ids), poolCounts(companies, taggedFor)]);
+  const now = new Date();
+  return new Map(
+    companies.map((company) => {
+      const coverage: Coverage[] = [...coverageNeeds(company.rounds).values()].map((n) => ({
+        ...n,
+        ...pools(n.type, n.topicId),
+      }));
+      const items = readinessChecklist({
+        status: company.status,
+        overview: company.overview,
+        hiringFor: company.hiringFor,
+        stale: isStale(company.lastVerifiedAt, now),
+        sources: company.sources,
+        rounds: company.rounds,
+        ...counts(company.id),
+        coverage,
+      });
+      return [
+        company.id,
+        {
+          items,
+          done: items.filter((i) => i.done).length,
+          total: items.length,
+          next: nextStep(items),
+          coverage,
+          counts: counts(company.id),
+        },
+      ] as const;
+    }),
   );
 }
 
-/** The company's checklist, progress and next step. */
-export async function companyReadiness(company: Company) {
-  const linked = { companies: { some: { companyId: company.id } } };
-  const [questions, problems, checkedDrafts, interviews, mocks, coverage] = await Promise.all([
-    db.question.groupBy({
-      by: ["status"],
-      where: { ...linked, status: { not: "ARCHIVED" } },
-      _count: { _all: true },
-    }),
-    db.problem.groupBy({
-      by: ["status"],
-      where: { ...linked, status: { not: "ARCHIVED" } },
-      _count: { _all: true },
-    }),
-    db.problem.count({
-      where: { ...linked, status: { in: DRAFT_STATUSES }, validatedAt: { not: null } },
-    }),
-    db.designQuestion.groupBy({
-      by: ["status"],
-      where: { ...linked, status: { not: "ARCHIVED" } },
-      _count: { _all: true },
-    }),
-    db.testBlueprint.groupBy({
-      by: ["status"],
-      where: { companyId: company.id, kind: "COMPANY_MOCK", status: { not: "ARCHIVED" } },
-      _count: { _all: true },
-    }),
-    sectionCoverage(company),
-  ]);
-  const byStatus = (rows: { status: string; _count: { _all: number } }[]) => ({
-    published: rows.find((r) => r.status === "PUBLISHED")?._count._all ?? 0,
-    draft: rows
-      .filter((r) => (DRAFT_STATUSES as readonly string[]).includes(r.status))
-      .reduce((n, r) => n + r._count._all, 0),
+/** One company's checklist, with how many items in each topic are tagged with it. */
+export async function companyReadiness(
+  company: Omit<ReadinessCompany, "sources"> & { sources: readonly unknown[] },
+) {
+  const all = await companiesReadiness([{ ...company, sources: company.sources.length }], {
+    taggedFor: company.id,
   });
-
-  const items = readinessChecklist({
-    status: company.status,
-    overview: company.overview,
-    hiringFor: company.hiringFor,
-    stale: company.stale,
-    sources: company.sources.length,
-    rounds: company.rounds,
-    questions: byStatus(questions),
-    problems: { ...byStatus(problems), checked: checkedDrafts },
-    interviews: byStatus(interviews),
-    mocks: byStatus(mocks),
-    coverage,
-  });
-  return {
-    items,
-    done: items.filter((i) => i.done).length,
-    total: items.length,
-    next: nextStep(items),
-    coverage,
-  };
+  return all.get(company.id)!;
 }
 
 export type CompanyReadiness = Awaited<ReturnType<typeof companyReadiness>>;

@@ -6,16 +6,39 @@ import { can } from "@/lib/permissions";
 import type { CompanyFormValues } from "@/schemas/company";
 import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { db } from "@/server/db";
+import { companiesReadiness } from "@/server/services/company-readiness";
 import type { CurrentUser } from "@/server/auth";
 import { recordAudit } from "@/server/services/audit";
 
+/** Every company with its checklist progress and content counts (the companies list, D-067). */
 export async function listCompanies() {
   const companies = await db.company.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { rounds: true, sources: true, items: true } } },
+    include: {
+      _count: { select: { sources: true } },
+      rounds: {
+        select: {
+          type: true,
+          sections: {
+            select: {
+              type: true,
+              questionCount: true,
+              topics: { select: { id: true, name: true } },
+            },
+          },
+        },
+      },
+    },
   });
+  const readiness = await companiesReadiness(
+    companies.map((c) => ({ ...c, sources: c._count.sources })),
+  );
   const now = new Date();
-  return companies.map((company) => ({ ...company, stale: isStale(company.lastVerifiedAt, now) }));
+  return companies.map((company) => ({
+    ...company,
+    stale: isStale(company.lastVerifiedAt, now),
+    readiness: readiness.get(company.id)!,
+  }));
 }
 
 export async function getCompanyBySlug(slug: string) {

@@ -248,7 +248,7 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 
 **Goal:** an admin picks or creates a company and fills in everything for it from one place: profile, hiring process, MCQs, coding problems with tests and solutions, interview questions and mocks. The admin can see at a glance what's missing and publish it all when ready. Builds on the company workspace (D-057). No new roles, no review step (D-056).
 
-**Status:** approved 2026-10-30. Steps 1 and 2 are built (D-067); Step 3 is next.
+**Status:** approved 2026-10-30; all three steps built (D-067).
 
 ### Step 1: see what's missing, finish coding problems in place, publish everything
 
@@ -340,9 +340,9 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 
 | # | Task | Status |
 |---|---|---|
-| D.10 | Community tab: experiences, drive reports, jobs for this company | ⬜ |
-| D.11 | Preview links and "view as student" | ⬜ |
-| D.12 | Companies list: sort and filter by progress, last verified, content counts | ⬜ |
+| D.10 | Community tab: experiences, drive reports, jobs for this company | ✅ |
+| D.11 | Preview links and "view as student" | ✅ |
+| D.12 | Companies list: sort and filter by progress, last verified, content counts | ✅ |
 
 **D.10 Community tab.** Read and moderate what students and employers add about this company without going to three admin pages:
 - Interview experiences (pending / approved / rejected, approve or reject in place, same actions as admin › Experiences).
