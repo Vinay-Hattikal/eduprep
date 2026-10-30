@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { AskedAtField } from "@/components/content/asked-at-field";
+import { QuickPassage } from "@/components/content/quick-passage";
 import { QuickTopic } from "@/components/content/quick-topic";
 import type { AskedAtInput } from "@/lib/content/asked-at";
 import { CODE_LANGUAGES, OPTION_LETTERS } from "@/lib/content/question-rules";
@@ -334,6 +335,7 @@ export function QuestionEditor({
                   />
                 )}
               </FormField>
+              {readOnly ? null : <QuickPassage onCreated={(id) => set("passageExternalId", id)} />}
             </CardContent>
           </Card>
 

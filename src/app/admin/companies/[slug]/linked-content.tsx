@@ -72,6 +72,7 @@ export async function LinkedContent({
             difficulty: true,
             subject: { select: { name: true } },
             topic: { select: { name: true } },
+            passage: { select: { externalId: true } },
           },
         },
         problem: {
@@ -84,11 +85,10 @@ export async function LinkedContent({
       : [],
     canEdit && q ? searchLinkable(company.id, kind, q) : [],
   ]);
-  links.sort((a, b) =>
-    (a.question?.externalId ?? a.problem?.externalId ?? "").localeCompare(
-      b.question?.externalId ?? b.problem?.externalId ?? "",
-    ),
-  );
+  // Questions on the same passage sit together (D-067), then by ID.
+  const sortKey = (l: (typeof links)[number]) =>
+    `${l.question?.passage?.externalId ?? "~"}/${l.question?.externalId ?? l.problem?.externalId ?? ""}`;
+  links.sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
 
   return (
     <div className="space-y-6">
@@ -176,6 +176,11 @@ export async function LinkedContent({
                       <span className="hidden text-xs text-muted-foreground md:inline">
                         {link.question.subject.name} › {link.question.topic.name}
                       </span>
+                    ) : null}
+                    {link.question?.passage ? (
+                      <Badge variant="outline" className="font-mono" title="Passage">
+                        {link.question.passage.externalId}
+                      </Badge>
                     ) : null}
                     <DifficultyLabel difficulty={item.difficulty} />
                     <ContentStatusBadge status={item.status} />

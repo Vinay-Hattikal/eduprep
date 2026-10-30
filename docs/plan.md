@@ -248,7 +248,7 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 
 **Goal:** an admin picks or creates a company and fills in everything for it from one place: profile, hiring process, MCQs, coding problems with tests and solutions, interview questions and mocks. The admin can see at a glance what's missing and publish it all when ready. Builds on the company workspace (D-057). No new roles, no review step (D-056).
 
-**Status:** approved 2026-10-30. Step 1 is built (D-067); Steps 2 and 3 are next.
+**Status:** approved 2026-10-30. Steps 1 and 2 are built (D-067); Step 3 is next.
 
 ### Step 1: see what's missing, finish coding problems in place, publish everything
 
@@ -307,10 +307,10 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 
 | # | Task | Status |
 |---|---|---|
-| D.6 | Interview questions tab (design, technical and HR questions per round) | ⬜ |
-| D.7 | Import for this company | ⬜ |
-| D.8 | Copy the hiring pattern from another company | ⬜ |
-| D.9 | Passages from the workspace | ⬜ |
+| D.6 | Interview questions tab (design, technical and HR questions per round) | ✅ |
+| D.7 | Import for this company | ✅ |
+| D.8 | Copy the hiring pattern from another company | ✅ |
+| D.9 | Passages from the workspace | ✅ |
 
 **D.6 Interview questions tab.** Today system-design questions store their companies as a list of slugs (`design_questions.companies`), and interview rounds have no questions.
 - **Data change:** `company_items` gets a third optional link, `design_question_id`, with the same "exactly one of" rule and a unique (company, design question). A migration copies every slug in `design_questions.companies` into `company_items` and then drops the column, so there's one way to say "this company asks it". The design-question import keeps its `companies` column and writes links instead.
