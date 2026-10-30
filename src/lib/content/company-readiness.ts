@@ -100,7 +100,7 @@ export type ChecklistItem = {
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** Overview should say a few sentences about the company; the form only requires some text. */
-export const MIN_OVERVIEW_CHARS = 80;
+const MIN_OVERVIEW_CHARS = 80;
 
 export function readinessChecklist(input: ReadinessInput): ChecklistItem[] {
   const testRounds = input.rounds.filter((r) => TEST_ROUND_TYPES.includes(r.type));
@@ -110,16 +110,19 @@ export function readinessChecklist(input: ReadinessInput): ChecklistItem[] {
   const needsCoding =
     input.rounds.some((r) => r.type === "CODING_TEST") || sections.some((s) => s.type === "CODING");
   const short = input.coverage.filter((c) => c.available < c.need);
+  const firstShort = short[0];
+  const overviewOk = input.overview.trim().length >= MIN_OVERVIEW_CHARS;
 
-  const items: ChecklistItem[] = [
+  return [
     {
       key: "profile",
       label: "Profile",
-      done: input.overview.trim().length >= MIN_OVERVIEW_CHARS && input.hiringFor.length > 0,
-      detail:
-        input.overview.trim().length >= MIN_OVERVIEW_CHARS
+      done: overviewOk && input.hiringFor.length > 0,
+      detail: !overviewOk
+        ? `Overview is under ${MIN_OVERVIEW_CHARS} characters`
+        : input.hiringFor.length
           ? "Overview and who they hire"
-          : `Overview is under ${MIN_OVERVIEW_CHARS} characters`,
+          : "Pick who they hire (freshers, experienced)",
       tab: "profile",
       next: "Write a few sentences about the company in its profile",
     },
@@ -190,8 +193,8 @@ export function readinessChecklist(input: ReadinessInput): ChecklistItem[] {
                 .join(", ")}${short.length > 3 ? ` and ${short.length - 3} more` : ""}`
             : "Every section topic has enough published items",
       tab: "process",
-      next: short.length
-        ? `Add ${short[0]!.type === "CODING" ? "problems" : "questions"} in ${short[0]!.name} (${short[0]!.available} of ${short[0]!.need})`
+      next: firstShort
+        ? `Add ${firstShort.type === "CODING" ? "problems" : "questions"} in ${firstShort.name} (${firstShort.available} of ${firstShort.need})`
         : sections.length
           ? "Pick the topics each section covers"
           : "Add test sections first",
@@ -217,7 +220,6 @@ export function readinessChecklist(input: ReadinessInput): ChecklistItem[] {
       next: "Publish the company and its content",
     },
   ];
-  return items;
 }
 
 /** The first unfinished step, for the "Next:" prompt. */

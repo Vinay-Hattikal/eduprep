@@ -143,23 +143,31 @@ export async function publishProblems(blueprintId: string): Promise<string[]> {
 
   const problems: string[] = [];
   const pools = new Map<string, { name: string; type: SectionType; need: number }>();
-  for (const section of blueprint.sections) {
+  const rules = blueprint.sections.flatMap((section) =>
+    section.rules.map((rule) => ({ section, rule })),
+  );
+  const ruleCounts = await Promise.all(
+    rules.map(({ section, rule }) => countPool(section.type, rule.topicId, rule.difficulty)),
+  );
+  for (const section of blueprint.sections)
     if (!section.rules.length) problems.push(`"${section.name}" has no topic rules.`);
-    for (const rule of section.rules) {
-      const available = await countPool(section.type, rule.topicId, rule.difficulty);
-      if (available < rule.count) {
-        problems.push(
-          `"${section.name}": ${rule.topic.name}${rule.difficulty ? ` (${rule.difficulty.toLowerCase()})` : ""} needs ${rule.count}, only ${available} ${section.type === "MCQ" ? "published questions" : "validated, published problems"}.`,
-        );
-      }
-      const key = `${section.type}/${rule.topicId}`;
-      const pool = pools.get(key) ?? { name: rule.topic.name, type: section.type, need: 0 };
-      pool.need += rule.count;
-      pools.set(key, pool);
+  for (const [i, { section, rule }] of rules.entries()) {
+    const available = ruleCounts[i]!;
+    if (available < rule.count) {
+      problems.push(
+        `"${section.name}": ${rule.topic.name}${rule.difficulty ? ` (${rule.difficulty.toLowerCase()})` : ""} needs ${rule.count}, only ${available} ${section.type === "MCQ" ? "published questions" : "validated, published problems"}.`,
+      );
     }
+    const key = `${section.type}/${rule.topicId}`;
+    const pool = pools.get(key) ?? { name: rule.topic.name, type: section.type, need: 0 };
+    pool.need += rule.count;
+    pools.set(key, pool);
   }
-  for (const [key, pool] of pools) {
-    const available = await countPool(pool.type, key.split("/")[1]!, null);
+  const poolCounts = await Promise.all(
+    [...pools].map(([key, pool]) => countPool(pool.type, key.split("/")[1]!, null)),
+  );
+  for (const [i, [, pool]] of [...pools].entries()) {
+    const available = poolCounts[i]!;
     if (available < pool.need)
       problems.push(
         `${pool.name}: the test draws ${pool.need} in total but only ${available} exist.`,
@@ -170,7 +178,7 @@ export async function publishProblems(blueprintId: string): Promise<string[]> {
 
 type PoolDifficulty = BlueprintSectionForm["rules"][number]["difficulty"];
 
-/** What a mock section draws questions from (draw() in tests.ts uses the same rules). */
+/** What a mock section draws questions from (draw() in tests.ts, the publish check, coverage). */
 export const questionPool = (
   topicId: string | { in: string[] },
   difficulty: PoolDifficulty = null,
@@ -246,22 +254,20 @@ export async function draftFromCompany(companyId: string): Promise<BlueprintForm
   const sections = company.rounds.flatMap((round) =>
     round.sections
       .filter((s) => s.topics.length > 0)
-      .map((s) => {
-        return {
-          name: s.name,
-          type: s.type,
-          minutes: s.minutes,
-          marksPerItem: 1,
-          negativeMarks: s.negativeMarks,
-          canGoBack: s.canGoBack,
-          // The same split as the coverage check on the company's admin page (D-067).
-          rules: splitAcrossTopics(s.questionCount, s.topics).map(({ topic, count }) => ({
-            topicId: topic.id,
-            difficulty: null,
-            count,
-          })),
-        };
-      }),
+      .map((s) => ({
+        name: s.name,
+        type: s.type,
+        minutes: s.minutes,
+        marksPerItem: 1,
+        negativeMarks: s.negativeMarks,
+        canGoBack: s.canGoBack,
+        // The same split as the coverage check on the company's admin page (D-067).
+        rules: splitAcrossTopics(s.questionCount, s.topics).map(({ topic, count }) => ({
+          topicId: topic.id,
+          difficulty: null,
+          count,
+        })),
+      })),
   );
   return {
     title: `${company.name} mock test`,

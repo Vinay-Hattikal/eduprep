@@ -1,22 +1,24 @@
 import "server-only";
 
-import { checkQuestion, hasErrors } from "@/lib/content/question-rules";
 import { DRAFT_STATUSES } from "@/lib/content/workflow";
-import type { Role } from "@/generated/prisma/enums";
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/services/audit";
 import { publishProblems, transitionBlueprint } from "@/server/services/blueprints";
-import { setCompanyStatus } from "@/server/services/companies";
+import { companyPublishBlocker, setCompanyStatus } from "@/server/services/companies";
 import { transitionProblem } from "@/server/services/problems";
-import { publishQuestions } from "@/server/services/questions";
+import { publishQuestions, questionCheckError } from "@/server/services/questions";
 
 // "Publish everything" for one company (D-067): its draft questions, judge-checked problems,
 // the company and its mock, each through the same rules as its own Publish button.
 
-type Actor = { id: string; roles: Role[] };
+type Actor = Parameters<typeof setCompanyStatus>[2];
 
-/** What publishing would do now, for the confirmation. Null for a missing or archived company. */
-export async function companyPublishPlan(companyId: string) {
+/**
+ * What publishing would do now, for the Overview. `blockers` also works out why each draft mock
+ * can't publish yet (a few counts per mock), which only the preview needs. Null for a missing or
+ * archived company.
+ */
+export async function companyPublishPlan(companyId: string, { blockers = true } = {}) {
   const linked = { companies: { some: { companyId } }, status: { in: DRAFT_STATUSES } };
   const [company, questions, problems, mocks] = await Promise.all([
     db.company.findUnique({
@@ -27,7 +29,7 @@ export async function companyPublishPlan(companyId: string) {
     db.problem.findMany({
       where: linked,
       orderBy: { externalId: "asc" },
-      select: { id: true, externalId: true, title: true, validatedAt: true },
+      select: { id: true, title: true, validatedAt: true },
     }),
     db.testBlueprint.findMany({
       where: { companyId, kind: "COMPANY_MOCK", status: { in: DRAFT_STATUSES } },
@@ -35,25 +37,39 @@ export async function companyPublishPlan(companyId: string) {
     }),
   ]);
   if (!company || company.status === "ARCHIVED") return null;
-  const failing = questions.filter((q) => hasErrors(checkQuestion(q)));
+
+  const questionErrors = questions.map(questionCheckError).filter((e) => e !== null);
+  const publishCompany = company.status !== "PUBLISHED";
+  const companyBlocker = publishCompany ? companyPublishBlocker(company._count.sources) : null;
+  const mockBlockers = blockers
+    ? await Promise.all(mocks.map((m) => publishProblems(m.id)))
+    : mocks.map((): string[] => []);
+  const readyProblems = problems.filter((p) => p.validatedAt);
+
   return {
-    questions: {
-      ready: questions.filter((q) => !failing.includes(q)).map((q) => q.id),
-      failing: failing.map((q) => q.externalId),
+    questionIds: questions.map((q) => q.id),
+    problems: readyProblems.map((p) => ({ id: p.id, title: p.title })),
+    mocks,
+    publishCompany,
+    goLive: {
+      questions: questions.length - questionErrors.length,
+      problems: readyProblems.length,
+      company: publishCompany && !companyBlocker,
+      mocks: mockBlockers.filter((b) => !b.length).length,
     },
-    problems: {
-      ready: problems.filter((p) => p.validatedAt).map((p) => ({ id: p.id, title: p.title })),
-      unchecked: problems.filter((p) => !p.validatedAt).map((p) => p.title),
-    },
-    // A mock publishes only when every topic has enough live items (the questions above may fill
-    // them, so it's attempted anyway); its blockers as they stand now.
-    mocks: await Promise.all(
-      mocks.map(async (m) => ({ ...m, blockers: await publishProblems(m.id) })),
-    ),
-    company: {
-      publish: company.status !== "PUBLISHED",
-      blocker: company._count.sources ? null : "Add at least one source before publishing.",
-    },
+    /** Why each remaining item stays a draft, in the words of its own Publish button. */
+    staysDraft: [
+      ...questionErrors,
+      ...problems
+        .filter((p) => !p.validatedAt)
+        .map((p) => `${p.title}: hasn't passed the judge check`),
+      ...(companyBlocker ? [`Company: ${companyBlocker}`] : []),
+      ...mocks.flatMap((m, i) =>
+        mockBlockers[i]!.length
+          ? [`${m.title}: ${mockBlockers[i]![0]} (publishing the drafts above may fill it)`]
+          : [],
+      ),
+    ],
   };
 }
 
@@ -64,56 +80,36 @@ export type CompanyPublishResult = {
   problems: number;
   mocks: number;
   company: boolean;
-  /** Why something stayed a draft. */
-  notes: string[];
 };
 
 /**
  * Publishes in dependency order: questions and problems first (the mock draws from them), then
- * the company, then its mock. Nothing goes live that its own Publish button would refuse.
+ * the company, then its mock. Each goes through its own publish rules, so nothing goes live that
+ * its Publish button would refuse; what stays draft shows on the Overview afterwards.
  */
 export async function publishCompanyContent(
   companyId: string,
   actor: Actor,
 ): Promise<CompanyPublishResult | { error: string }> {
-  const plan = await companyPublishPlan(companyId);
+  const plan = await companyPublishPlan(companyId, { blockers: false });
   if (!plan) return { error: "This company no longer exists or is archived." };
-  const notes: string[] = [];
 
-  const questions = await publishQuestions(plan.questions.ready, actor);
-  notes.push(...questions.errors);
-  for (const id of plan.questions.failing)
-    notes.push(`${id} fails the automatic checks. Open it and fix the errors.`);
-
+  const questions = (await publishQuestions(plan.questionIds, actor)).done;
   let problems = 0;
-  for (const problem of plan.problems.ready) {
-    const result = await transitionProblem(problem.id, "publish", actor);
-    if (result.ok) problems += 1;
-    else notes.push(`${problem.title}: ${result.error}`);
-  }
-  for (const title of plan.problems.unchecked)
-    notes.push(`${title}: hasn't passed the judge check yet.`);
-
-  let company = false;
-  if (plan.company.publish) {
-    const result = await setCompanyStatus(companyId, "publish", actor);
-    company = result.ok;
-    if (!result.ok) notes.push(`Company: ${result.error}`);
-  }
-
+  for (const problem of plan.problems)
+    if ((await transitionProblem(problem.id, "publish", actor)).ok) problems += 1;
+  const company = plan.publishCompany && (await setCompanyStatus(companyId, "publish", actor)).ok;
   let mocks = 0;
-  for (const mock of plan.mocks) {
-    const result = await transitionBlueprint(mock.id, "publish", actor);
-    if (result.ok) mocks += 1;
-    else notes.push(...result.errors.map((e) => `${mock.title}: ${e}`));
-  }
+  for (const mock of plan.mocks)
+    if ((await transitionBlueprint(mock.id, "publish", actor)).ok) mocks += 1;
 
+  const result = { questions, problems, mocks, company };
   await recordAudit({
     actorId: actor.id,
     action: "company.publish_all",
     entityType: "company",
     entityId: companyId,
-    after: { questions: questions.done, problems, mocks, company, notes: notes.length },
+    after: result,
   });
-  return { questions: questions.done, problems, mocks, company, notes };
+  return result;
 }

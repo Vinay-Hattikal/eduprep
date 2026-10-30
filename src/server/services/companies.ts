@@ -113,6 +113,11 @@ export function companyActions(
   );
 }
 
+/** Every company fact needs a source (D-019, data-import.md 4.5). */
+export function companyPublishBlocker(sources: number): string | null {
+  return sources ? null : "Add at least one source before publishing.";
+}
+
 export async function setCompanyStatus(
   id: string,
   action: CompanyStatusAction,
@@ -126,10 +131,8 @@ export async function setCompanyStatus(
   if (!companyActions(company.status, actor.roles).includes(action)) {
     return { ok: false, error: "That action isn't available." };
   }
-  // Every company fact needs a source (D-019, data-import.md 4.5).
-  if (action === "publish" && company._count.sources === 0) {
-    return { ok: false, error: "Add at least one source before publishing." };
-  }
+  const blocker = action === "publish" ? companyPublishBlocker(company._count.sources) : null;
+  if (blocker) return { ok: false, error: blocker };
 
   const status = STATUS_RULES[action].to;
   await db.company.update({ where: { id }, data: { status } });

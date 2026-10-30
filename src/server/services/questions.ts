@@ -296,13 +296,18 @@ const HISTORY_REASONS: Record<ContentAction, string> = {
 
 type QuestionRow = Awaited<ReturnType<typeof db.question.findUniqueOrThrow>>;
 
+/** Why this question can't be published because of its content, or null. */
+export function questionCheckError(question: QuestionRow) {
+  return hasErrors(checkQuestion(question))
+    ? `${question.externalId} fails the automatic checks. Open it and fix the errors.`
+    : null;
+}
+
 /** Why this question can't take the action, or null. */
 function transitionError(question: QuestionRow, action: ContentAction, actor: Actor) {
   const blocker = transitionBlocker(action, question.status, actor);
   if (blocker) return `${question.externalId}: ${blocker}`;
-  if (action === "publish" && hasErrors(checkQuestion(question)))
-    return `${question.externalId} fails the automatic checks. Open it and fix the errors.`;
-  return null;
+  return action === "publish" ? questionCheckError(question) : null;
 }
 
 /** Publishes, unpublishes, archives or restores a question. Publishing runs the automatic checks. */

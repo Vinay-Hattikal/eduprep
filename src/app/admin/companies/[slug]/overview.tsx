@@ -4,14 +4,11 @@ import { publishCompanyContentAction } from "@/app/admin/companies/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import type { ChecklistTab } from "@/lib/content/company-readiness";
+import { companyTabHref } from "@/lib/content/companies";
 import type { CompanyPublishPlan } from "@/server/services/company-publish";
 import type { CompanyReadiness } from "@/server/services/company-readiness";
 
 // The company's Overview tab (D-067): what's done, what's next, and "Publish everything".
-
-export const tabHref = (slug: string, tab: ChecklistTab) =>
-  `/admin/companies/${slug}${tab === "overview" ? "" : `?tab=${tab}`}`;
 
 /** Progress and the next step, shown above every tab. */
 export function CompanyProgress({
@@ -30,7 +27,7 @@ export function CompanyProgress({
         </span>
         {next ? (
           <Link
-            href={tabHref(slug, next.tab)}
+            href={companyTabHref(slug, next.tab)}
             className="inline-flex min-w-0 items-center gap-1 text-primary hover:underline"
             data-testid="next-step"
           >
@@ -57,23 +54,13 @@ export function CompanyOverview({
   plan: CompanyPublishPlan;
   canPublish: boolean;
 }) {
-  const readyMocks = plan.mocks.filter((m) => !m.blockers.length);
+  const { goLive: n, staysDraft } = plan;
   const goLive = [
-    plan.questions.ready.length ? `${plan.questions.ready.length} questions` : null,
-    plan.problems.ready.length ? `${plan.problems.ready.length} coding problems` : null,
-    plan.company.publish && !plan.company.blocker ? "the company" : null,
-    readyMocks.length
-      ? `${readyMocks.length} mock test${readyMocks.length === 1 ? "" : "s"}`
-      : null,
+    n.questions ? `${n.questions} questions` : null,
+    n.problems ? `${n.problems} coding problems` : null,
+    n.company ? "the company" : null,
+    n.mocks ? `${n.mocks} mock test${n.mocks === 1 ? "" : "s"}` : null,
   ].filter(Boolean);
-  const staysDraft = [
-    ...plan.questions.failing.map((id) => `${id}: fails the automatic checks`),
-    ...plan.problems.unchecked.map((title) => `${title}: hasn't passed the judge check`),
-    ...(plan.company.publish && plan.company.blocker ? [`Company: ${plan.company.blocker}`] : []),
-    ...plan.mocks
-      .filter((m) => m.blockers.length)
-      .map((m) => `${m.title}: ${m.blockers[0]} (publishing the drafts above may fill it)`),
-  ];
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
@@ -107,7 +94,7 @@ export function CompanyOverview({
                 <span className="min-w-0 flex-1 text-muted-foreground">{item.detail}</span>
                 {item.done || item.tab === "overview" ? null : (
                   <Link
-                    href={tabHref(company.slug, item.tab)}
+                    href={companyTabHref(company.slug, item.tab)}
                     className="text-primary hover:underline"
                   >
                     Fix<span className="sr-only">: {item.label}</span>

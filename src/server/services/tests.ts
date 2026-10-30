@@ -41,6 +41,7 @@ import {
 } from "@/lib/tests/scoring";
 import type { CurrentUser } from "@/server/auth";
 import { db } from "@/server/db";
+import { problemPool, questionPool } from "@/server/services/blueprints";
 import { enqueueJob } from "@/server/jobs/queue";
 import { createSubmission, type SubmitResult } from "@/server/services/coding";
 import { coversCompany, isPro, type Access } from "@/lib/commerce/access";
@@ -251,22 +252,13 @@ async function draw(
     type === "MCQ"
       ? (
           await tx.question.findMany({
-            where: {
-              status: "PUBLISHED",
-              topicId: rule.topicId,
-              ...(rule.difficulty && { difficulty: rule.difficulty }),
-            },
+            where: questionPool(rule.topicId, rule.difficulty),
             select: { id: true, attempts: { where: { userId }, select: { id: true }, take: 1 } },
           })
         ).map((q) => ({ id: q.id, seen: q.attempts.length > 0 }))
       : (
           await tx.problem.findMany({
-            where: {
-              status: "PUBLISHED",
-              validatedAt: { not: null },
-              topics: { some: { id: rule.topicId } },
-              ...(rule.difficulty && { difficulty: rule.difficulty }),
-            },
+            where: problemPool(rule.topicId, rule.difficulty),
             select: {
               id: true,
               progress: { where: { userId }, select: { attempts: true }, take: 1 },

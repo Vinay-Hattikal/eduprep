@@ -62,15 +62,19 @@ async function sectionCoverage(company: Company): Promise<Coverage[]> {
 /** The company's checklist, progress and next step. */
 export async function companyReadiness(company: Company) {
   const linked = { companies: { some: { companyId: company.id } } };
-  const [questions, problems, mocks, coverage] = await Promise.all([
+  const [questions, problems, checkedDrafts, mocks, coverage] = await Promise.all([
     db.question.groupBy({
       by: ["status"],
       where: { ...linked, status: { not: "ARCHIVED" } },
       _count: { _all: true },
     }),
-    db.problem.findMany({
+    db.problem.groupBy({
+      by: ["status"],
       where: { ...linked, status: { not: "ARCHIVED" } },
-      select: { status: true, validatedAt: true },
+      _count: { _all: true },
+    }),
+    db.problem.count({
+      where: { ...linked, status: { in: DRAFT_STATUSES }, validatedAt: { not: null } },
     }),
     db.testBlueprint.groupBy({
       by: ["status"],
@@ -85,7 +89,6 @@ export async function companyReadiness(company: Company) {
       .filter((r) => (DRAFT_STATUSES as readonly string[]).includes(r.status))
       .reduce((n, r) => n + r._count._all, 0),
   });
-  const draftProblems = problems.filter((p) => p.status !== "PUBLISHED");
 
   const items = readinessChecklist({
     status: company.status,
@@ -95,11 +98,7 @@ export async function companyReadiness(company: Company) {
     sources: company.sources.length,
     rounds: company.rounds,
     questions: byStatus(questions),
-    problems: {
-      published: problems.length - draftProblems.length,
-      draft: draftProblems.length,
-      checked: draftProblems.filter((p) => p.validatedAt).length,
-    },
+    problems: { ...byStatus(problems), checked: checkedDrafts },
     mocks: byStatus(mocks),
     coverage,
   });

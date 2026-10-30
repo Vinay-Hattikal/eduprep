@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { companyTabHref } from "@/lib/content/companies";
 import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
 import { ProblemForm } from "@/app/admin/problems/[id]/forms";
@@ -41,7 +42,7 @@ async function NewProblem({
   return (
     <>
       <Button asChild variant="ghost" size="sm" className="-ml-2 max-w-full">
-        <Link href={company ? `/admin/companies/${company.slug}?tab=coding` : "/admin/problems"}>
+        <Link href={company ? companyTabHref(company.slug, "coding") : "/admin/problems"}>
           <ArrowLeft />
           <span className="truncate">{company ? `${company.name} coding` : "Coding problems"}</span>
         </Link>

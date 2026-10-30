@@ -42,3 +42,7 @@ export const COMPANY_ACTION_LABELS: Record<CompanyStatusAction, string> = {
   archive: "Archive",
   restore: "Restore to draft",
 };
+
+/** A tab of a company's admin workspace (D-057, D-067); "overview" is the default tab. */
+export const companyTabHref = (slug: string, tab: string = "overview") =>
+  `/admin/companies/${slug}${tab === "overview" ? "" : `?tab=${tab}`}`;

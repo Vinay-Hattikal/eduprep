@@ -76,10 +76,13 @@ export async function publishCompanyContentAction(formData: FormData) {
     redirect(`/admin/companies/${slug}?error=${encodeURIComponent(result.error)}`);
   revalidatePath("/admin/companies");
   refreshPublicPages();
-  const summary = [result.questions, result.problems, result.mocks, result.company ? 1 : 0];
-  // Why anything stayed draft, shown once on the page (kept short for the URL).
-  const notes = result.notes.slice(0, 10).join("\n").slice(0, 1500);
-  redirect(
-    `/admin/companies/${slug}?published_all=${summary.join(".")}${notes ? `&notes=${encodeURIComponent(notes)}` : ""}`,
-  );
+  // The counts for the banner; the Overview's refreshed plan says why anything stayed draft.
+  const counts = new URLSearchParams({
+    published: "1",
+    questions: String(result.questions),
+    problems: String(result.problems),
+    mocks: String(result.mocks),
+    company: result.company ? "1" : "0",
+  });
+  redirect(`/admin/companies/${slug}?${counts}`);
 }

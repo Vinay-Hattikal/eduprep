@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { availableActions, ACTION_LABELS, type ContentAction } from "@/lib/content/workflow";
 import { formatDateTime } from "@/lib/format";
+import { companyTabHref } from "@/lib/content/companies";
 import { can } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
 import { companyOptions } from "@/server/services/company-links";
@@ -168,7 +169,7 @@ async function Detail({ params, searchParams }: PageProps<"/admin/problems/[id]"
           <Building2 className="size-4 text-muted-foreground" aria-hidden="true" />
           <span className="text-muted-foreground">For {company.name}:</span>
           <Button asChild variant="outline" size="sm">
-            <Link href={`/admin/companies/${company.slug}?tab=coding`}>Back to {company.name}</Link>
+            <Link href={companyTabHref(company.slug, "coding")}>Back to {company.name}</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link href={`/admin/problems/new?company=${company.slug}`}>

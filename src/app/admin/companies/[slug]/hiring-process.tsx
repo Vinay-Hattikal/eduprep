@@ -279,7 +279,7 @@ function SectionCoverage({
     <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Published items per topic">
       {topics.map((t) => {
         const c = coverage.get(coverageKey(type, t.id));
-        const short = c ? c.available < c.need : false;
+        const short = c && c.available < c.need ? c : null;
         const label = c ? `${t.name} ${c.available}/${c.need}` : t.name;
         return (
           <li key={t.id}>
@@ -290,7 +290,7 @@ function SectionCoverage({
                   "inline-flex items-center rounded-full border border-destructive/40 px-2 py-0.5 text-xs",
                   "text-destructive hover:bg-destructive/10",
                 )}
-                title={`Only ${c!.available} published ${add} in ${t.name}; the mock needs ${c!.need}. Add one.`}
+                title={`Only ${short.available} published ${add} in ${t.name}; the mock needs ${short.need}. Add one.`}
                 data-testid="coverage-short"
               >
                 {label} · add

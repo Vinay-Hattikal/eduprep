@@ -8,7 +8,7 @@ import { CompanyForm } from "@/app/admin/companies/company-form";
 import { CompanyMocks } from "@/app/admin/companies/[slug]/company-mocks";
 import { ChangeButton, HiringProcess } from "@/app/admin/companies/[slug]/hiring-process";
 import { LinkedContent } from "@/app/admin/companies/[slug]/linked-content";
-import { CompanyOverview, CompanyProgress, tabHref } from "@/app/admin/companies/[slug]/overview";
+import { CompanyOverview, CompanyProgress } from "@/app/admin/companies/[slug]/overview";
 import { SourceForm } from "@/app/admin/companies/hiring-forms";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -17,7 +17,7 @@ import { ContentStatusBadge } from "@/components/shared/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { COMPANY_ACTION_LABELS, STALE_AFTER_MONTHS } from "@/lib/content/companies";
+import { COMPANY_ACTION_LABELS, companyTabHref, STALE_AFTER_MONTHS } from "@/lib/content/companies";
 import { formatDate } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
@@ -67,9 +67,8 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
     companyReadiness(company),
     tab === "overview" ? companyPublishPlan(company.id) : null,
   ]);
-  const publishedAll =
-    typeof query.published_all === "string" ? query.published_all.split(".").map(Number) : null;
-  const publishNotes = typeof query.notes === "string" ? query.notes.split("\n") : [];
+  const published = query.published === "1";
+  const count = (key: string) => Number(query[key]) || 0;
   const actions = companyActions(company.status, user.roles);
   const error = typeof query.error === "string" ? query.error : null;
   const today = todayUtc().toISOString().slice(0, 10);
@@ -103,22 +102,14 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
           </AlertTitle>
         </Alert>
       ) : null}
-      {publishedAll ? (
+      {published ? (
         <Alert data-testid="published-all">
           <CheckCircle2 />
           <AlertTitle>Published what was ready</AlertTitle>
           <AlertDescription>
-            {publishedAll[0]} questions, {publishedAll[1]} coding problems, {publishedAll[2]} mock
-            tests{publishedAll[3] ? " and the company" : ""}.
-            {publishNotes.length ? (
-              <ul className="mt-2 list-disc space-y-0.5 pl-5">
-                {publishNotes.map((note, i) => (
-                  <li key={i} className="break-words">
-                    {note}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            {count("questions")} questions, {count("problems")} coding problems, {count("mocks")}{" "}
+            mock tests{query.company === "1" ? " and the company" : ""}. Anything still draft is
+            listed under Publish everything with the reason.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -176,7 +167,7 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
           {TABS.map((t) => (
             <li key={t.key}>
               <Link
-                href={tabHref(company.slug, t.key)}
+                href={companyTabHref(company.slug, t.key)}
                 aria-current={tab === t.key ? "page" : undefined}
                 className={cn(
                   "-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium",
@@ -201,7 +192,7 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
           company={company}
           readiness={readiness}
           plan={plan}
-          canPublish={can(user.roles, "companies.publish") && company.status !== "ARCHIVED"}
+          canPublish={can(user.roles, "companies.publish")}
         />
       ) : null}
 
