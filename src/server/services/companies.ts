@@ -36,6 +36,15 @@ export async function getCompanyBySlug(slug: string) {
   };
 }
 
+/** Companies with a hiring pattern to copy from, other than this one (D-067). */
+export function companiesWithRounds(exceptSlug: string) {
+  return db.company.findMany({
+    where: { slug: { not: exceptSlug }, status: { not: "ARCHIVED" }, rounds: { some: {} } },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+}
+
 function loadCompany(slug: string) {
   return db.company.findUnique({
     where: { slug },

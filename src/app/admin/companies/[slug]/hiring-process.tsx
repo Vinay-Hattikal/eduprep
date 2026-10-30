@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react";
-import { hiringChangeAction } from "@/app/admin/companies/hiring-actions";
+import { copyPatternAction, hiringChangeAction } from "@/app/admin/companies/hiring-actions";
 import { RoundForm, SectionForm } from "@/app/admin/companies/hiring-forms";
 import { EmptyState } from "@/components/shared/empty-state";
 import type { TopicOptions } from "@/components/shared/topic-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROUND_TYPE_LABELS } from "@/lib/content/companies";
 import { coverageKey, TEST_ROUND_TYPES, type Coverage } from "@/lib/content/company-readiness";
@@ -56,11 +57,14 @@ export function HiringProcess({
   canEdit,
   topics,
   coverage,
+  copyFrom,
 }: {
   company: Company;
   canEdit: boolean;
   topics: TopicOptions;
   coverage: readonly Coverage[];
+  /** Companies with a pattern to copy, offered while this one has no rounds (D-067). */
+  copyFrom: readonly { id: string; name: string }[];
 }) {
   const rounds = company.rounds;
   const byTopic = new Map(coverage.map((c) => [coverageKey(c.type, c.topicId), c]));
@@ -71,7 +75,12 @@ export function HiringProcess({
         sections. Changes show on the public company page straight away.
       </p>
       {rounds.length === 0 ? (
-        <EmptyState title="No rounds yet" description="Add the first round below." />
+        <>
+          <EmptyState title="No rounds yet" description="Add the first round below." />
+          {canEdit && copyFrom.length ? (
+            <CopyPattern companyId={company.id} slug={company.slug} from={copyFrom} />
+          ) : null}
+        </>
       ) : (
         <ol className="space-y-4">
           {rounds.map((round, ri) => (
@@ -307,5 +316,58 @@ function SectionCoverage({
         );
       })}
     </ul>
+  );
+}
+
+/** Starts from a sister company's pattern (D-067): rounds, eligibility and pay, never sources. */
+function CopyPattern({
+  companyId,
+  slug,
+  from,
+}: {
+  companyId: string;
+  slug: string;
+  from: readonly { id: string; name: string }[];
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">
+          <h2>Copy from another company</h2>
+        </CardTitle>
+        <CardDescription>
+          For a sister company or a similar drive. Sources and questions aren&apos;t copied: check
+          the facts for this company and link questions on their tabs.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form action={copyPatternAction} className="space-y-3" aria-label="Copy pattern">
+          <input type="hidden" name="slug" value={slug} />
+          <input type="hidden" name="toId" value={companyId} />
+          <NativeSelect name="fromId" aria-label="Copy from" className="w-full sm:w-80">
+            {from.map((c) => (
+              <NativeSelectOption key={c.id} value={c.id}>
+                {c.name}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            {[
+              ["rounds", "Rounds and test sections"],
+              ["eligibility", "Eligibility"],
+              ["pay", "Pay"],
+            ].map(([name, label]) => (
+              <label key={name} className="flex items-center gap-2">
+                <input type="checkbox" name={name} defaultChecked className="size-4" />
+                {label}
+              </label>
+            ))}
+          </div>
+          <Button type="submit" variant="secondary">
+            Copy
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

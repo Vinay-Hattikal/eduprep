@@ -13,6 +13,7 @@ import { requirePermission } from "@/server/auth";
 import { refreshPublicPages } from "@/server/services/public-pages";
 import {
   addSource,
+  copyHiringPattern,
   deleteRound,
   deleteSection,
   deleteSource,
@@ -112,4 +113,21 @@ export async function hiringChangeAction(formData: FormData) {
   const tab = level === "source" ? "sources" : "process";
   if (!result.ok) done(slug, tab, `error=${encodeURIComponent(result.error)}`);
   done(result.ok ? result.slug : slug, tab);
+}
+
+/** "Copy from another company" on an empty Hiring process tab (D-067). */
+export async function copyPatternAction(formData: FormData) {
+  const user = await requirePermission("companies.manage");
+  const slug = String(formData.get("slug") ?? "");
+  const result = await copyHiringPattern(
+    id.parse(formData.get("fromId")),
+    id.parse(formData.get("toId")),
+    {
+      rounds: formData.get("rounds") === "on",
+      eligibility: formData.get("eligibility") === "on",
+      pay: formData.get("pay") === "on",
+    },
+    user,
+  );
+  done(slug, "process", result.ok ? "saved=copied" : `error=${encodeURIComponent(result.error)}`);
 }

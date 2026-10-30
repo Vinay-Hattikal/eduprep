@@ -262,3 +262,87 @@ export async function deleteSource(sourceId: string, actor: Actor): Promise<Resu
   });
   return { ok: true, slug: source.company.slug };
 }
+
+// ---------- copy from another company (D-067) ----------
+
+export type CopyParts = { rounds: boolean; eligibility: boolean; pay: boolean };
+
+/**
+ * Starts a company from a sister company's pattern: its rounds with their test sections and
+ * topics, its eligibility rules and its pay, each optional. Never sources (every fact needs its
+ * own check, D-019) or questions (link them instead). Only into a company with no rounds yet.
+ */
+export async function copyHiringPattern(
+  fromId: string,
+  toId: string,
+  parts: CopyParts,
+  actor: Actor,
+): Promise<Result> {
+  if (fromId === toId) return { ok: false, error: "Pick another company to copy from." };
+  const [from, to] = await Promise.all([
+    db.company.findUnique({
+      where: { id: fromId },
+      include: {
+        rounds: {
+          orderBy: { order: "asc" },
+          include: { sections: { orderBy: { order: "asc" }, include: { topics: true } } },
+        },
+      },
+    }),
+    db.company.findUnique({
+      where: { id: toId },
+      include: { _count: { select: { rounds: true } } },
+    }),
+  ]);
+  if (!from || !to) return { ok: false, error: "That company no longer exists." };
+  if (parts.rounds && to._count.rounds)
+    return { ok: false, error: "This company already has rounds. Delete them to copy a pattern." };
+  if (!parts.rounds && !parts.eligibility && !parts.pay)
+    return { ok: false, error: "Choose what to copy." };
+
+  await db.$transaction(async (tx) => {
+    if (parts.rounds)
+      for (const round of from.rounds)
+        await tx.companyRound.create({
+          data: {
+            companyId: to.id,
+            order: round.order,
+            name: round.name,
+            type: round.type,
+            platform: round.platform,
+            durationMin: round.durationMin,
+            isElimination: round.isElimination,
+            description: round.description,
+            sections: {
+              create: round.sections.map((s) => ({
+                order: s.order,
+                name: s.name,
+                type: s.type,
+                questionCount: s.questionCount,
+                minutes: s.minutes,
+                negativeMarks: s.negativeMarks,
+                canGoBack: s.canGoBack,
+                topics: { connect: s.topics.map((t) => ({ id: t.id })) },
+              })),
+            },
+          },
+        });
+    await tx.company.update({
+      where: { id: to.id },
+      data: {
+        ...(parts.eligibility && {
+          minCgpa: from.minCgpa,
+          min10thPercent: from.min10thPercent,
+          min12thPercent: from.min12thPercent,
+          maxBacklogs: from.maxBacklogs,
+          maxGapYears: from.maxGapYears,
+          branches: from.branches,
+          gradYears: from.gradYears,
+        }),
+        ...(parts.pay && { ctcFresher: from.ctcFresher, ctcExperienced: from.ctcExperienced }),
+      },
+    });
+    await audit(tx, actor, to.id, "company.copy_pattern", { from: from.slug, ...parts });
+  });
+  return { ok: true, slug: to.slug };
+}

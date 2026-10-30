@@ -24,7 +24,7 @@ import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { requirePermission } from "@/server/auth";
 import { todayUtc } from "@/server/imports/definitions/companies";
-import { companyActions, getCompanyBySlug } from "@/server/services/companies";
+import { companiesWithRounds, companyActions, getCompanyBySlug } from "@/server/services/companies";
 import { companyPublishPlan } from "@/server/services/company-publish";
 import { companyReadiness } from "@/server/services/company-readiness";
 import { getTaxonomyTree } from "@/server/services/questions";
@@ -58,9 +58,10 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
   const query = await searchParams;
   const tab = TABS.some((t) => t.key === query.tab) ? (query.tab as TabKey) : "overview";
   // The topic tree is only needed by the hiring-process editors.
-  const [company, taxonomy] = await Promise.all([
+  const [company, taxonomy, otherCompanies] = await Promise.all([
     getCompanyBySlug(slug),
     tab === "process" ? getTaxonomyTree() : [],
+    tab === "process" ? companiesWithRounds(slug) : [],
   ]);
   if (!company) notFound();
   // The checklist drives the progress bar on every tab; the publish plan only the Overview.
@@ -99,7 +100,9 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
                   ? "Section saved"
                   : query.saved === "source"
                     ? "Source added"
-                    : "Saved"}
+                    : query.saved === "copied"
+                      ? "Copied the pattern: check it against this company's sources"
+                      : "Saved"}
           </AlertTitle>
         </Alert>
       ) : null}
@@ -232,6 +235,7 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
           canEdit={canEdit}
           topics={topics}
           coverage={readiness.coverage}
+          copyFrom={otherCompanies}
         />
       ) : null}
 

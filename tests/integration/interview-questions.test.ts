@@ -4,6 +4,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { getCompanyBySlug } from "@/server/services/companies";
+import { copyHiringPattern } from "@/server/services/company-hiring";
 import { linkToCompany, setLinkRound } from "@/server/services/company-links";
 import { publishCompanyContent } from "@/server/services/company-publish";
 import { companyReadiness } from "@/server/services/company-readiness";
@@ -154,5 +155,49 @@ describe("interview questions", () => {
     await importFile("MCQ", "mcq.csv", Buffer.from(withoutColumn), admin.id, { companyId });
     expect(await links("QA-IMP-0002")).toEqual([companyId, other.id].sort());
     expect(await links("QA-IMP-0003")).toEqual([companyId]);
+  });
+});
+
+describe("copying a hiring pattern", () => {
+  it("copies rounds, sections, eligibility and pay, never sources, into an empty company", async () => {
+    const from = await db.company.findUniqueOrThrow({ where: { slug: "iq-co" } });
+    await db.company.update({ where: { id: from.id }, data: { minCgpa: 7, ctcFresher: "6 LPA" } });
+    const to = await db.company.create({
+      data: {
+        slug: "iq-sister",
+        name: "IQ Sister",
+        level: "STANDARD",
+        category: "PRODUCT",
+        hiringFor: ["FRESHER"],
+        overview: "A sister company.",
+        lastVerifiedAt: new Date(),
+      },
+    });
+    const copied = await copyHiringPattern(
+      from.id,
+      to.id,
+      { rounds: true, eligibility: true, pay: false },
+      admin,
+    );
+    expect(copied).toEqual({ ok: true, slug: "iq-sister" });
+    const after = await db.company.findUniqueOrThrow({
+      where: { id: to.id },
+      include: { rounds: { orderBy: { order: "asc" } }, sources: true },
+    });
+    expect(after.rounds.map((r) => [r.order, r.type])).toEqual([
+      [1, "TECHNICAL_INTERVIEW"],
+      [2, "HR_INTERVIEW"],
+    ]);
+    expect(after).toMatchObject({ minCgpa: 7, ctcFresher: null, sources: [] });
+
+    // A second copy would mix two patterns.
+    expect(
+      await copyHiringPattern(
+        from.id,
+        to.id,
+        { rounds: true, eligibility: false, pay: false },
+        admin,
+      ),
+    ).toMatchObject({ ok: false, error: expect.stringMatching(/already has rounds/) });
   });
 });
