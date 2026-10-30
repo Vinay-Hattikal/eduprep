@@ -5,7 +5,7 @@ Where the project stands right now. **Update at the end of every work session.**
 - Task list and status for every phase: [plan.md](plan.md)
 - This file: current focus, known issues, session log
 
-Last updated: 2026-10-30 (alerts, readiness, content packs, previews, CSP, bulk publish, load test, review fixes: D-059 to D-066)
+Last updated: 2026-10-30 (company workspace part 2, step 1: D-067)
 
 ---
 
@@ -113,6 +113,8 @@ See PRD section 14.
 ## Session log
 
 Newest first. One line per session: date, who, what changed, what's next.
+
+- 2026-10-30 · Claude · **Company workspace part 2, step 1 (D-067):** an Overview tab with a 9-item checklist, a progress bar and "Next:" on every tab; coverage per section topic ("Strings 0/20 · add") linking to a new question or problem with the topic picked; coding problems link back to their company and take pasted tests in bulk; "Publish everything" with a preview of what goes live and what stays draft and why. Then `/code-review` (10 findings fixed: mock blockers in the preview, archived companies, a test-numbering race, blank lines in pasted tests, shared pool rules, among others) and `/simplify`. Verified: `npm run check` (316 unit), 147/147 integration, full e2e 104 passed, 0 failed. Next: Step 2 (interview questions tab, import for a company, copy pattern, passages), after the owner decides how HR questions are stored.
 
 - 2026-10-30 · Claude · **Seven features, then a full review.** Job alerts and contest reminders (D-059); readiness counts coding by test minutes (D-060); ZIP content packs (D-061); share preview images for question, problem, company and mock pages plus a performance budget that caught a company-page layout shift (D-062); Content-Security-Policy (D-063); bulk publish, 1,200 questions in 1.7 s instead of 17.9 s (D-064); `npm run test:load`, which found submits failing at 200 simultaneous students, now fixed (D-065). A full code review found 15 bugs, all fixed with tests (D-066), then a `/simplify` pass. Verified: `npm run check` (308 unit), 144/144 integration, load test passing, full e2e 103 passed, 0 failed. Next: the owner adds content; remaining Phase 6 work waits for keys and hosting.
 
