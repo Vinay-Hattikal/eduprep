@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Link2, Link2Off, Plus, Search } from "lucide-react";
+import { CheckCircle2, Link2, Link2Off, Plus, Search, Upload } from "lucide-react";
 import { linkItemAction, unlinkItemAction } from "@/app/admin/companies/content-actions";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ContentStatusBadge, DifficultyLabel } from "@/components/shared/status-badge";
@@ -114,11 +114,18 @@ export async function LinkedContent({
             </CardDescription>
           </div>
           {canEdit ? (
-            <Button asChild data-testid={`add-${kind}`}>
-              <Link href={labels.addHref(company.slug)}>
-                <Plus /> {labels.add}
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline">
+                <Link href={`/admin/imports?company=${company.slug}`}>
+                  <Upload /> Import
+                </Link>
+              </Button>
+              <Button asChild data-testid={`add-${kind}`}>
+                <Link href={labels.addHref(company.slug)}>
+                  <Plus /> {labels.add}
+                </Link>
+              </Button>
+            </div>
           ) : null}
         </CardHeader>
         <CardContent className="space-y-4">

@@ -30,9 +30,14 @@ export async function importFile(
   fileName: string,
   data: Uint8Array,
   actorId: string,
-  { confirm = true, mode = "ADD_UPDATE" as ImportMode, publish = false } = {},
+  {
+    confirm = true,
+    mode = "ADD_UPDATE" as ImportMode,
+    publish = false,
+    companyId,
+  }: { confirm?: boolean; mode?: ImportMode; publish?: boolean; companyId?: string } = {},
 ) {
-  const batchId = await createImportBatch({ type, fileName, data, actorId, mode });
+  const batchId = await createImportBatch({ type, fileName, data, actorId, mode, companyId });
   await drainJobs();
   let batch = await db.importBatch.findUniqueOrThrow({ where: { id: batchId } });
   if (confirm && batch.status === "PREVIEW_READY") {

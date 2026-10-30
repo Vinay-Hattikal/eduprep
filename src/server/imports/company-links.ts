@@ -5,6 +5,7 @@
 // from the cell are unlinked. Files without the column leave links alone. `asked_in`, when
 // filled, sets the months on every listed company; when blank, existing months are kept.
 
+import type { ImportType } from "@/generated/prisma/enums";
 import type { CellReader } from "@/server/imports/cells";
 import type { DbReader } from "@/server/imports/types";
 import type { Prisma } from "@/generated/prisma/client";
@@ -96,4 +97,23 @@ export async function writeCompanyLinks(
       update: links.askedIn ? { askedIn: links.askedIn } : {},
     });
   }
+}
+
+/**
+ * "Import for this company" (D-067): the file types whose rows are questions, problems or
+ * interview questions, and the link field each one's imported items fill.
+ */
+export const COMPANY_IMPORT_FIELDS: Partial<
+  Record<ImportType, "questionId" | "problemId" | "designQuestionId">
+> = {
+  MCQ: "questionId",
+  CODING_BUNDLE: "problemId",
+  CODING_PROBLEMS: "problemId",
+  CODING_PACKAGE: "problemId",
+  DESIGN_QUESTIONS: "designQuestionId",
+};
+
+/** Rows with an empty companies cell are written for the import's company. */
+export function fillCompanyCells(rows: { cells: Record<string, string> }[], slug: string) {
+  for (const row of rows) if (!row.cells.companies?.trim()) row.cells.companies = slug;
 }

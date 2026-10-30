@@ -71,7 +71,14 @@ export function CompanyOverview({
             <h2>Checklist</h2>
           </CardTitle>
           <CardDescription>
-            Everything {company.name} needs before students rely on it.
+            Everything {company.name} needs before students rely on it. Have it in files?{" "}
+            <Link
+              href={`/admin/imports?company=${company.slug}`}
+              className="text-primary hover:underline"
+            >
+              Import for {company.name}
+            </Link>
+            .
           </CardDescription>
         </CardHeader>
         <CardContent>

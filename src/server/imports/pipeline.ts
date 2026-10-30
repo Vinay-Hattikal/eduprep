@@ -14,6 +14,7 @@ import {
   publishImported,
   publishesThroughJudge,
 } from "@/server/imports/publish";
+import { COMPANY_IMPORT_FIELDS, fillCompanyCells } from "@/server/imports/company-links";
 import { getImportDefinition } from "@/server/imports/registry";
 import type { CommitOutcome, RowMessage, ValidatedRow } from "@/server/imports/types";
 import { recordAudit } from "@/server/services/audit";
@@ -42,6 +43,8 @@ export async function createImportBatch(input: {
   packId?: string;
   /** False when the caller runs validation itself (content packs), so no job runs it twice. */
   queue?: boolean;
+  /** "Import for this company" (D-067): rows without companies are tagged with it. */
+  companyId?: string;
 }): Promise<string> {
   const mode = input.mode ?? "ADD_UPDATE";
   if (mode === "REPLACE" && !getImportDefinition(input.type).replace)
@@ -60,6 +63,7 @@ export async function createImportBatch(input: {
       fileSize: input.data.byteLength,
       uploadedById: input.actorId,
       packId: input.packId ?? null,
+      companyId: input.companyId ?? null,
     },
   });
   await recordAudit({
@@ -77,6 +81,7 @@ async function readBatchFile(batch: {
   fileKey: string;
   fileName: string;
   type: ImportType;
+  companyId: string | null;
 }): Promise<ParsedFile> {
   const data = await storage.get(batch.fileKey);
   if (!data)
@@ -95,6 +100,15 @@ async function readBatchFile(batch: {
       : "",
   ].filter(Boolean);
   if (problems.length) throw new ImportFileError(problems.join(" "));
+  // "Import for this company" (D-067): an empty companies cell means this company. Files without
+  // the column keep every item's links and get this company added after the commit instead.
+  if (batch.companyId && parsed.headers.includes("companies")) {
+    const company = await db.company.findUnique({
+      where: { id: batch.companyId },
+      select: { slug: true },
+    });
+    if (company) fillCompanyCells(parsed.rows, company.slug);
+  }
   return parsed;
 }
 
@@ -290,6 +304,23 @@ export async function commitBatch(batchId: string): Promise<void> {
           messages: [...row.messages, message] as Prisma.InputJsonValue,
         });
       }
+    }
+  }
+
+  // "Import for this company" without a companies column: link every imported item, unchanged
+  // ones too, keeping the companies each was already linked to.
+  const linkField = batch.companyId && COMPANY_IMPORT_FIELDS[batch.type];
+  if (linkField && !file.headers.includes("companies")) {
+    const imported = await db.importRow.findMany({
+      where: { batchId, status: "IMPORTED", entityId: { not: null } },
+      select: { entityId: true },
+    });
+    if (imported.length) {
+      await db.companyItem.createMany({
+        data: imported.map((r) => ({ companyId: batch.companyId!, [linkField]: r.entityId! })),
+        skipDuplicates: true,
+      });
+      await db.company.update({ where: { id: batch.companyId! }, data: { updatedAt: new Date() } });
     }
   }
 

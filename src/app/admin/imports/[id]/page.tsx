@@ -20,6 +20,7 @@ import {
 import { AutoRefresh } from "@/components/shared/auto-refresh";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { companyTabHref } from "@/lib/content/companies";
 import { Pagination } from "@/components/shared/pagination";
 import { PageSkeleton } from "@/components/shared/skeletons";
 import { StatCard } from "@/components/shared/stat-card";
@@ -90,7 +91,11 @@ async function BatchDetail({ params, searchParams }: PageProps<"/admin/imports/[
 
   const batch = await db.importBatch.findUnique({
     where: { id },
-    include: { uploadedBy: { select: { name: true } }, confirmedBy: { select: { name: true } } },
+    include: {
+      uploadedBy: { select: { name: true } },
+      confirmedBy: { select: { name: true } },
+      company: { select: { name: true, slug: true } },
+    },
   });
   if (!batch) notFound();
   const definition = getImportDefinition(batch.type);
@@ -122,6 +127,17 @@ async function BatchDetail({ params, searchParams }: PageProps<"/admin/imports/[
             {batch.mode === "REPLACE" ? " · Replace all" : ""} · uploaded{" "}
             {formatDateTime(batch.createdAt)}
             {batch.uploadedBy ? ` by ${batch.uploadedBy.name}` : ""}
+            {batch.company ? (
+              <>
+                {" · for "}
+                <Link
+                  href={companyTabHref(batch.company.slug)}
+                  className="text-primary hover:underline"
+                >
+                  {batch.company.name}
+                </Link>
+              </>
+            ) : null}
           </>
         }
         actions={

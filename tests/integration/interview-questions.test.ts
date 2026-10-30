@@ -111,4 +111,48 @@ describe("interview questions", () => {
     });
     expect(linked).toBeGreaterThan(1);
   });
+
+  it("imports for a company: empty cells get it, files without the column add it", async () => {
+    await importFile("TAXONOMY", "taxonomy.csv", await template("taxonomy.csv"), admin.id);
+    const other = await db.company.create({
+      data: {
+        slug: "other-co",
+        name: "Other",
+        level: "STANDARD",
+        category: "SERVICE",
+        hiringFor: ["FRESHER"],
+        overview: "Example.",
+        lastVerifiedAt: new Date(),
+      },
+    });
+    const head =
+      "external_id,subject,topic,type,question,option_a,option_b,correct,explanation,difficulty,expected_time_sec,source";
+    const row = (id: string) =>
+      `${id},quantitative-aptitude,percentages,single,What is 10% of ${id.slice(-1)}00?,1,2,A,Because.,easy,30,original`;
+
+    // An empty companies cell means the import's company; a named one stays as written.
+    const withColumn = [
+      `${head},companies`,
+      `${row("QA-IMP-0001")},`,
+      `${row("QA-IMP-0002")},other-co`,
+    ].join("\n");
+    await importFile("MCQ", "mcq.csv", Buffer.from(withColumn), admin.id, { companyId });
+    const links = async (externalId: string) =>
+      (
+        await db.companyItem.findMany({
+          where: { question: { externalId } },
+          select: { companyId: true },
+        })
+      )
+        .map((l) => l.companyId)
+        .sort();
+    expect(await links("QA-IMP-0001")).toEqual([companyId]);
+    expect(await links("QA-IMP-0002")).toEqual([other.id]);
+
+    // No companies column: every row gets the company, and keeps the links it had.
+    const withoutColumn = [head, row("QA-IMP-0002"), row("QA-IMP-0003")].join("\n");
+    await importFile("MCQ", "mcq.csv", Buffer.from(withoutColumn), admin.id, { companyId });
+    expect(await links("QA-IMP-0002")).toEqual([companyId, other.id].sort());
+    expect(await links("QA-IMP-0003")).toEqual([companyId]);
+  });
 });

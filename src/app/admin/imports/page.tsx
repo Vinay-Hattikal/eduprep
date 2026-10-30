@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
+import { companyTabHref } from "@/lib/content/companies";
 import { requirePermission } from "@/server/auth";
+import { COMPANY_IMPORT_FIELDS } from "@/server/imports/company-links";
 import { db } from "@/server/db";
 import { IMPORT_DEFINITIONS } from "@/server/imports/registry";
 
@@ -20,7 +22,7 @@ export const metadata: Metadata = { title: "Imports" };
 
 const TYPE_LABELS = Object.fromEntries(IMPORT_DEFINITIONS.map((d) => [d.type, d.label]));
 
-export default function ImportsPage() {
+export default function ImportsPage({ searchParams }: PageProps<"/admin/imports">) {
   return (
     <div className="space-y-6">
       <PageHeader
@@ -28,7 +30,7 @@ export default function ImportsPage() {
         description="Upload CSV files, or a whole content folder as a ZIP. Every file is checked first; imported content stays a draft unless you choose to publish it."
       />
       <Suspense fallback={<PageSkeleton />}>
-        <UploadCard />
+        <UploadCard searchParams={searchParams} />
       </Suspense>
       <Suspense fallback={null}>
         <PackCard />
@@ -48,9 +50,24 @@ export default function ImportsPage() {
   );
 }
 
-async function UploadCard() {
+async function UploadCard({
+  searchParams,
+}: {
+  searchParams: PageProps<"/admin/imports">["searchParams"];
+}) {
   const user = await requirePermission("imports.view");
-  const types = IMPORT_DEFINITIONS.filter((d) => can(user.roles, d.permission)).map((d) => ({
+  // "Import for this company" (D-067): from a company's workspace, only the types it applies to.
+  const { company: slug } = await searchParams;
+  const company =
+    typeof slug === "string"
+      ? await db.company.findUnique({
+          where: { slug },
+          select: { id: true, name: true, slug: true },
+        })
+      : null;
+  const types = IMPORT_DEFINITIONS.filter(
+    (d) => can(user.roles, d.permission) && (!company || COMPANY_IMPORT_FIELDS[d.type]),
+  ).map((d) => ({
     type: d.type,
     label: d.label,
     description: d.description,
@@ -63,15 +80,27 @@ async function UploadCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Upload a file</CardTitle>
+        <CardTitle>{company ? `Upload a file for ${company.name}` : "Upload a file"}</CardTitle>
         <CardDescription>
-          Import in the numbered order: taxonomy, companies, then questions and coding problems.
-          Re-upload a whole file whenever you edit it: only new and changed rows are saved, and
-          exact duplicates are refused.
+          {company ? (
+            <>
+              Every imported item is tagged with {company.name}: rows with an empty companies cell
+              get it, and files without that column add it to every row, keeping other companies.{" "}
+              <Link href={companyTabHref(company.slug)} className="text-primary hover:underline">
+                Back to {company.name}
+              </Link>
+            </>
+          ) : (
+            "Import in the numbered order: taxonomy, companies, then questions and coding problems. Re-upload a whole file whenever you edit it: only new and changed rows are saved, and exact duplicates are refused."
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <UploadForm types={types} canReplace={can(user.roles, "settings.manage")} />
+        <UploadForm
+          types={types}
+          canReplace={can(user.roles, "settings.manage") && !company}
+          companyId={company?.id}
+        />
       </CardContent>
     </Card>
   );

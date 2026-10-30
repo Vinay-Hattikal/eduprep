@@ -26,10 +26,13 @@ const initialState: UploadState = {};
 export function UploadForm({
   types,
   canReplace,
+  companyId,
 }: {
   types: ImportTypeOption[];
   /** Super admins can replace all content of a type. */
   canReplace: boolean;
+  /** "Import for this company" (D-067). */
+  companyId?: string;
 }) {
   const [state, formAction, pending] = useActionState(uploadImportAction, initialState);
   const [selected, setSelected] = useState(types[0]?.type ?? "");
@@ -40,7 +43,8 @@ export function UploadForm({
   const legacy = types.filter((t) => t.legacy);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-4" aria-label="Upload a file">
+      {companyId ? <input type="hidden" name="companyId" value={companyId} /> : null}
       {state.error ? (
         <Alert variant="destructive">
           <AlertDescription>{state.error}</AlertDescription>

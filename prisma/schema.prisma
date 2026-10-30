@@ -361,16 +361,17 @@ model Company {
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
 
-  rounds       CompanyRound[]
-  sources      CompanySource[]
-  items        CompanyItem[]
-  targets      TargetCompany[]
-  tests        TestBlueprint[]
-  bookings     Booking[]
-  entitlements Entitlement[]
-  experiences  Experience[]
-  driveReports DriveReport[]
-  jobPostings  JobPosting[]
+  rounds        CompanyRound[]
+  sources       CompanySource[]
+  items         CompanyItem[]
+  targets       TargetCompany[]
+  tests         TestBlueprint[]
+  bookings      Booking[]
+  entitlements  Entitlement[]
+  experiences   Experience[]
+  driveReports  DriveReport[]
+  jobPostings   JobPosting[]
+  importBatches ImportBatch[]
 
   @@map("companies")
 }
@@ -529,6 +530,7 @@ model ImportBatch {
   publishAfterImport Boolean      @default(false) @map("publish_after_import") // D-056
   publishedCount     Int          @default(0) @map("published_count") // items published by the import
   packId             String?      @map("pack_id") // set when the file came in a content pack (D-061)
+  companyId          String?      @map("company_id") // "Import for this company" (D-067)
   error              String? // file-level problem: unreadable file, missing columns, crash
   createdAt          DateTime     @default(now()) @map("created_at")
   validatedAt        DateTime?    @map("validated_at")
@@ -541,6 +543,8 @@ model ImportBatch {
   confirmedBy User?        @relation("ImportConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
   rows        ImportRow[]
   questions   Question[]
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@map("import_batches")

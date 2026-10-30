@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Link2, Link2Off, Plus, Search } from "lucide-react";
+import { CheckCircle2, Link2, Link2Off, Plus, Search, Upload } from "lucide-react";
 import {
   linkItemAction,
   setLinkRoundAction,
@@ -87,10 +87,21 @@ export async function InterviewQuestions({
           </AlertTitle>
         </Alert>
       ) : null}
-      <p className="text-sm text-muted-foreground">
-        Technical, HR and design questions asked in {company.name}&apos;s interviews, by round.
-        {rounds.length ? "" : " Add the interview rounds on the Hiring process tab to group them."}
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <p className="max-w-prose text-sm text-muted-foreground">
+          Technical, HR and design questions asked in {company.name}&apos;s interviews, by round.
+          {rounds.length
+            ? ""
+            : " Add the interview rounds on the Hiring process tab to group them."}
+        </p>
+        {canEdit ? (
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/admin/imports?company=${company.slug}`}>
+              <Upload /> Import
+            </Link>
+          </Button>
+        ) : null}
+      </div>
 
       {groups.map((group) => (
         <Card key={group.key} data-testid={`interview-round-${group.key}`}>
