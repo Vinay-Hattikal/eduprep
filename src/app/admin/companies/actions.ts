@@ -72,8 +72,14 @@ export async function publishCompanyContentAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const slug = String(formData.get("slug") ?? "");
   const result = await publishCompanyContent(id, user);
+  if ("error" in result)
+    redirect(`/admin/companies/${slug}?error=${encodeURIComponent(result.error)}`);
   revalidatePath("/admin/companies");
   refreshPublicPages();
   const summary = [result.questions, result.problems, result.mocks, result.company ? 1 : 0];
-  redirect(`/admin/companies/${slug}?published_all=${summary.join(".")}`);
+  // Why anything stayed draft, shown once on the page (kept short for the URL).
+  const notes = result.notes.slice(0, 10).join("\n").slice(0, 1500);
+  redirect(
+    `/admin/companies/${slug}?published_all=${summary.join(".")}${notes ? `&notes=${encodeURIComponent(notes)}` : ""}`,
+  );
 }

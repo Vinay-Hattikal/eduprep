@@ -379,13 +379,15 @@ export async function addTestCases(
   actor: Actor,
 ) {
   if (!tests.length) return;
-  const last = await db.problemTestCase.findFirst({
-    where: { problemId },
-    orderBy: { order: "desc" },
-    select: { order: true },
-  });
-  const first = (last?.order ?? 0) + 1;
   await db.$transaction(async (tx) => {
+    // Locks the problem so two adds at once number their tests one after the other.
+    await tx.$executeRaw`SELECT 1 FROM problems WHERE id = ${problemId} FOR UPDATE`;
+    const last = await tx.problemTestCase.findFirst({
+      where: { problemId },
+      orderBy: { order: "desc" },
+      select: { order: true },
+    });
+    const first = (last?.order ?? 0) + 1;
     await tx.problemTestCase.createMany({
       data: tests.map((t, i) => ({
         ...t,

@@ -104,11 +104,17 @@ describe("readinessChecklist", () => {
 
 describe("parseTestBlocks", () => {
   it("reads input/output pairs separated by === and ---", () => {
-    expect(parseTestBlocks("1 2\n===\n3\n---\n\n4 5\r\n===\r\n9\n")).toEqual({
+    expect(parseTestBlocks("1 2\n===\n3\n---\n4 5\r\n===\r\n9\n")).toEqual({
       tests: [
         { input: "1 2", output: "3" },
         { input: "4 5", output: "9" },
       ],
+    });
+  });
+
+  it("keeps blank lines that are part of a test", () => {
+    expect(parseTestBlocks("a\n\nb\n===\n\nx")).toEqual({
+      tests: [{ input: "a\n\nb", output: "\nx" }],
     });
   });
 

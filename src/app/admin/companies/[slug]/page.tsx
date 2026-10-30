@@ -69,6 +69,7 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
   ]);
   const publishedAll =
     typeof query.published_all === "string" ? query.published_all.split(".").map(Number) : null;
+  const publishNotes = typeof query.notes === "string" ? query.notes.split("\n") : [];
   const actions = companyActions(company.status, user.roles);
   const error = typeof query.error === "string" ? query.error : null;
   const today = todayUtc().toISOString().slice(0, 10);
@@ -108,8 +109,16 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
           <AlertTitle>Published what was ready</AlertTitle>
           <AlertDescription>
             {publishedAll[0]} questions, {publishedAll[1]} coding problems, {publishedAll[2]} mock
-            tests{publishedAll[3] ? " and the company" : ""}. Anything still draft is listed below
-            with the reason.
+            tests{publishedAll[3] ? " and the company" : ""}.
+            {publishNotes.length ? (
+              <ul className="mt-2 list-disc space-y-0.5 pl-5">
+                {publishNotes.map((note, i) => (
+                  <li key={i} className="break-words">
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -187,11 +196,11 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
         </ul>
       </nav>
 
-      {tab === "overview" ? (
+      {tab === "overview" && plan ? (
         <CompanyOverview
           company={company}
           readiness={readiness}
-          plan={plan!}
+          plan={plan}
           canPublish={can(user.roles, "companies.publish") && company.status !== "ARCHIVED"}
         />
       ) : null}

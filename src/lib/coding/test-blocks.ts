@@ -13,14 +13,15 @@ const MAX_FIELD_CHARS = 100_000;
 
 export type PastedTest = { input: string; output: string };
 
-const trimBlankLines = (text: string) => text.replace(/^\n+|\n+$/g, "");
+/** Drops the one line break next to a separator; any other blank lines are test data. */
+const unwrap = (part: string) => part.replace(/^\n/, "").replace(/\n$/, "");
 
 export function parseTestBlocks(text: string): { tests: PastedTest[] } | { error: string } {
   const blocks = text
     .replace(/\r\n/g, "\n")
     .split(/^---[ \t]*$/m)
-    .map(trimBlankLines)
-    .filter(Boolean);
+    .map(unwrap)
+    .filter((block) => block.trim());
   if (!blocks.length) return { error: "Paste at least one test." };
   if (blocks.length > MAX_PASTED_TESTS)
     return { error: `At most ${MAX_PASTED_TESTS} tests at once. For more, import a ZIP package.` };
@@ -28,9 +29,11 @@ export function parseTestBlocks(text: string): { tests: PastedTest[] } | { error
   for (const [i, block] of blocks.entries()) {
     const parts = block.split(/^===[ \t]*$/m);
     if (parts.length !== 2)
-      return { error: `Test ${i + 1}: put a line with only === between the input and the output.` };
-    const [input, output] = parts.map(trimBlankLines) as [string, string];
-    if (!output) return { error: `Test ${i + 1}: the expected output is empty.` };
+      return {
+        error: `Test ${i + 1}: put a line with only === between the input and the output (data with such a line: use "Add test").`,
+      };
+    const [input, output] = parts.map(unwrap) as [string, string];
+    if (!output.trim()) return { error: `Test ${i + 1}: the expected output is empty.` };
     if (input.length > MAX_FIELD_CHARS || output.length > MAX_FIELD_CHARS)
       return { error: `Test ${i + 1} is over 100 KB. Import a ZIP package for big tests.` };
     tests.push({ input, output });

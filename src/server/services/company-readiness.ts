@@ -1,7 +1,6 @@
 import "server-only";
 
 import {
-  coverageKey,
   coverageNeeds,
   nextStep,
   readinessChecklist,
@@ -9,6 +8,7 @@ import {
 } from "@/lib/content/company-readiness";
 import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { db } from "@/server/db";
+import { problemPool, questionPool } from "@/server/services/blueprints";
 import type { getCompanyBySlug } from "@/server/services/companies";
 
 // The admin Overview tab's checklist (D-067): grouped counts, a handful of queries per company.
@@ -19,56 +19,44 @@ type Company = NonNullable<Awaited<ReturnType<typeof getCompanyBySlug>>>;
 async function sectionCoverage(company: Company): Promise<Coverage[]> {
   const needs = [...coverageNeeds(company.rounds).values()];
   const mcqTopics = needs.filter((n) => n.type === "MCQ").map((n) => n.topicId);
-  const codingTopics = needs.filter((n) => n.type === "CODING").map((n) => n.topicId);
   const tagged = { companies: { some: { companyId: company.id } } };
-  const published = { status: "PUBLISHED" as const };
-  const checkedProblems = { ...published, validatedAt: { not: null } };
+  const count = (rows: { topicId: string; _count: { _all: number } }[], topicId: string) =>
+    rows.find((r) => r.topicId === topicId)?._count._all ?? 0;
 
-  const [mcqAll, mcqTagged, problems] = await Promise.all([
+  // MCQs: one grouped count per question. Coding sections have a few topics: one count each.
+  const [mcqAll, mcqTagged, coding] = await Promise.all([
     mcqTopics.length
       ? db.question.groupBy({
           by: ["topicId"],
-          where: { ...published, topicId: { in: mcqTopics } },
+          where: questionPool({ in: mcqTopics }),
           _count: { _all: true },
         })
       : [],
     mcqTopics.length
       ? db.question.groupBy({
           by: ["topicId"],
-          where: { ...published, ...tagged, topicId: { in: mcqTopics } },
+          where: { ...questionPool({ in: mcqTopics }), ...tagged },
           _count: { _all: true },
         })
       : [],
-    // A problem can sit in several topics, so count per topic from the problem's topic list.
-    codingTopics.length
-      ? db.problem.findMany({
-          where: { ...checkedProblems, topics: { some: { id: { in: codingTopics } } } },
-          select: {
-            topics: { where: { id: { in: codingTopics } }, select: { id: true } },
-            companies: { where: { companyId: company.id }, select: { id: true } },
-          },
-        })
-      : [],
+    Promise.all(
+      needs
+        .filter((n) => n.type === "CODING")
+        .map(async (n) => {
+          const [available, mine] = await Promise.all([
+            db.problem.count({ where: problemPool(n.topicId) }),
+            db.problem.count({ where: { ...problemPool(n.topicId), ...tagged } }),
+          ]);
+          return [n.topicId, { available, tagged: mine }] as const;
+        }),
+    ).then((rows) => new Map(rows)),
   ]);
 
-  const counts = new Map<string, { available: number; tagged: number }>();
-  const add = (key: string, field: "available" | "tagged", n: number) => {
-    const entry = counts.get(key) ?? { available: 0, tagged: 0 };
-    entry[field] += n;
-    counts.set(key, entry);
-  };
-  for (const row of mcqAll) add(coverageKey("MCQ", row.topicId), "available", row._count._all);
-  for (const row of mcqTagged) add(coverageKey("MCQ", row.topicId), "tagged", row._count._all);
-  for (const problem of problems)
-    for (const topic of problem.topics) {
-      add(coverageKey("CODING", topic.id), "available", 1);
-      if (problem.companies.length) add(coverageKey("CODING", topic.id), "tagged", 1);
-    }
-
-  return needs.map((n) => ({
-    ...n,
-    ...(counts.get(coverageKey(n.type, n.topicId)) ?? { available: 0, tagged: 0 }),
-  }));
+  return needs.map((n) =>
+    n.type === "MCQ"
+      ? { ...n, available: count(mcqAll, n.topicId), tagged: count(mcqTagged, n.topicId) }
+      : { ...n, ...coding.get(n.topicId)! },
+  );
 }
 
 /** The company's checklist, progress and next step. */

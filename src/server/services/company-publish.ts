@@ -5,7 +5,7 @@ import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import type { Role } from "@/generated/prisma/enums";
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/services/audit";
-import { transitionBlueprint } from "@/server/services/blueprints";
+import { publishProblems, transitionBlueprint } from "@/server/services/blueprints";
 import { setCompanyStatus } from "@/server/services/companies";
 import { transitionProblem } from "@/server/services/problems";
 import { publishQuestions } from "@/server/services/questions";
@@ -15,11 +15,11 @@ import { publishQuestions } from "@/server/services/questions";
 
 type Actor = { id: string; roles: Role[] };
 
-/** What publishing would do now, for the confirmation. */
+/** What publishing would do now, for the confirmation. Null for a missing or archived company. */
 export async function companyPublishPlan(companyId: string) {
   const linked = { companies: { some: { companyId } }, status: { in: DRAFT_STATUSES } };
   const [company, questions, problems, mocks] = await Promise.all([
-    db.company.findUniqueOrThrow({
+    db.company.findUnique({
       where: { id: companyId },
       select: { status: true, _count: { select: { sources: true } } },
     }),
@@ -34,6 +34,7 @@ export async function companyPublishPlan(companyId: string) {
       select: { id: true, title: true },
     }),
   ]);
+  if (!company || company.status === "ARCHIVED") return null;
   const failing = questions.filter((q) => hasErrors(checkQuestion(q)));
   return {
     questions: {
@@ -44,15 +45,19 @@ export async function companyPublishPlan(companyId: string) {
       ready: problems.filter((p) => p.validatedAt).map((p) => ({ id: p.id, title: p.title })),
       unchecked: problems.filter((p) => !p.validatedAt).map((p) => p.title),
     },
-    mocks,
+    // A mock publishes only when every topic has enough live items (the questions above may fill
+    // them, so it's attempted anyway); its blockers as they stand now.
+    mocks: await Promise.all(
+      mocks.map(async (m) => ({ ...m, blockers: await publishProblems(m.id) })),
+    ),
     company: {
-      publish: company.status !== "PUBLISHED" && company.status !== "ARCHIVED",
+      publish: company.status !== "PUBLISHED",
       blocker: company._count.sources ? null : "Add at least one source before publishing.",
     },
   };
 }
 
-export type CompanyPublishPlan = Awaited<ReturnType<typeof companyPublishPlan>>;
+export type CompanyPublishPlan = NonNullable<Awaited<ReturnType<typeof companyPublishPlan>>>;
 
 export type CompanyPublishResult = {
   questions: number;
@@ -70,8 +75,9 @@ export type CompanyPublishResult = {
 export async function publishCompanyContent(
   companyId: string,
   actor: Actor,
-): Promise<CompanyPublishResult> {
+): Promise<CompanyPublishResult | { error: string }> {
   const plan = await companyPublishPlan(companyId);
+  if (!plan) return { error: "This company no longer exists or is archived." };
   const notes: string[] = [];
 
   const questions = await publishQuestions(plan.questions.ready, actor);

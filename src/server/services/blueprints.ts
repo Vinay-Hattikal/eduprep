@@ -1,6 +1,7 @@
 import "server-only";
 
-import { splitAcrossTopics } from "@/lib/content/company-readiness";
+import { splitAcrossTopics, TEST_ROUND_TYPES } from "@/lib/content/company-readiness";
+import type { Prisma } from "@/generated/prisma/client";
 import type { ContentStatus, SectionType } from "@/generated/prisma/enums";
 import type { Actor } from "@/lib/content/workflow";
 import type { BlueprintForm, BlueprintSectionForm } from "@/schemas/blueprint";
@@ -167,23 +168,33 @@ export async function publishProblems(blueprintId: string): Promise<string[]> {
   return problems;
 }
 
-function countPool(
-  type: SectionType,
+type PoolDifficulty = BlueprintSectionForm["rules"][number]["difficulty"];
+
+/** What a mock section draws questions from (draw() in tests.ts uses the same rules). */
+export const questionPool = (
+  topicId: string | { in: string[] },
+  difficulty: PoolDifficulty = null,
+): Prisma.QuestionWhereInput => ({
+  status: "PUBLISHED",
+  topicId,
+  ...(difficulty && { difficulty }),
+});
+
+/** What a coding section draws problems from: published and passed the judge check. */
+export const problemPool = (
   topicId: string,
-  difficulty: BlueprintSectionForm["rules"][number]["difficulty"],
-) {
+  difficulty: PoolDifficulty = null,
+): Prisma.ProblemWhereInput => ({
+  status: "PUBLISHED",
+  validatedAt: { not: null },
+  topics: { some: { id: topicId } },
+  ...(difficulty && { difficulty }),
+});
+
+function countPool(type: SectionType, topicId: string, difficulty: PoolDifficulty) {
   return type === "MCQ"
-    ? db.question.count({
-        where: { status: "PUBLISHED", topicId, ...(difficulty && { difficulty }) },
-      })
-    : db.problem.count({
-        where: {
-          status: "PUBLISHED",
-          validatedAt: { not: null },
-          topics: { some: { id: topicId } },
-          ...(difficulty && { difficulty }),
-        },
-      });
+    ? db.question.count({ where: questionPool(topicId, difficulty) })
+    : db.problem.count({ where: problemPool(topicId, difficulty) });
 }
 
 export type BlueprintAction = "publish" | "unpublish" | "archive" | "restore";
@@ -223,7 +234,7 @@ export async function draftFromCompany(companyId: string): Promise<BlueprintForm
     where: { id: companyId },
     include: {
       rounds: {
-        where: { type: { in: ["ONLINE_TEST", "CODING_TEST"] } },
+        where: { type: { in: [...TEST_ROUND_TYPES] } },
         orderBy: { order: "asc" },
         include: {
           sections: { orderBy: { order: "asc" }, include: { topics: { select: { id: true } } } },

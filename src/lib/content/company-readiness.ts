@@ -178,19 +178,23 @@ export function readinessChecklist(input: ReadinessInput): ChecklistItem[] {
     {
       key: "coverage",
       label: "Enough questions for a mock",
-      done: sections.length > 0 && short.length === 0,
+      done: sections.length > 0 && noTopics === 0 && short.length === 0,
       detail: !sections.length
         ? "Add test sections first"
-        : short.length
-          ? `Short: ${short
-              .slice(0, 3)
-              .map((c) => `${c.name} ${c.available}/${c.need}`)
-              .join(", ")}${short.length > 3 ? ` and ${short.length - 3} more` : ""}`
-          : "Every section topic has enough published items",
+        : noTopics
+          ? "Pick topics for every section first"
+          : short.length
+            ? `Short: ${short
+                .slice(0, 3)
+                .map((c) => `${c.name} ${c.available}/${c.need}`)
+                .join(", ")}${short.length > 3 ? ` and ${short.length - 3} more` : ""}`
+            : "Every section topic has enough published items",
       tab: "process",
       next: short.length
         ? `Add ${short[0]!.type === "CODING" ? "problems" : "questions"} in ${short[0]!.name} (${short[0]!.available} of ${short[0]!.need})`
-        : "Add test sections first",
+        : sections.length
+          ? "Pick the topics each section covers"
+          : "Add test sections first",
     },
     {
       key: "mock",

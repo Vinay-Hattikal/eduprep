@@ -57,18 +57,22 @@ export function CompanyOverview({
   plan: CompanyPublishPlan;
   canPublish: boolean;
 }) {
+  const readyMocks = plan.mocks.filter((m) => !m.blockers.length);
   const goLive = [
     plan.questions.ready.length ? `${plan.questions.ready.length} questions` : null,
     plan.problems.ready.length ? `${plan.problems.ready.length} coding problems` : null,
     plan.company.publish && !plan.company.blocker ? "the company" : null,
-    plan.mocks.length
-      ? `${plan.mocks.length} mock test${plan.mocks.length === 1 ? "" : "s"}`
+    readyMocks.length
+      ? `${readyMocks.length} mock test${readyMocks.length === 1 ? "" : "s"}`
       : null,
   ].filter(Boolean);
   const staysDraft = [
     ...plan.questions.failing.map((id) => `${id}: fails the automatic checks`),
     ...plan.problems.unchecked.map((title) => `${title}: hasn't passed the judge check`),
     ...(plan.company.publish && plan.company.blocker ? [`Company: ${plan.company.blocker}`] : []),
+    ...plan.mocks
+      .filter((m) => m.blockers.length)
+      .map((m) => `${m.title}: ${m.blockers[0]} (publishing the drafts above may fill it)`),
   ];
 
   return (
@@ -137,8 +141,8 @@ export function CompanyOverview({
             <div>
               <p className="font-medium">Stays draft:</p>
               <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted-foreground">
-                {staysDraft.slice(0, 8).map((line) => (
-                  <li key={line} className="break-words">
+                {staysDraft.slice(0, 8).map((line, i) => (
+                  <li key={i} className="break-words">
                     {line}
                   </li>
                 ))}
@@ -153,7 +157,7 @@ export function CompanyOverview({
               <Button
                 type="submit"
                 className="w-full"
-                disabled={!goLive.length}
+                disabled={!goLive.length && !plan.mocks.length}
                 data-testid="publish-everything"
               >
                 <Rocket /> Publish everything

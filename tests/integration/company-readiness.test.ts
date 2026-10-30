@@ -97,15 +97,18 @@ describe("company readiness", () => {
   });
 
   it("publishes what's ready and explains what stays draft", async () => {
-    const before = await companyPublishPlan(companyId);
+    const before = (await companyPublishPlan(companyId))!;
     expect(before.questions.ready).toHaveLength(2);
     expect(before.questions.failing).toEqual(["QA-RC-3"]);
     expect(before.company.blocker).toMatch(/source/);
+    // The mock needs the two questions that are still drafts.
+    expect(before.mocks[0]!.blockers.join()).toMatch(/needs 2, only 0/);
 
     await db.companySource.create({
       data: { companyId, label: "Careers", url: "https://example.com/c", checkedOn: new Date() },
     });
     const result = await publishCompanyContent(companyId, admin);
+    if ("error" in result) throw new Error(result.error);
     expect(result).toMatchObject({ questions: 2, problems: 0, mocks: 1, company: true });
     expect(result.notes).toEqual([
       "QA-RC-3 fails the automatic checks. Open it and fix the errors.",
@@ -115,5 +118,13 @@ describe("company readiness", () => {
     expect(r.items.filter((i) => !i.done).map((i) => i.key)).toEqual([]);
     expect(r.coverage[0]).toMatchObject({ available: 2, tagged: 2 });
     expect(await db.auditLog.count({ where: { action: "company.publish_all" } })).toBe(1);
+  });
+
+  it("refuses an archived company", async () => {
+    await db.company.update({ where: { id: companyId }, data: { status: "ARCHIVED" } });
+    expect(await companyPublishPlan(companyId)).toBeNull();
+    expect(await publishCompanyContent(companyId, admin)).toEqual({
+      error: "This company no longer exists or is archived.",
+    });
   });
 });
