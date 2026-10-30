@@ -14,7 +14,7 @@ import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { companyTabHref } from "@/lib/content/companies";
 import { requirePermission } from "@/server/auth";
-import { COMPANY_IMPORT_FIELDS } from "@/server/imports/company-links";
+import { COMPANY_IMPORT_KINDS } from "@/server/imports/company-links";
 import { db } from "@/server/db";
 import { IMPORT_DEFINITIONS } from "@/server/imports/registry";
 
@@ -66,7 +66,7 @@ async function UploadCard({
         })
       : null;
   const types = IMPORT_DEFINITIONS.filter(
-    (d) => can(user.roles, d.permission) && (!company || COMPANY_IMPORT_FIELDS[d.type]),
+    (d) => can(user.roles, d.permission) && (!company || COMPANY_IMPORT_KINDS[d.type]),
   ).map((d) => ({
     type: d.type,
     label: d.label,

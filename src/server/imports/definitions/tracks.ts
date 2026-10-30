@@ -3,6 +3,18 @@
 
 import type { Difficulty, DesignKind, InterviewAudience } from "@/generated/prisma/enums";
 import { CellReader } from "@/server/imports/cells";
+import {
+  COMPANY_LINK_COLUMNS,
+  hasCompanyColumn,
+  linksChanged,
+  loadCompanySlugs,
+  readCompanyLinks,
+  warnUnlinked,
+  writeCompanyLinks,
+  type CompanyLinks,
+  type ExistingLink,
+} from "@/server/imports/company-links";
+import { todayUtc } from "@/server/imports/definitions/companies";
 import type { ParsedRow } from "@/server/imports/parse";
 import {
   finishRow,
@@ -171,7 +183,7 @@ export const roleTrackImport: ImportDefinition<TrackValue> = {
 
 // ---------- design questions ----------
 
-export type DesignValue = {
+export type DesignContent = {
   externalId: string;
   slug: string;
   kind: DesignKind;
@@ -182,16 +194,22 @@ export type DesignValue = {
   approach: string;
   tradeoffs: string;
   followUps: string | null;
-  companies: string[];
   tracks: string[];
-  /** False when only new company links come in: the question itself isn't touched (D-054). */
+};
+
+export type DesignValue = DesignContent & {
+  /** The companies column, like question and coding files (D-054, D-067). */
+  links?: CompanyLinks;
+  /** False when only the company links changed: the question itself isn't touched. */
   contentChanged?: boolean;
 };
 
 export type DesignContext = {
-  companies: Set<string>;
+  companies: Map<string, { id: string }>;
+  companyColumn: boolean;
+  today: Date;
   tracks: Set<string>;
-  existing: Map<string, DesignValue & { id: string }>;
+  existing: Map<string, DesignContent & { id: string; links: ExistingLink[] }>;
   slugs: Map<string, string>; // slug → externalId
 };
 
@@ -216,9 +234,7 @@ export function validateDesignRows(
     const approach = r.markdown("approach");
     const tradeoffs = r.markdown("tradeoffs");
     const followUps = r.markdown("follow_ups", { required: false }) ?? null;
-    const companies = r.list("companies");
-    for (const c of companies)
-      if (!ctx.companies.has(c)) r.warn("companies", `"${c}" isn't a company yet; it won't link.`);
+    const links = readCompanyLinks(r, ctx.companyColumn, ctx.companies, ctx.today);
     const tracks = r.list("tracks");
     for (const t of tracks)
       if (!ctx.tracks.has(t)) r.warn("tracks", `"${t}" isn't a role track yet.`);
@@ -236,7 +252,7 @@ export function validateDesignRows(
     ) {
       return finishRow<DesignValue>(row, r.messages, undefined, null);
     }
-    const value: DesignValue = {
+    const content: DesignContent = {
       externalId,
       slug,
       kind,
@@ -247,40 +263,43 @@ export function validateDesignRows(
       approach,
       tradeoffs,
       followUps,
-      companies,
       tracks,
     };
     const existing = ctx.existing.get(externalId);
-    // Links are added, never removed, by an import, and links made in the admin panel stay, so
-    // the row changes something only if its content differs or it names a new company.
-    const contentChanged =
-      !existing ||
-      !sameValues({ ...existing, id: undefined, companies: [] }, { ...value, companies: [] });
-    const newLinks = companies.filter(
-      (c) => ctx.companies.has(c) && !existing?.companies.includes(c),
+    const contentSame =
+      !!existing && sameValues({ ...existing, id: undefined, links: undefined }, content);
+    const linksDiffer = linksChanged(links, existing?.links ?? []);
+    warnUnlinked(r, links, existing?.links ?? [], ctx.companies);
+    const action = !existing ? "CREATE" : contentSame && !linksDiffer ? "UNCHANGED" : "UPDATE";
+    return finishRow(
+      row,
+      r.messages,
+      { ...content, links, contentChanged: !contentSame },
+      action,
+      existing?.id,
     );
-    const action = !existing
-      ? "CREATE"
-      : contentChanged || newLinks.length
-        ? "UPDATE"
-        : "UNCHANGED";
-    return finishRow(row, r.messages, { ...value, contentChanged }, action, existing?.id);
   });
 }
 
-async function designContext(db: DbReader, rows: ParsedRow[]): Promise<DesignContext> {
+async function designContext(
+  db: DbReader,
+  rows: ParsedRow[],
+  headers: readonly string[],
+): Promise<DesignContext> {
   const ids = rows.map((r) => r.cells.external_id?.trim() ?? "");
   const [companies, tracks, existing, slugs] = await Promise.all([
-    db.company.findMany({ select: { slug: true } }),
+    loadCompanySlugs(db),
     db.roleTrack.findMany({ select: { slug: true } }),
     db.designQuestion.findMany({
       where: { externalId: { in: ids } },
-      include: { companies: { select: { company: { select: { slug: true } } } } },
+      include: { companies: { select: { companyId: true, askedIn: true } } },
     }),
     db.designQuestion.findMany({ select: { slug: true, externalId: true } }),
   ]);
   return {
-    companies: new Set(companies.map((c) => c.slug)),
+    companies,
+    companyColumn: hasCompanyColumn(headers),
+    today: todayUtc(),
     tracks: new Set(tracks.map((t) => t.slug)),
     existing: new Map(
       existing.map((q) => [
@@ -297,8 +316,8 @@ async function designContext(db: DbReader, rows: ParsedRow[]): Promise<DesignCon
           approach: q.approach,
           tradeoffs: q.tradeoffs,
           followUps: q.followUps,
-          companies: q.companies.map((c) => c.company.slug),
           tracks: q.tracks,
+          links: q.companies,
         },
       ]),
     ),
@@ -309,43 +328,36 @@ async function designContext(db: DbReader, rows: ParsedRow[]): Promise<DesignCon
 export const designQuestionImport: ImportDefinition<DesignValue> = {
   type: "DESIGN_QUESTIONS",
   label: "Design questions",
-  description: "System design and low-level design questions. Imported as drafts.",
+  description:
+    "System design, low-level design, technical and HR interview questions. Imported as drafts.",
   permission: "content.edit",
   template: "design/design-questions.csv",
   allowZip: false,
   columns: [
-    "external_id",
-    "slug",
-    "kind",
-    "title",
-    "difficulty",
-    "prompt",
-    "requirements",
-    "approach",
-    "tradeoffs",
-    "follow_ups",
-    "companies",
-    "tracks",
-  ].map((name) => ({ name, required: !["follow_ups", "companies", "tracks"].includes(name) })),
-  async validate(rows, _file, db) {
-    return validateDesignRows(rows, await designContext(db, rows));
+    ...[
+      "external_id",
+      "slug",
+      "kind",
+      "title",
+      "difficulty",
+      "prompt",
+      "requirements",
+      "approach",
+      "tradeoffs",
+      "follow_ups",
+      "tracks",
+    ].map((name) => ({ name, required: !["follow_ups", "tracks"].includes(name) })),
+    ...COMPANY_LINK_COLUMNS,
+  ],
+  async validate(rows, file, db) {
+    return validateDesignRows(rows, await designContext(db, rows, file.headers));
   },
   async commit(rows, { tx, batchId }) {
     const outcomes: CommitOutcome[] = [];
-    const slugs = [...new Set(rows.flatMap((row) => row.value!.companies))];
-    const companyIds = new Map(
-      (
-        await tx.company.findMany({
-          where: { slug: { in: slugs } },
-          select: { id: true, slug: true },
-        })
-      ).map((c) => [c.slug, c.id]),
-    );
-    const links: { companyId: string; designQuestionId: string }[] = [];
     for (const row of rows) {
-      const { companies, contentChanged = true, ...value } = row.value!;
-      // Imports never publish (D-010): changed questions go back to draft. A row that only adds
-      // companies leaves the question as it is.
+      const { links = null, contentChanged = true, ...value } = row.value!;
+      // Imports never publish (D-010): changed questions go back to draft. A row that only
+      // changes companies leaves the question as it is.
       const question = contentChanged
         ? await tx.designQuestion.upsert({
             where: { externalId: value.externalId },
@@ -357,14 +369,9 @@ export const designQuestionImport: ImportDefinition<DesignValue> = {
             where: { externalId: value.externalId },
             select: { id: true },
           });
-      // Named companies get a link; links added in the admin panel are kept (D-054, D-067).
-      for (const slug of companies) {
-        const companyId = companyIds.get(slug);
-        if (companyId) links.push({ companyId, designQuestionId: question.id });
-      }
+      await writeCompanyLinks(tx, { designQuestionId: question.id }, links);
       outcomes.push({ rowNumber: row.rowNumber, entityId: question.id, action: row.action! });
     }
-    if (links.length) await tx.companyItem.createMany({ data: links, skipDuplicates: true });
     return outcomes;
   },
 };

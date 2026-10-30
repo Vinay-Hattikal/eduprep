@@ -4,7 +4,7 @@ import { publishCompanyContentAction } from "@/app/admin/companies/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { companyTabHref } from "@/lib/content/companies";
+import { companyImportHref, companyTabHref } from "@/lib/content/companies";
 import type { CompanyPublishPlan } from "@/server/services/company-publish";
 import type { CompanyReadiness } from "@/server/services/company-readiness";
 
@@ -72,10 +72,7 @@ export function CompanyOverview({
           </CardTitle>
           <CardDescription>
             Everything {company.name} needs before students rely on it. Have it in files?{" "}
-            <Link
-              href={`/admin/imports?company=${company.slug}`}
-              className="text-primary hover:underline"
-            >
+            <Link href={companyImportHref(company.slug)} className="text-primary hover:underline">
               Import for {company.name}
             </Link>
             .

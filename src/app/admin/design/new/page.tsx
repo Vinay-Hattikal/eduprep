@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { DesignKind } from "@/generated/prisma/enums";
 import { ArrowLeft } from "lucide-react";
 import { DesignForm } from "@/app/admin/design/design-form";
 import { PageHeader } from "@/components/shared/page-header";
@@ -9,6 +8,7 @@ import { PageSkeleton } from "@/components/shared/skeletons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { companyTabHref } from "@/lib/content/companies";
+import { DESIGN_KINDS } from "@/lib/content/design";
 import { requirePermission } from "@/server/auth";
 import { designFormOptions } from "@/server/services/design-questions";
 
@@ -24,8 +24,6 @@ export default function NewDesignQuestionPage({ searchParams }: PageProps<"/admi
   );
 }
 
-const KINDS = Object.values(DesignKind);
-
 /**
  * A blank design or interview question. From a company's Interview questions tab (D-067):
  * `?company=<slug>` tags it with that company and `?kind=TECHNICAL|HR` picks the kind.
@@ -39,7 +37,7 @@ async function NewDesignQuestion({
   const query = await searchParams;
   const { tracks, companies } = await designFormOptions();
   const company = companies.find((c) => c.slug === query.company);
-  const kind = KINDS.find((k) => k === query.kind) ?? "SYSTEM_DESIGN";
+  const kind = DESIGN_KINDS.find((k) => k === query.kind) ?? "SYSTEM_DESIGN";
   return (
     <>
       <Button asChild variant="ghost" size="sm" className="-ml-2 max-w-full">

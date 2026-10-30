@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useFormSubmit } from "@/hooks/use-form-submit";
+import type { DesignKind } from "@/generated/prisma/enums";
+import { DESIGN_KIND_LABELS, INTERVIEW_KINDS } from "@/lib/content/design";
 
 export type DesignFormValues = {
   id?: string;
@@ -43,8 +45,6 @@ const FIELD_LABELS = {
   },
 } as const;
 
-const INTERVIEW_KINDS = ["TECHNICAL", "HR"];
-
 /** Creates (no id) or edits a design question or an interview question. */
 export function DesignForm({
   values,
@@ -59,7 +59,8 @@ export function DesignForm({
   const errors = state.fieldErrors ?? {};
   const creating = !values.id;
   const [kind, setKind] = useState(values.kind);
-  const labels = FIELD_LABELS[INTERVIEW_KINDS.includes(kind) ? "interview" : "design"];
+  const labels =
+    FIELD_LABELS[INTERVIEW_KINDS.includes(kind as DesignKind) ? "interview" : "design"];
   const text = (name: TextName, label: string, rows: number, description?: string) => (
     <FormField id={`design-${name}`} label={label} error={errors[name]} description={description}>
       {(aria) => <Textarea {...aria} name={name} rows={rows} defaultValue={values[name]} />}
@@ -116,10 +117,11 @@ export function DesignForm({
                 onChange={(e) => setKind(e.target.value)}
                 className="w-full"
               >
-                <NativeSelectOption value="SYSTEM_DESIGN">System design</NativeSelectOption>
-                <NativeSelectOption value="LOW_LEVEL_DESIGN">Low-level design</NativeSelectOption>
-                <NativeSelectOption value="TECHNICAL">Technical interview</NativeSelectOption>
-                <NativeSelectOption value="HR">HR / behavioural</NativeSelectOption>
+                {Object.entries(DESIGN_KIND_LABELS).map(([value, label]) => (
+                  <NativeSelectOption key={value} value={value}>
+                    {label}
+                  </NativeSelectOption>
+                ))}
               </NativeSelect>
             )}
           </FormField>

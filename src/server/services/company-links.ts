@@ -12,17 +12,27 @@ import { recordAudit } from "@/server/services/audit";
 // Links don't change the item itself, so they never send it back to draft (same as D-054).
 
 type Actor = { id: string };
-export type LinkKind = "question" | "problem" | "design";
-type Item = { questionId: string } | { problemId: string } | { designQuestionId: string };
 
-const ITEM_FIELD = {
-  question: "questionId",
-  problem: "problemId",
-  design: "designQuestionId",
-} as const satisfies Record<LinkKind, string>;
+/** Each kind of linked item, its company_items column and its audit entity type. */
+const KINDS = {
+  question: { field: "questionId", entity: "question" },
+  problem: { field: "problemId", entity: "problem" },
+  design: { field: "designQuestionId", entity: "design_question" },
+} as const;
+
+export type LinkKind = keyof typeof KINDS;
+export type Item = {
+  [K in LinkKind]: Record<(typeof KINDS)[K]["field"], string>;
+}[LinkKind];
 
 /** The link for an item of this kind and id. */
-export const linkItem = (kind: LinkKind, id: string) => ({ [ITEM_FIELD[kind]]: id }) as Item;
+export const linkItem = (kind: LinkKind, id: string) => ({ [KINDS[kind].field]: id }) as Item;
+
+/** The entity type and id of an item, for audit entries. */
+function describe(item: Item): [string, string] {
+  const kind = Object.values(KINDS).find((k) => k.field in item)!;
+  return [kind.entity, (item as Record<string, string>)[kind.field]!];
+}
 
 /** Company pages list their questions, so their sitemap date moves when links change (D-058). */
 async function touchCompanies(tx: Prisma.TransactionClient, ids: readonly string[]) {
@@ -42,15 +52,6 @@ export async function touchCompaniesListing(
     where: { items: { some: items } },
     data: { updatedAt: new Date() },
   });
-}
-
-const itemWhere = (item: Item) => item;
-
-/** The kind and id of an item, for audit entries. */
-function describe(item: Item): [string, string] {
-  if ("questionId" in item) return ["question", item.questionId];
-  if ("problemId" in item) return ["problem", item.problemId];
-  return ["design_question", item.designQuestionId];
 }
 
 /** Every company, for the "Asked at" pickers. */
@@ -77,61 +78,56 @@ export async function setCompanyLinks(
   item: Item,
   links: readonly AskedAt[],
   actor: Actor,
-  client?: Prisma.TransactionClient,
+  tx?: Prisma.TransactionClient,
 ): Promise<boolean> {
-  if (!client) return db.$transaction((tx) => setCompanyLinks(item, links, actor, tx));
-  const where = itemWhere(item);
-  const tx = client;
-  {
-    const existing = new Map(
-      (await tx.companyItem.findMany({ where })).map((e) => [e.companyId, e]),
-    );
-    const keep = new Set(links.map((l) => l.companyId));
-    const removed = [...existing.values()].filter((e) => !keep.has(e.companyId));
-    const created = links.filter((l) => !existing.has(l.companyId));
-    const updated = links.filter((l) => {
-      const before = existing.get(l.companyId);
-      return before && before.askedIn.join() !== l.askedIn.join();
+  if (!tx) return db.$transaction((t) => setCompanyLinks(item, links, actor, t));
+  const existing = new Map(
+    (await tx.companyItem.findMany({ where: item })).map((e) => [e.companyId, e]),
+  );
+  const keep = new Set(links.map((l) => l.companyId));
+  const removed = [...existing.values()].filter((e) => !keep.has(e.companyId));
+  const created = links.filter((l) => !existing.has(l.companyId));
+  const updated = links.filter((l) => {
+    const before = existing.get(l.companyId);
+    return before && before.askedIn.join() !== l.askedIn.join();
+  });
+  if (!removed.length && !created.length && !updated.length) return false;
+
+  if (removed.length)
+    await tx.companyItem.deleteMany({ where: { id: { in: removed.map((r) => r.id) } } });
+  if (created.length)
+    await tx.companyItem.createMany({
+      data: created.map((l) => ({ companyId: l.companyId, ...item, askedIn: l.askedIn })),
     });
-    if (!removed.length && !created.length && !updated.length) return false;
+  for (const l of updated)
+    await tx.companyItem.update({
+      where: { id: existing.get(l.companyId)!.id },
+      data: { askedIn: l.askedIn },
+    });
 
-    if (removed.length)
-      await tx.companyItem.deleteMany({ where: { id: { in: removed.map((r) => r.id) } } });
-    if (created.length)
-      await tx.companyItem.createMany({
-        data: created.map((l) => ({ companyId: l.companyId, ...where, askedIn: l.askedIn })),
-      });
-    for (const l of updated)
-      await tx.companyItem.update({
-        where: { id: existing.get(l.companyId)!.id },
-        data: { askedIn: l.askedIn },
-      });
-
-    await touchCompanies(tx, [
-      ...new Set([...removed, ...created, ...updated].map((l) => l.companyId)),
-    ]);
-    const [entityType, entityId] = describe(item);
-    await recordAudit(
-      {
-        actorId: actor.id,
-        action: `${entityType}.companies`,
-        entityType,
-        entityId,
-        after: { companies: links.map((l) => ({ companyId: l.companyId, askedIn: l.askedIn })) },
-      },
-      tx,
-    );
-    return true;
-  }
+  await touchCompanies(tx, [
+    ...new Set([...removed, ...created, ...updated].map((l) => l.companyId)),
+  ]);
+  const [entityType, entityId] = describe(item);
+  await recordAudit(
+    {
+      actorId: actor.id,
+      action: `${entityType}.companies`,
+      entityType,
+      entityId,
+      after: { companies: links.map((l) => ({ companyId: l.companyId, askedIn: l.askedIn })) },
+    },
+    tx,
+  );
+  return true;
 }
 
 /** Links an existing question or problem to a company (no months). */
 export async function linkToCompany(companyId: string, item: Item, actor: Actor) {
-  const where = itemWhere(item);
-  const already = await db.companyItem.findFirst({ where: { companyId, ...where } });
+  const already = await db.companyItem.findFirst({ where: { companyId, ...item } });
   if (already) return;
   await db.$transaction(async (tx) => {
-    await tx.companyItem.create({ data: { companyId, ...where } });
+    await tx.companyItem.create({ data: { companyId, ...item } });
     await touchCompanies(tx, [companyId]);
     await recordAudit(
       {
@@ -139,7 +135,7 @@ export async function linkToCompany(companyId: string, item: Item, actor: Actor)
         action: "company.link",
         entityType: "company",
         entityId: companyId,
-        after: where,
+        after: item,
       },
       tx,
     );
@@ -174,54 +170,32 @@ export async function unlinkFromCompany(companyItemId: string, actor: Actor) {
 export async function searchLinkable(companyId: string, kind: LinkKind, q: string) {
   const text = q.trim().slice(0, 100);
   if (!text) return [];
-  if (kind === "design") {
-    return db.designQuestion.findMany({
-      where: {
-        status: { not: "ARCHIVED" },
-        companies: { none: { companyId } },
-        OR: [
-          { externalId: { contains: text, mode: "insensitive" } },
-          { title: { contains: text, mode: "insensitive" } },
-        ],
-      },
-      orderBy: { externalId: "asc" },
-      take: 20,
-      select: { id: true, externalId: true, title: true, status: true, difficulty: true },
-    });
-  }
-  if (kind === "question") {
+  const where = (textField: "text" | "title") => ({
+    status: { not: "ARCHIVED" as const },
+    companies: { none: { companyId } },
+    OR: [
+      { externalId: { contains: text, mode: "insensitive" as const } },
+      { [textField]: { contains: text, mode: "insensitive" as const } },
+    ],
+  });
+  const page = { orderBy: { externalId: "asc" as const }, take: 20 };
+  const fields = { id: true, externalId: true, status: true } as const;
+  if (kind === "question")
     return db.question.findMany({
-      where: {
-        status: { not: "ARCHIVED" },
-        companies: { none: { companyId } },
-        OR: [
-          { externalId: { contains: text, mode: "insensitive" } },
-          { text: { contains: text, mode: "insensitive" } },
-        ],
-      },
-      orderBy: { externalId: "asc" },
-      take: 20,
-      select: {
-        id: true,
-        externalId: true,
-        text: true,
-        status: true,
-        topic: { select: { name: true } },
-      },
+      where: where("text"),
+      ...page,
+      select: { ...fields, text: true },
     });
-  }
-  return db.problem.findMany({
-    where: {
-      status: { not: "ARCHIVED" },
-      companies: { none: { companyId } },
-      OR: [
-        { externalId: { contains: text, mode: "insensitive" } },
-        { title: { contains: text, mode: "insensitive" } },
-      ],
-    },
-    orderBy: { externalId: "asc" },
-    take: 20,
-    select: { id: true, externalId: true, title: true, status: true, difficulty: true },
+  if (kind === "problem")
+    return db.problem.findMany({
+      where: where("title"),
+      ...page,
+      select: { ...fields, title: true },
+    });
+  return db.designQuestion.findMany({
+    where: where("title"),
+    ...page,
+    select: { ...fields, title: true },
   });
 }
 
@@ -243,26 +217,26 @@ export async function suggestNextQuestionId(id: string): Promise<string> {
 }
 
 /**
- * Which interview round a link belongs to (null: not tied to a round). False when the round
- * isn't one of the company's interview rounds.
+ * The interview round an interview question is asked in (null: not tied to one, D-067). False
+ * when the round isn't one of this company's interview rounds.
  */
 export async function setLinkRound(
   linkId: string,
   companyId: string,
-  roundOrder: number | null,
+  roundId: string | null,
   actor: Actor,
 ): Promise<boolean> {
   if (
-    roundOrder !== null &&
+    roundId !== null &&
     !(await db.companyRound.count({
-      where: { companyId, order: roundOrder, type: { in: [...INTERVIEW_ROUND_TYPES] } },
+      where: { id: roundId, companyId, type: { in: [...INTERVIEW_ROUND_TYPES] } },
     }))
   )
     return false;
   return db.$transaction(async (tx) => {
     const moved = await tx.companyItem.updateMany({
       where: { id: linkId, companyId },
-      data: { roundOrder },
+      data: { roundId },
     });
     if (!moved.count) return false;
     await touchCompanies(tx, [companyId]);
@@ -272,10 +246,42 @@ export async function setLinkRound(
         action: "company.link_round",
         entityType: "company",
         entityId: companyId,
-        after: { linkId, roundOrder },
+        after: { linkId, roundId },
       },
       tx,
     );
     return true;
   });
 }
+
+/** Links many items of one kind to a company, keeping their other links ("Import for", D-067). */
+export async function linkManyToCompany(
+  companyId: string,
+  kind: LinkKind,
+  ids: readonly string[],
+  actorId: string | null,
+) {
+  if (!ids.length) return;
+  await db.$transaction(async (tx) => {
+    const created = await tx.companyItem.createMany({
+      data: ids.map((id) => ({ companyId, ...linkItem(kind, id) })),
+      skipDuplicates: true,
+    });
+    await touchCompanies(tx, [companyId]);
+    await recordAudit(
+      {
+        actorId,
+        action: "company.link",
+        entityType: "company",
+        entityId: companyId,
+        after: { kind, linked: created.count },
+      },
+      tx,
+    );
+  });
+}
+
+/** A company list read through company_items, as slugs (design questions, imports). */
+export const COMPANY_SLUGS = { select: { company: { select: { slug: true } } } } as const;
+export const companySlugs = (links: readonly { company: { slug: string } }[]) =>
+  links.map((l) => l.company.slug);

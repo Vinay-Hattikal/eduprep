@@ -9,6 +9,7 @@ import type { ImportType } from "@/generated/prisma/enums";
 import type { CellReader } from "@/server/imports/cells";
 import type { DbReader } from "@/server/imports/types";
 import type { Prisma } from "@/generated/prisma/client";
+import type { Item, LinkKind } from "@/server/services/company-links";
 
 export const COMPANY_LINK_COLUMNS = [
   { name: "companies", required: false },
@@ -79,38 +80,41 @@ export function linksChanged(links: CompanyLinks, existing: readonly ExistingLin
 /** Makes an item's company links match the file. */
 export async function writeCompanyLinks(
   tx: Prisma.TransactionClient,
-  item: { questionId: string } | { problemId: string },
+  item: Item,
   links: CompanyLinks,
 ) {
   if (!links) return;
-  const where =
-    "questionId" in item ? { questionId: item.questionId } : { problemId: item.problemId };
-  await tx.companyItem.deleteMany({ where: { ...where, companyId: { notIn: links.companyIds } } });
-  for (const companyId of links.companyIds) {
-    const unique =
-      "questionId" in item
-        ? { companyId_questionId: { companyId, questionId: item.questionId } }
-        : { companyId_problemId: { companyId, problemId: item.problemId } };
-    await tx.companyItem.upsert({
-      where: unique,
-      create: { companyId, ...where, askedIn: links.askedIn ?? [] },
-      update: links.askedIn ? { askedIn: links.askedIn } : {},
+  await tx.companyItem.deleteMany({ where: { ...item, companyId: { notIn: links.companyIds } } });
+  const existing = new Set(
+    (
+      await tx.companyItem.findMany({
+        where: { ...item, companyId: { in: links.companyIds } },
+        select: { companyId: true },
+      })
+    ).map((l) => l.companyId),
+  );
+  const added = links.companyIds.filter((id) => !existing.has(id));
+  if (added.length)
+    await tx.companyItem.createMany({
+      data: added.map((companyId) => ({ companyId, ...item, askedIn: links.askedIn ?? [] })),
     });
-  }
+  if (links.askedIn && existing.size)
+    await tx.companyItem.updateMany({
+      where: { ...item, companyId: { in: [...existing] } },
+      data: { askedIn: links.askedIn },
+    });
 }
 
 /**
  * "Import for this company" (D-067): the file types whose rows are questions, problems or
- * interview questions, and the link field each one's imported items fill.
+ * interview questions, and the kind of item each one imports.
  */
-export const COMPANY_IMPORT_FIELDS: Partial<
-  Record<ImportType, "questionId" | "problemId" | "designQuestionId">
-> = {
-  MCQ: "questionId",
-  CODING_BUNDLE: "problemId",
-  CODING_PROBLEMS: "problemId",
-  CODING_PACKAGE: "problemId",
-  DESIGN_QUESTIONS: "designQuestionId",
+export const COMPANY_IMPORT_KINDS: Partial<Record<ImportType, LinkKind>> = {
+  MCQ: "question",
+  CODING_BUNDLE: "problem",
+  CODING_PROBLEMS: "problem",
+  CODING_PACKAGE: "problem",
+  DESIGN_QUESTIONS: "design",
 };
 
 /** Rows with an empty companies cell are written for the import's company. */

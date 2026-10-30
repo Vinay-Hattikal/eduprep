@@ -26,8 +26,8 @@ describe("mock-data folder", () => {
     expect(await db.company.count()).toBe(3);
     expect(await db.companyRound.count()).toBe(8);
     expect(await db.companySource.count()).toBeGreaterThanOrEqual(3);
-    // Company tags come from the `companies` column of the question and coding files.
-    expect(await db.companyItem.count()).toBe(9);
+    // Company tags come from the `companies` column of the question, coding and design files.
+    expect(await db.companyItem.count()).toBe(10);
 
     const second = await importFolder(root, admin.id);
     const changed = second.files.filter((f) => (f.created ?? 0) + (f.updated ?? 0) > 0);

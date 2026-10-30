@@ -5,7 +5,7 @@ import { db } from "@/server/db";
 import { recordAudit } from "@/server/services/audit";
 import { publishProblems, transitionBlueprint } from "@/server/services/blueprints";
 import { companyPublishBlocker, setCompanyStatus } from "@/server/services/companies";
-import { setDesignStatus } from "@/server/services/design-questions";
+import { publishDesignQuestions } from "@/server/services/design-questions";
 import { transitionProblem } from "@/server/services/problems";
 import { publishQuestions, questionCheckError } from "@/server/services/questions";
 
@@ -103,8 +103,7 @@ export async function publishCompanyContent(
   let problems = 0;
   for (const problem of plan.problems)
     if ((await transitionProblem(problem.id, "publish", actor)).ok) problems += 1;
-  for (const id of plan.interviewIds) await setDesignStatus(id, "PUBLISHED", actor);
-  const interviews = plan.interviewIds.length;
+  const interviews = await publishDesignQuestions(plan.interviewIds, actor);
   const company = plan.publishCompany && (await setCompanyStatus(companyId, "publish", actor)).ok;
   let mocks = 0;
   for (const mock of plan.mocks)

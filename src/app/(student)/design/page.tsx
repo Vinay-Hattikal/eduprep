@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { DesignKind } from "@/generated/prisma/enums";
 import { PencilRuler } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -9,7 +8,8 @@ import { TableSkeleton } from "@/components/shared/skeletons";
 import { DifficultyLabel } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { requirePermission } from "@/server/auth";
-import { DESIGN_KIND_LABELS, listDesignQuestions } from "@/server/services/tracks";
+import { DESIGN_KIND_LABELS, DESIGN_KINDS } from "@/lib/content/design";
+import { listDesignQuestions } from "@/server/services/tracks";
 
 export const metadata: Metadata = { title: "Design question bank" };
 
@@ -27,18 +27,16 @@ export default function DesignPage({ searchParams }: PageProps<"/design">) {
   );
 }
 
-const KINDS = Object.values(DesignKind);
-
 async function Questions({ searchParams }: { searchParams: PageProps<"/design">["searchParams"] }) {
   const user = await requirePermission("student.access");
   const { kind } = await searchParams;
-  const filterKind = KINDS.find((k) => k === kind);
+  const filterKind = DESIGN_KINDS.find((k) => k === kind);
   const questions = await listDesignQuestions(user, { kind: filterKind });
 
   return (
     <div className="space-y-4">
       <nav aria-label="Kind" className="flex flex-wrap gap-1">
-        {[undefined, ...KINDS].map((k) => (
+        {[undefined, ...DESIGN_KINDS].map((k) => (
           <Button
             key={k ?? "all"}
             asChild

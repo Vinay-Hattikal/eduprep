@@ -4,16 +4,10 @@ import type { DesignKind } from "@/generated/prisma/enums";
 import { isAdmin } from "@/lib/permissions";
 import type { CurrentUser } from "@/server/auth";
 import { db } from "@/server/db";
+import { COMPANY_SLUGS, companySlugs } from "@/server/services/company-links";
 import { listInterviewTypes } from "@/server/services/interview-types";
 
 type Viewer = Pick<CurrentUser, "id" | "roles">;
-
-export const DESIGN_KIND_LABELS: Record<DesignKind, string> = {
-  SYSTEM_DESIGN: "System design",
-  LOW_LEVEL_DESIGN: "Low-level design",
-  TECHNICAL: "Technical interview",
-  HR: "HR / behavioural",
-};
 
 export async function listTracks() {
   return db.roleTrack.findMany({
@@ -99,11 +93,11 @@ export async function listDesignQuestions(
       title: true,
       kind: true,
       difficulty: true,
-      companies: { select: { company: { select: { slug: true } } } },
+      companies: COMPANY_SLUGS,
       tracks: true,
     },
   });
-  return questions.map((q) => ({ ...q, companies: q.companies.map((c) => c.company.slug) }));
+  return questions.map((q) => ({ ...q, companies: companySlugs(q.companies) }));
 }
 
 export async function getDesignQuestion(user: Viewer, slug: string) {

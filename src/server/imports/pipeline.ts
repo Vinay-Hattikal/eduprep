@@ -14,7 +14,8 @@ import {
   publishImported,
   publishesThroughJudge,
 } from "@/server/imports/publish";
-import { COMPANY_IMPORT_FIELDS, fillCompanyCells } from "@/server/imports/company-links";
+import { COMPANY_IMPORT_KINDS, fillCompanyCells } from "@/server/imports/company-links";
+import { linkManyToCompany } from "@/server/services/company-links";
 import { getImportDefinition } from "@/server/imports/registry";
 import type { CommitOutcome, RowMessage, ValidatedRow } from "@/server/imports/types";
 import { recordAudit } from "@/server/services/audit";
@@ -77,11 +78,14 @@ export async function createImportBatch(input: {
   return id;
 }
 
+/** The batch's company, for "Import for this company" (D-067). */
+const COMPANY_SLUG = { company: { select: { slug: true } } } as const;
+
 async function readBatchFile(batch: {
   fileKey: string;
   fileName: string;
   type: ImportType;
-  companyId: string | null;
+  company?: { slug: string } | null;
 }): Promise<ParsedFile> {
   const data = await storage.get(batch.fileKey);
   if (!data)
@@ -102,13 +106,8 @@ async function readBatchFile(batch: {
   if (problems.length) throw new ImportFileError(problems.join(" "));
   // "Import for this company" (D-067): an empty companies cell means this company. Files without
   // the column keep every item's links and get this company added after the commit instead.
-  if (batch.companyId && parsed.headers.includes("companies")) {
-    const company = await db.company.findUnique({
-      where: { id: batch.companyId },
-      select: { slug: true },
-    });
-    if (company) fillCompanyCells(parsed.rows, company.slug);
-  }
+  if (batch.company && parsed.headers.includes("companies"))
+    fillCompanyCells(parsed.rows, batch.company.slug);
   return parsed;
 }
 
@@ -131,7 +130,7 @@ async function failBatch(batchId: string, error: unknown) {
 
 /** Job: parse and validate every row, store results for the preview. */
 export async function validateBatch(batchId: string): Promise<void> {
-  const batch = await db.importBatch.findUnique({ where: { id: batchId } });
+  const batch = await db.importBatch.findUnique({ where: { id: batchId }, include: COMPANY_SLUG });
   if (!batch || !["QUEUED", "VALIDATING"].includes(batch.status)) return;
   await db.importBatch.update({
     where: { id: batchId },
@@ -220,7 +219,7 @@ export async function cancelBatch(batchId: string, actorId: string): Promise<voi
  * since the preview), then commits in transactions of 500 rows.
  */
 export async function commitBatch(batchId: string): Promise<void> {
-  const batch = await db.importBatch.findUnique({ where: { id: batchId } });
+  const batch = await db.importBatch.findUnique({ where: { id: batchId }, include: COMPANY_SLUG });
   if (!batch || batch.status !== "COMMITTING") return;
   const definition = getImportDefinition(batch.type);
 
@@ -309,19 +308,18 @@ export async function commitBatch(batchId: string): Promise<void> {
 
   // "Import for this company" without a companies column: link every imported item, unchanged
   // ones too, keeping the companies each was already linked to.
-  const linkField = batch.companyId && COMPANY_IMPORT_FIELDS[batch.type];
-  if (linkField && !file.headers.includes("companies")) {
+  const linkKind = batch.companyId && COMPANY_IMPORT_KINDS[batch.type];
+  if (linkKind && !file.headers.includes("companies")) {
     const imported = await db.importRow.findMany({
       where: { batchId, status: "IMPORTED", entityId: { not: null } },
       select: { entityId: true },
     });
-    if (imported.length) {
-      await db.companyItem.createMany({
-        data: imported.map((r) => ({ companyId: batch.companyId!, [linkField]: r.entityId! })),
-        skipDuplicates: true,
-      });
-      await db.company.update({ where: { id: batch.companyId! }, data: { updatedAt: new Date() } });
-    }
+    await linkManyToCompany(
+      batch.companyId!,
+      linkKind,
+      imported.map((r) => r.entityId!),
+      batch.confirmedById,
+    );
   }
 
   const publishBy =

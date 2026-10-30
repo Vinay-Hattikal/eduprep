@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatRupees } from "@/lib/commerce/pricing";
 import { requirePermission } from "@/server/auth";
-import { DESIGN_KIND_LABELS, getTrack } from "@/server/services/tracks";
+import { DESIGN_KIND_LABELS } from "@/lib/content/design";
+import { getTrack } from "@/server/services/tracks";
 
 export const metadata: Metadata = { title: "Career track" };
 

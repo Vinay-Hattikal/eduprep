@@ -3,6 +3,8 @@
 
 import { beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
+import { confirmBatch } from "@/server/imports/pipeline";
+import { drainJobs } from "@/server/jobs/runner";
 import { getCompanyBySlug } from "@/server/services/companies";
 import { copyHiringPattern, deleteRound, moveRound } from "@/server/services/company-hiring";
 import { linkToCompany, setLinkRound } from "@/server/services/company-links";
@@ -66,9 +68,10 @@ describe("interview questions", () => {
     const link = await db.companyItem.findFirstOrThrow({
       where: { companyId, designQuestionId: saved.id },
     });
-    expect(await setLinkRound(link.id, companyId, 2, admin)).toBe(true);
-    // Not an interview round of this company.
-    expect(await setLinkRound(link.id, companyId, 9, admin)).toBe(false);
+    const hr = await db.companyRound.findFirstOrThrow({ where: { companyId, order: 2 } });
+    expect(await setLinkRound(link.id, companyId, hr.id, admin)).toBe(true);
+    // Not a round of this company.
+    expect(await setLinkRound(link.id, companyId, "no-such-round", admin)).toBe(false);
 
     const r = await companyReadiness((await getCompanyBySlug("iq-co"))!);
     expect(r.items.find((i) => i.key === "interview")).toMatchObject({
@@ -206,13 +209,42 @@ describe("copying a hiring pattern", () => {
 
 describe("review fixes", () => {
   it("re-importing an unchanged design file keeps published questions live", async () => {
+    // The template names acme-tech; an unknown company is an error, as in question files.
+    await db.company.upsert({
+      where: { slug: "acme-tech" },
+      update: {},
+      create: {
+        slug: "acme-tech",
+        name: "Acme",
+        level: "STANDARD",
+        category: "SERVICE",
+        hiringFor: ["FRESHER"],
+        overview: "Example.",
+        lastVerifiedAt: new Date(),
+      },
+    });
     const file = await template("design/design-questions.csv");
     await importFile("DESIGN_QUESTIONS", "design.csv", file, admin.id, { publish: true });
-    const question = await db.designQuestion.findFirstOrThrow({ where: { status: "PUBLISHED" } });
-    // A link added in the admin panel, which the file doesn't list.
+    const question = await db.designQuestion.findUniqueOrThrow({
+      where: { externalId: "SD-0001" },
+    });
+    await db.designQuestion.update({ where: { id: question.id }, data: { status: "PUBLISHED" } });
+    // A link added in the admin panel, which the file's companies column doesn't list: the
+    // column is the full list (D-054), so the preview warns and the link goes, but the
+    // question itself is unchanged and stays live.
     await linkToCompany(companyId, { designQuestionId: question.id }, admin);
-    const again = await importFile("DESIGN_QUESTIONS", "design.csv", file, admin.id);
-    expect(again.updatedCount).toBe(0);
+    const again = await importFile("DESIGN_QUESTIONS", "design.csv", file, admin.id, {
+      confirm: false,
+    });
+    const row = await db.importRow.findFirstOrThrow({
+      where: { batchId: again.id, entityId: question.id },
+    });
+    expect(JSON.stringify(row.messages)).toMatch(/Unlinks iq-co/);
+    await confirmBatch(again.id, admin.id);
+    await drainJobs();
+    expect(
+      await db.companyItem.count({ where: { designQuestionId: question.id, companyId } }),
+    ).toBe(0);
     expect((await db.designQuestion.findUniqueOrThrow({ where: { id: question.id } })).status).toBe(
       "PUBLISHED",
     );
@@ -227,12 +259,11 @@ describe("review fixes", () => {
     const link = await db.companyItem.findFirstOrThrow({
       where: { companyId: company.id, designQuestionId: { not: null } },
     });
-    await db.companyItem.update({ where: { id: link.id }, data: { roundOrder: hr!.order } });
+    await db.companyItem.update({ where: { id: link.id }, data: { roundId: hr!.id } });
     await moveRound(hr!.id, "up", admin);
-    expect((await db.companyItem.findUniqueOrThrow({ where: { id: link.id } })).roundOrder).toBe(1);
+    const moved = await db.companyItem.findUniqueOrThrow({ where: { id: link.id } });
+    expect(moved.roundId).toBe(hr!.id);
     await deleteRound(hr!.id, admin);
-    expect(
-      (await db.companyItem.findUniqueOrThrow({ where: { id: link.id } })).roundOrder,
-    ).toBeNull();
+    expect((await db.companyItem.findUniqueOrThrow({ where: { id: link.id } })).roundId).toBeNull();
   });
 });

@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePermission } from "@/server/auth";
-import { DESIGN_KIND_LABELS, getDesignQuestion } from "@/server/services/tracks";
+import { DESIGN_KIND_LABELS } from "@/lib/content/design";
+import { getDesignQuestion } from "@/server/services/tracks";
 
 export const metadata: Metadata = { title: "Design question" };
 

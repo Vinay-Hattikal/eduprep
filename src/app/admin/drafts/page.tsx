@@ -11,7 +11,7 @@ import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { formatDate, plainExcerpt } from "@/lib/format";
 import { requirePermission } from "@/server/auth";
 import { db } from "@/server/db";
-import { DESIGN_KIND_LABELS } from "@/server/services/tracks";
+import { DESIGN_KIND_LABELS } from "@/lib/content/design";
 
 export const metadata: Metadata = { title: "Drafts" };
 

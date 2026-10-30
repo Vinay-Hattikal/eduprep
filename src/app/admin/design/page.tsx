@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { can } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
 import { db } from "@/server/db";
-import { DESIGN_KIND_LABELS } from "@/server/services/tracks";
+import { DESIGN_KIND_LABELS } from "@/lib/content/design";
 
 export const metadata: Metadata = { title: "Design questions" };
 

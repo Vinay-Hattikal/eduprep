@@ -354,7 +354,7 @@ Tracks are live on import (like the taxonomy).
 | `approach` | Yes | Markdown: outline of a good answer (interview kinds: a strong answer) |
 | `tradeoffs` | Yes | Markdown: what to discuss (interview kinds: common mistakes) |
 | `follow_ups` | No | Markdown |
-| `companies` | No | Company slugs where it was asked, joined with `\|`. Each becomes a company link (links added in admin are kept). Pick the interview round on the company's Interview questions tab. |
+| `companies` | No | Company slugs where it was asked, joined with `\|`. The full list, like question and coding files (D-054): companies left out are unlinked (the preview warns), and a file without the column leaves links alone. Optional `asked_in` months as there. Pick the interview round on the company's Interview questions tab. |
 | `tracks` | No | Role track slugs, joined with `\|` |
 
 Imported as drafts; publish them in admin › Design questions.

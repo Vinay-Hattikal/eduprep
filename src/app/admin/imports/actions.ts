@@ -7,7 +7,7 @@ import type { ImportType } from "@/generated/prisma/enums";
 import { can } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
 import { db } from "@/server/db";
-import { COMPANY_IMPORT_FIELDS } from "@/server/imports/company-links";
+import { COMPANY_IMPORT_KINDS } from "@/server/imports/company-links";
 import { createContentPack } from "@/server/imports/content-pack";
 import { ACCEPTED_EXTENSIONS, MAX_UPLOAD_BYTES } from "@/server/imports/parse";
 import {
@@ -58,7 +58,7 @@ export async function uploadImportAction(
   // "Import for this company" (D-067): only for files of questions, problems or interview questions.
   const companyId = String(formData.get("companyId") ?? "") || undefined;
   if (companyId) {
-    if (!COMPANY_IMPORT_FIELDS[type.data])
+    if (!COMPANY_IMPORT_KINDS[type.data])
       return { error: `${definition.label} can't be imported for one company.` };
     if (!(await db.company.count({ where: { id: companyId } })))
       return { error: "This company no longer exists." };

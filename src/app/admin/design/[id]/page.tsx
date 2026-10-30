@@ -16,7 +16,7 @@ import type { ContentStatus } from "@/generated/prisma/enums";
 import { can } from "@/lib/permissions";
 import { requirePermission } from "@/server/auth";
 import { designFormOptions, getAdminDesignQuestion } from "@/server/services/design-questions";
-import { DESIGN_KIND_LABELS } from "@/server/services/tracks";
+import { DESIGN_KIND_LABELS } from "@/lib/content/design";
 
 export const metadata: Metadata = { title: "Design question" };
 

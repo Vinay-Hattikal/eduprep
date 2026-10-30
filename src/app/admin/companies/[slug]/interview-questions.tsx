@@ -1,22 +1,23 @@
 import Link from "next/link";
-import { CheckCircle2, Link2, Link2Off, Plus, Search, Upload } from "lucide-react";
-import {
-  linkItemAction,
-  setLinkRoundAction,
-  unlinkItemAction,
-} from "@/app/admin/companies/content-actions";
+import { CheckCircle2, Plus, Upload } from "lucide-react";
+import { setLinkRoundAction } from "@/app/admin/companies/content-actions";
+import { LinkExistingCard, UnlinkButton } from "@/app/admin/companies/[slug]/link-parts";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ContentStatusBadge, DifficultyLabel } from "@/components/shared/status-badge";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { INTERVIEW_ROUND_TYPES, ROUND_TYPE_LABELS } from "@/lib/content/companies";
+import type { DesignKind } from "@/generated/prisma/enums";
+import {
+  companyImportHref,
+  INTERVIEW_ROUND_TYPES,
+  ROUND_TYPE_LABELS,
+} from "@/lib/content/companies";
+import { DESIGN_KIND_LABELS, kindForRound } from "@/lib/content/design";
 import { db } from "@/server/db";
 import { searchLinkable } from "@/server/services/company-links";
-import { DESIGN_KIND_LABELS } from "@/server/services/tracks";
 import type { getCompanyBySlug } from "@/server/services/companies";
 
 type Company = NonNullable<Awaited<ReturnType<typeof getCompanyBySlug>>>;
@@ -56,22 +57,29 @@ export async function InterviewQuestions({
     canEdit && q ? searchLinkable(company.id, "design", q) : [],
   ]);
   const rounds = company.rounds.filter((r) => INTERVIEW_ROUND_TYPES.includes(r.type));
-  const groups = [
-    ...rounds.map((r) => ({
-      key: String(r.order),
-      title: `Round ${r.order}: ${r.name}`,
-      subtitle: ROUND_TYPE_LABELS[r.type],
-      kind: r.type === "HR_INTERVIEW" ? "HR" : "TECHNICAL",
-      links: links.filter((l) => l.roundOrder === r.order),
-    })),
-    {
+  const unassigned = links.filter((l) => !rounds.some((r) => r.id === l.roundId));
+  const groups: {
+    key: string;
+    title: string;
+    subtitle: string | null;
+    addKinds: DesignKind[];
+    links: typeof links;
+  }[] = rounds.map((r) => ({
+    key: r.id,
+    title: `Round ${r.order}: ${r.name}`,
+    subtitle: ROUND_TYPE_LABELS[r.type],
+    addKinds: [kindForRound(r.type)],
+    links: links.filter((l) => l.roundId === r.id),
+  }));
+  // Questions not tied to a round; the whole list when the company has no interview rounds.
+  if (unassigned.length || !rounds.length)
+    groups.push({
       key: "none",
       title: rounds.length ? "Not tied to a round" : "Interview questions",
       subtitle: rounds.length ? "Pick the round each one is asked in." : null,
-      kind: "TECHNICAL",
-      links: links.filter((l) => !rounds.some((r) => r.order === l.roundOrder)),
-    },
-  ].filter((g) => g.key !== "none" || g.links.length || !rounds.length);
+      addKinds: rounds.length ? [] : ["TECHNICAL", "HR"],
+      links: unassigned,
+    });
 
   return (
     <div className="space-y-6">
@@ -96,7 +104,7 @@ export async function InterviewQuestions({
         </p>
         {canEdit ? (
           <Button asChild variant="outline" size="sm">
-            <Link href={`/admin/imports?company=${company.slug}`}>
+            <Link href={companyImportHref(company.slug)}>
               <Upload /> Import
             </Link>
           </Button>
@@ -115,9 +123,9 @@ export async function InterviewQuestions({
               </CardTitle>
               {group.subtitle ? <CardDescription>{group.subtitle}</CardDescription> : null}
             </div>
-            {canEdit && (group.key !== "none" || !rounds.length) ? (
+            {canEdit && group.addKinds.length ? (
               <div className="flex flex-wrap gap-2">
-                {(group.key === "none" ? ["TECHNICAL", "HR"] : [group.kind]).map((kind) => (
+                {group.addKinds.map((kind) => (
                   <Button key={kind} asChild size="sm" variant="outline">
                     <Link href={`/admin/design/new?company=${company.slug}&kind=${kind}`}>
                       <Plus /> Add {kind === "HR" ? "HR" : "technical"} question
@@ -152,46 +160,36 @@ export async function InterviewQuestions({
                       <Badge variant="secondary">{DESIGN_KIND_LABELS[item.kind]}</Badge>
                       <DifficultyLabel difficulty={item.difficulty} />
                       <ContentStatusBadge status={item.status} />
+                      {canEdit && rounds.length ? (
+                        <form action={setLinkRoundAction} className="flex items-center gap-1">
+                          <input type="hidden" name="slug" value={company.slug} />
+                          <input type="hidden" name="companyId" value={company.id} />
+                          <input type="hidden" name="linkId" value={link.id} />
+                          <NativeSelect
+                            name="round"
+                            size="sm"
+                            defaultValue={link.roundId ?? ""}
+                            aria-label={`Round for ${item.externalId}`}
+                          >
+                            <NativeSelectOption value="">No round</NativeSelectOption>
+                            {rounds.map((r) => (
+                              <NativeSelectOption key={r.id} value={r.id}>
+                                Round {r.order}: {r.name}
+                              </NativeSelectOption>
+                            ))}
+                          </NativeSelect>
+                          <Button type="submit" size="sm" variant="ghost">
+                            Move
+                          </Button>
+                        </form>
+                      ) : null}
                       {canEdit ? (
-                        <>
-                          {rounds.length ? (
-                            <form action={setLinkRoundAction} className="flex items-center gap-1">
-                              <input type="hidden" name="slug" value={company.slug} />
-                              <input type="hidden" name="companyId" value={company.id} />
-                              <input type="hidden" name="linkId" value={link.id} />
-                              <NativeSelect
-                                name="round"
-                                size="sm"
-                                defaultValue={link.roundOrder ? String(link.roundOrder) : ""}
-                                aria-label={`Round for ${item.externalId}`}
-                              >
-                                <NativeSelectOption value="">No round</NativeSelectOption>
-                                {rounds.map((r) => (
-                                  <NativeSelectOption key={r.id} value={String(r.order)}>
-                                    Round {r.order}: {r.name}
-                                  </NativeSelectOption>
-                                ))}
-                              </NativeSelect>
-                              <Button type="submit" size="sm" variant="ghost">
-                                Move
-                              </Button>
-                            </form>
-                          ) : null}
-                          <form action={unlinkItemAction}>
-                            <input type="hidden" name="slug" value={company.slug} />
-                            <input type="hidden" name="kind" value="design" />
-                            <input type="hidden" name="linkId" value={link.id} />
-                            <Button
-                              type="submit"
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Unlink ${item.externalId}`}
-                              title="Unlink from this company"
-                            >
-                              <Link2Off />
-                            </Button>
-                          </form>
-                        </>
+                        <UnlinkButton
+                          company={company}
+                          kind="design"
+                          linkId={link.id}
+                          label={item.externalId}
+                        />
                       ) : null}
                     </li>
                   );
@@ -203,73 +201,16 @@ export async function InterviewQuestions({
       ))}
 
       {canEdit ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <h2>Link an existing question</h2>
-            </CardTitle>
-            <CardDescription>
-              Already in the design and interview bank? Link it instead of writing it again.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <form
-              className="flex flex-wrap gap-2"
-              role="search"
-              aria-label="Search interview questions"
-            >
-              <input type="hidden" name="tab" value="interview" />
-              <div className="relative min-w-48 flex-1">
-                <Search
-                  className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <Input
-                  name="q"
-                  defaultValue={q}
-                  placeholder="Search by ID or title"
-                  aria-label="Search by ID or title"
-                  className="pl-8"
-                />
-              </div>
-              <Button type="submit" variant="secondary">
-                Search
-              </Button>
-            </form>
-            {q ? (
-              results.length ? (
-                <ul className="divide-y rounded-lg border">
-                  {results.map((r) => (
-                    <li
-                      key={r.id}
-                      className="flex flex-wrap items-center gap-x-3 gap-y-1 p-3 text-sm"
-                    >
-                      <span className="font-mono text-xs">{r.externalId}</span>
-                      <span className="min-w-0 flex-1 basis-48 truncate">
-                        {"title" in r ? r.title : r.externalId}
-                      </span>
-                      <ContentStatusBadge status={r.status} />
-                      <form action={linkItemAction}>
-                        <input type="hidden" name="slug" value={company.slug} />
-                        <input type="hidden" name="companyId" value={company.id} />
-                        <input type="hidden" name="kind" value="design" />
-                        <input type="hidden" name="itemId" value={r.id} />
-                        <input type="hidden" name="q" value={q} />
-                        <Button type="submit" size="sm" variant="outline">
-                          <Link2 /> Link
-                        </Button>
-                      </form>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Nothing found that isn&apos;t already linked.
-                </p>
-              )
-            ) : null}
-          </CardContent>
-        </Card>
+        <LinkExistingCard
+          company={company}
+          kind="design"
+          tab="interview"
+          title="Link an existing question"
+          description="Already in the design and interview bank? Link it instead of writing it again."
+          placeholder="Search by ID or title"
+          q={q}
+          results={results.map((r) => ({ ...r, label: "title" in r ? r.title : r.text }))}
+        />
       ) : null}
     </div>
   );

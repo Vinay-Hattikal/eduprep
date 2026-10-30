@@ -389,6 +389,7 @@ model CompanyRound {
 
   company  Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   sections CompanySection[]
+  items    CompanyItem[]
 
   @@unique([companyId, order])
   @@map("company_rounds")
@@ -433,6 +434,7 @@ model CompanyItem {
   questionId       String?  @map("question_id") // exactly one of the three item ids is set
   problemId        String?  @map("problem_id")
   designQuestionId String?  @map("design_question_id")
+  roundId          String?  @map("round_id") // interview questions: the round they're asked in (D-067)
   roundOrder       Int?     @map("round_order")
   askedIn          String[] @map("asked_in") // YYYY-MM
   reportCount      Int      @default(0) @map("report_count")
@@ -441,6 +443,7 @@ model CompanyItem {
   question       Question?       @relation(fields: [questionId], references: [id], onDelete: Cascade)
   problem        Problem?        @relation(fields: [problemId], references: [id], onDelete: Cascade)
   designQuestion DesignQuestion? @relation(fields: [designQuestionId], references: [id], onDelete: Cascade)
+  round          CompanyRound?   @relation(fields: [roundId], references: [id], onDelete: SetNull)
 
   @@unique([companyId, questionId])
   @@unique([companyId, problemId])

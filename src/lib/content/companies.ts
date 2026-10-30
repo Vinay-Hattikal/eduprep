@@ -54,3 +54,6 @@ export const INTERVIEW_ROUND_TYPES: readonly RoundType[] = [
   "MANAGERIAL_INTERVIEW",
   "GROUP_DISCUSSION",
 ];
+
+/** The imports page for one company ("Import for this company", D-067). */
+export const companyImportHref = (slug: string) => `/admin/imports?company=${slug}`;

@@ -1,10 +1,10 @@
 import "server-only";
 
 import type { ContentStatus, DesignKind, Difficulty } from "@/generated/prisma/enums";
-import type { Actor } from "@/lib/content/workflow";
+import { DRAFT_STATUSES, type Actor } from "@/lib/content/workflow";
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/services/audit";
-import { setCompanyLinks } from "@/server/services/company-links";
+import { COMPANY_SLUGS, companySlugs, setCompanyLinks } from "@/server/services/company-links";
 
 export type DesignValues = {
   id?: string;
@@ -29,9 +29,9 @@ export type DesignSaveResult =
 export async function getAdminDesignQuestion(id: string) {
   const question = await db.designQuestion.findUnique({
     where: { id },
-    include: { companies: { select: { company: { select: { slug: true } } } } },
+    include: { companies: COMPANY_SLUGS },
   });
-  return question && { ...question, companies: question.companies.map((c) => c.company.slug) };
+  return question && { ...question, companies: companySlugs(question.companies) };
 }
 
 /** Role tracks and company slugs the form offers or checks against. */
@@ -105,10 +105,18 @@ export async function saveDesignQuestion(
   const changed = (Object.keys(data) as (keyof typeof data)[]).filter(
     (key) => JSON.stringify(before[key] ?? null) !== JSON.stringify(data[key] ?? null),
   );
+  const linksChanged =
+    [...before.companies].sort().join() !==
+    companies
+      .map((c) => c.slug)
+      .sort()
+      .join();
+  if (!changed.length && !linksChanged)
+    return { ok: true, id: before.id, created: false, movedToDraft: false };
   const movedToDraft = changed.length > 0 && before.status === "PUBLISHED";
   await db.$transaction(async (tx) => {
     // Company links don't change the question itself, so they never send it back to draft.
-    await setCompanyLinks({ designQuestionId: before.id }, links, actor, tx);
+    if (linksChanged) await setCompanyLinks({ designQuestionId: before.id }, links, actor, tx);
     if (!changed.length) return;
     await tx.designQuestion.update({
       where: { id: before.id },
@@ -145,5 +153,32 @@ export async function setDesignStatus(id: string, status: ContentStatus, actor: 
       },
       tx,
     );
+  });
+}
+
+/** Publishes many draft design/interview questions at once ("Publish everything", D-067). */
+export async function publishDesignQuestions(ids: readonly string[], actor: Actor) {
+  if (!ids.length) return 0;
+  return db.$transaction(async (tx) => {
+    const drafts = await tx.designQuestion.findMany({
+      where: { id: { in: [...ids] }, status: { in: DRAFT_STATUSES } },
+      select: { id: true, status: true },
+    });
+    if (!drafts.length) return 0;
+    await tx.designQuestion.updateMany({
+      where: { id: { in: drafts.map((d) => d.id) } },
+      data: { status: "PUBLISHED" },
+    });
+    await tx.auditLog.createMany({
+      data: drafts.map((d) => ({
+        actorId: actor.id,
+        action: "design.published",
+        entityType: "design_question",
+        entityId: d.id,
+        before: { status: d.status },
+        after: { status: "PUBLISHED" },
+      })),
+    });
+    return drafts.length;
   });
 }

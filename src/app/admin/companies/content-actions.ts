@@ -58,7 +58,7 @@ export async function setLinkRoundAction(formData: FormData) {
   const moved = await setLinkRound(
     id.parse(formData.get("linkId")),
     id.parse(formData.get("companyId")),
-    round ? z.coerce.number().int().min(1).max(50).parse(round) : null,
+    round ? id.parse(round) : null,
     user,
   );
   back(

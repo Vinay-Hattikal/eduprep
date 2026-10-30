@@ -1,14 +1,14 @@
 import Link from "next/link";
-import { CheckCircle2, Link2, Link2Off, Plus, Search, Upload } from "lucide-react";
-import { linkItemAction, unlinkItemAction } from "@/app/admin/companies/content-actions";
+import { CheckCircle2, Plus, Upload } from "lucide-react";
+import { LinkExistingCard, UnlinkButton } from "@/app/admin/companies/[slug]/link-parts";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ContentStatusBadge, DifficultyLabel } from "@/components/shared/status-badge";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { companyImportHref } from "@/lib/content/companies";
 import { plainExcerpt } from "@/lib/format";
 import { searchLinkable } from "@/server/services/company-links";
 import { db } from "@/server/db";
@@ -87,15 +87,8 @@ export async function LinkedContent({
   ]);
   // Questions on the same passage sit together (D-067), then the rest, by ID within each.
   const sortKey = (l: (typeof links)[number]) =>
-    [
-      l.question?.passage ? 0 : 1,
-      l.question?.passage?.externalId ?? "",
-      l.question?.externalId ?? l.problem?.externalId ?? "",
-    ] as const;
-  links.sort((a, b) => {
-    const [x, y] = [sortKey(a), sortKey(b)];
-    return x[0] - y[0] || (x[1] < y[1] ? -1 : x[1] > y[1] ? 1 : 0) || (x[2] < y[2] ? -1 : 1);
-  });
+    `${l.question?.passage ? 0 : 1}|${l.question?.passage?.externalId ?? ""}|${l.question?.externalId ?? l.problem?.externalId ?? ""}`;
+  links.sort((a, b) => (sortKey(a) < sortKey(b) ? -1 : sortKey(a) > sortKey(b) ? 1 : 0));
 
   return (
     <div className="space-y-6">
@@ -123,7 +116,7 @@ export async function LinkedContent({
           {canEdit ? (
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="outline">
-                <Link href={`/admin/imports?company=${company.slug}`}>
+                <Link href={companyImportHref(company.slug)}>
                   <Upload /> Import
                 </Link>
               </Button>
@@ -198,20 +191,12 @@ export async function LinkedContent({
                       </Badge>
                     ) : null}
                     {canEdit ? (
-                      <form action={unlinkItemAction}>
-                        <input type="hidden" name="slug" value={company.slug} />
-                        <input type="hidden" name="kind" value={kind} />
-                        <input type="hidden" name="linkId" value={link.id} />
-                        <Button
-                          type="submit"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Unlink ${item.externalId}`}
-                          title="Unlink from this company"
-                        >
-                          <Link2Off />
-                        </Button>
-                      </form>
+                      <UnlinkButton
+                        company={company}
+                        kind={kind}
+                        linkId={link.id}
+                        label={item.externalId}
+                      />
                     ) : null}
                   </li>
                 );
@@ -222,73 +207,19 @@ export async function LinkedContent({
       </Card>
 
       {canEdit ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <h2>Link an existing {labels.one}</h2>
-            </CardTitle>
-            <CardDescription>
-              Already written for another company or practice? Link it instead of writing it again.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <form className="flex flex-wrap gap-2" role="search" aria-label={labels.search}>
-              <input
-                type="hidden"
-                name="tab"
-                value={kind === "question" ? "questions" : "coding"}
-              />
-              <div className="relative min-w-48 flex-1">
-                <Search
-                  className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <Input
-                  name="q"
-                  defaultValue={q}
-                  placeholder={labels.search}
-                  aria-label={labels.search}
-                  className="pl-8"
-                />
-              </div>
-              <Button type="submit" variant="secondary">
-                Search
-              </Button>
-            </form>
-            {q ? (
-              results.length ? (
-                <ul className="divide-y rounded-lg border">
-                  {results.map((r) => (
-                    <li
-                      key={r.id}
-                      className="flex flex-wrap items-center gap-x-3 gap-y-1 p-3 text-sm"
-                    >
-                      <span className="font-mono text-xs">{r.externalId}</span>
-                      <span className="min-w-0 flex-1 basis-48 truncate">
-                        {"text" in r ? plainExcerpt(r.text, 120) : r.title}
-                      </span>
-                      <ContentStatusBadge status={r.status} />
-                      <form action={linkItemAction}>
-                        <input type="hidden" name="slug" value={company.slug} />
-                        <input type="hidden" name="companyId" value={company.id} />
-                        <input type="hidden" name="kind" value={kind} />
-                        <input type="hidden" name="itemId" value={r.id} />
-                        <input type="hidden" name="q" value={q} />
-                        <Button type="submit" size="sm" variant="outline">
-                          <Link2 /> Link
-                        </Button>
-                      </form>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Nothing found that isn&apos;t already linked.
-                </p>
-              )
-            ) : null}
-          </CardContent>
-        </Card>
+        <LinkExistingCard
+          company={company}
+          kind={kind}
+          tab={kind === "question" ? "questions" : "coding"}
+          title={`Link an existing ${labels.one}`}
+          description="Already written for another company or practice? Link it instead of writing it again."
+          placeholder={labels.search}
+          q={q}
+          results={results.map((r) => ({
+            ...r,
+            label: "text" in r ? plainExcerpt(r.text, 120) : r.title,
+          }))}
+        />
       ) : null}
     </div>
   );
