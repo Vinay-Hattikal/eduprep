@@ -31,6 +31,7 @@ const param = (value: string | string[] | undefined) =>
  * A blank question, or (company-wise entry, D-057):
  * - `?company=<slug>`: tagged with that company, back link to its Questions tab;
  * - `?topic=<id>`: that subject and topic picked (the company page's coverage links, D-067);
+ * - `?fromReport=<id>`: the text and company of a drive report (Community tab, D-067);
  * - `?copyFrom=<id>`: "Then add another": same subject, topic, type, difficulty, source and
  *   companies as the question just saved, with the next ID suggested.
  */
@@ -74,6 +75,21 @@ async function NewQuestion({
       companyId: c.companyId,
       askedIn: c.askedIn.join(", "),
     }));
+  }
+  // "Turn into a question" from a drive report (D-067): what the student reported, asked at
+  // that company in the drive's month.
+  const reportId = param(query.fromReport);
+  const report = reportId
+    ? await db.driveReport.findUnique({
+        where: { id: reportId },
+        select: { questions: true, driveDate: true, companyId: true },
+      })
+    : null;
+  if (report) {
+    initial.text = report.questions;
+    initialCompanies = [
+      { companyId: report.companyId, askedIn: report.driveDate.toISOString().slice(0, 7) },
+    ];
   }
   // Where "back" goes: the company the questions are being written for, if any.
   const backCompany =

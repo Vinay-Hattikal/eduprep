@@ -210,9 +210,12 @@ export async function recordApplyClick(slug: string, userId: string | null) {
 
 // ---------- Admin ----------
 
-export async function listPostingsForAdmin(status?: "DRAFT" | "PUBLISHED" | "CLOSED") {
+export async function listPostingsForAdmin(
+  status?: "DRAFT" | "PUBLISHED" | "CLOSED",
+  companyId?: string,
+) {
   return db.jobPosting.findMany({
-    where: status ? { status } : {},
+    where: { ...(status && { status }), ...(companyId && { companyId }) },
     orderBy: [{ updatedAt: "desc" }],
     take: 200,
     select: {

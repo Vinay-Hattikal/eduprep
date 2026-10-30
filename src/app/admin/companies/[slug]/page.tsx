@@ -7,6 +7,7 @@ import { companyStatusAction, verifyCompanyAction } from "@/app/admin/companies/
 import { CompanyForm } from "@/app/admin/companies/company-form";
 import { CompanyMocks } from "@/app/admin/companies/[slug]/company-mocks";
 import { ChangeButton, HiringProcess } from "@/app/admin/companies/[slug]/hiring-process";
+import { CommunityTab } from "@/app/admin/companies/[slug]/community";
 import { InterviewQuestions } from "@/app/admin/companies/[slug]/interview-questions";
 import { LinkedContent } from "@/app/admin/companies/[slug]/linked-content";
 import { CompanyOverview, CompanyProgress } from "@/app/admin/companies/[slug]/overview";
@@ -187,6 +188,9 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
                 {t.key === "questions" ? <TabCount n={company.questionCount} /> : null}
                 {t.key === "coding" ? <TabCount n={company.problemCount} /> : null}
                 {t.key === "interview" ? <TabCount n={company.interviewCount} /> : null}
+                {t.key === "community" && company.pendingCommunity ? (
+                  <TabCount n={company.pendingCommunity} />
+                ) : null}
               </Link>
             </li>
           ))}
@@ -295,6 +299,7 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
       {tab === "interview" ? (
         <InterviewQuestions company={company} canEdit={canEdit} query={query} />
       ) : null}
+      {tab === "community" ? <CommunityTab company={company} query={query} /> : null}
       {tab === "mocks" ? (
         <CompanyMocks
           company={company}
@@ -313,6 +318,7 @@ const TABS = [
   { key: "questions", label: "MCQ questions" },
   { key: "coding", label: "Coding" },
   { key: "interview", label: "Interview questions" },
+  { key: "community", label: "Community" },
   { key: "mocks", label: "Mock tests" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];

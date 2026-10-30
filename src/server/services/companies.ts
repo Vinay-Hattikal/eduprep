@@ -22,16 +22,21 @@ export async function getCompanyBySlug(slug: string) {
   const company = await loadCompany(slug);
   if (!company) return null;
   // Counts only: the admin tabs list the linked items themselves (D-057).
-  const [questionCount, problemCount, interviewCount] = await Promise.all([
-    db.companyItem.count({ where: { companyId: company.id, questionId: { not: null } } }),
-    db.companyItem.count({ where: { companyId: company.id, problemId: { not: null } } }),
-    db.companyItem.count({ where: { companyId: company.id, designQuestionId: { not: null } } }),
-  ]);
+  const [questionCount, problemCount, interviewCount, pendingExperiences, pendingReports] =
+    await Promise.all([
+      db.companyItem.count({ where: { companyId: company.id, questionId: { not: null } } }),
+      db.companyItem.count({ where: { companyId: company.id, problemId: { not: null } } }),
+      db.companyItem.count({ where: { companyId: company.id, designQuestionId: { not: null } } }),
+      db.experience.count({ where: { companyId: company.id, status: "PENDING" } }),
+      db.driveReport.count({ where: { companyId: company.id, status: "PENDING" } }),
+    ]);
   return {
     ...company,
     questionCount,
     problemCount,
     interviewCount,
+    /** Experiences and drive reports waiting for review (the Community tab, D-067). */
+    pendingCommunity: pendingExperiences + pendingReports,
     stale: isStale(company.lastVerifiedAt, new Date()),
   };
 }

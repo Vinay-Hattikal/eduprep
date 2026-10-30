@@ -89,9 +89,9 @@ export async function listMyExperiences(userId: string) {
   });
 }
 
-export async function listForModeration(status: ExperienceStatus = "PENDING") {
+export async function listForModeration(status: ExperienceStatus = "PENDING", companyId?: string) {
   return db.experience.findMany({
-    where: { status },
+    where: { status, ...(companyId && { companyId }) },
     orderBy: { createdAt: status === "PENDING" ? "asc" : "desc" },
     take: 100,
     include: {
