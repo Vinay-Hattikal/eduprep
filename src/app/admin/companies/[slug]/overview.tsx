@@ -58,6 +58,7 @@ export function CompanyOverview({
   const goLive = [
     n.questions ? `${n.questions} questions` : null,
     n.problems ? `${n.problems} coding problems` : null,
+    n.interviews ? `${n.interviews} interview questions` : null,
     n.company ? "the company" : null,
     n.mocks ? `${n.mocks} mock test${n.mocks === 1 ? "" : "s"}` : null,
   ].filter(Boolean);

@@ -22,14 +22,16 @@ export async function getCompanyBySlug(slug: string) {
   const company = await loadCompany(slug);
   if (!company) return null;
   // Counts only: the admin tabs list the linked items themselves (D-057).
-  const [questionCount, problemCount] = await Promise.all([
+  const [questionCount, problemCount, interviewCount] = await Promise.all([
     db.companyItem.count({ where: { companyId: company.id, questionId: { not: null } } }),
     db.companyItem.count({ where: { companyId: company.id, problemId: { not: null } } }),
+    db.companyItem.count({ where: { companyId: company.id, designQuestionId: { not: null } } }),
   ]);
   return {
     ...company,
     questionCount,
     problemCount,
+    interviewCount,
     stale: isStale(company.lastVerifiedAt, new Date()),
   };
 }

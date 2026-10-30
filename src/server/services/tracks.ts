@@ -11,6 +11,8 @@ type Viewer = Pick<CurrentUser, "id" | "roles">;
 export const DESIGN_KIND_LABELS: Record<DesignKind, string> = {
   SYSTEM_DESIGN: "System design",
   LOW_LEVEL_DESIGN: "Low-level design",
+  TECHNICAL: "Technical interview",
+  HR: "HR / behavioural",
 };
 
 export async function listTracks() {
@@ -84,12 +86,12 @@ export async function listDesignQuestions(
   user: Viewer,
   filter: { kind?: DesignKind; track?: string; company?: string },
 ) {
-  return db.designQuestion.findMany({
+  const questions = await db.designQuestion.findMany({
     where: {
       ...(isAdmin(user.roles) ? {} : { status: "PUBLISHED" }),
       ...(filter.kind && { kind: filter.kind }),
       ...(filter.track && { tracks: { has: filter.track } }),
-      ...(filter.company && { companies: { has: filter.company } }),
+      ...(filter.company && { companies: { some: { company: { slug: filter.company } } } }),
     },
     orderBy: [{ kind: "asc" }, { difficulty: "asc" }, { title: "asc" }],
     select: {
@@ -97,20 +99,24 @@ export async function listDesignQuestions(
       title: true,
       kind: true,
       difficulty: true,
-      companies: true,
+      companies: { select: { company: { select: { slug: true } } } },
       tracks: true,
     },
   });
+  return questions.map((q) => ({ ...q, companies: q.companies.map((c) => c.company.slug) }));
 }
 
 export async function getDesignQuestion(user: Viewer, slug: string) {
   const question = await db.designQuestion.findFirst({
     where: { slug, ...(isAdmin(user.roles) ? {} : { status: "PUBLISHED" }) },
+    include: {
+      companies: {
+        where: { company: { status: "PUBLISHED" } },
+        select: { company: { select: { name: true, slug: true } } },
+      },
+    },
   });
   if (!question) return null;
-  const companies = await db.company.findMany({
-    where: { slug: { in: question.companies }, status: "PUBLISHED" },
-    select: { name: true, slug: true },
-  });
-  return { ...question, companyRefs: companies };
+  const { companies, ...rest } = question;
+  return { ...rest, companyRefs: companies.map((c) => c.company) };
 }

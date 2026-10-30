@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { saveDesignAction, type DesignFormState } from "@/app/admin/design/actions";
 import { CheckboxGroup } from "@/components/shared/checkbox-group";
 import { FormField } from "@/components/shared/form-field";
@@ -28,7 +29,23 @@ export type DesignFormValues = {
 
 type TextName = "prompt" | "requirements" | "approach" | "tradeoffs" | "followUps";
 
-/** Creates (no id) or edits a system design / low-level design question. */
+/** Field labels: design questions, and interview questions in the same four fields (D-067). */
+const FIELD_LABELS = {
+  design: {
+    requirements: ["Requirements (Markdown)", "Functional and non-functional."],
+    approach: ["Approach (Markdown)", "A model answer, step by step."],
+    tradeoffs: ["Trade-offs (Markdown)", undefined],
+  },
+  interview: {
+    requirements: ["What the interviewer looks for (Markdown)", "The points a good answer covers."],
+    approach: ["A strong answer (Markdown)", "How a well-prepared candidate would answer."],
+    tradeoffs: ["Common mistakes (Markdown)", "What weak answers do."],
+  },
+} as const;
+
+const INTERVIEW_KINDS = ["TECHNICAL", "HR"];
+
+/** Creates (no id) or edits a design question or an interview question. */
 export function DesignForm({
   values,
   tracks,
@@ -41,6 +58,8 @@ export function DesignForm({
   const [state, onSubmit, pending] = useFormSubmit<DesignFormState>(saveDesignAction, {});
   const errors = state.fieldErrors ?? {};
   const creating = !values.id;
+  const [kind, setKind] = useState(values.kind);
+  const labels = FIELD_LABELS[INTERVIEW_KINDS.includes(kind) ? "interview" : "design"];
   const text = (name: TextName, label: string, rows: number, description?: string) => (
     <FormField id={`design-${name}`} label={label} error={errors[name]} description={description}>
       {(aria) => <Textarea {...aria} name={name} rows={rows} defaultValue={values[name]} />}
@@ -90,9 +109,17 @@ export function DesignForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField id="design-kind" label="Kind" error={errors.kind}>
             {(aria) => (
-              <NativeSelect {...aria} name="kind" defaultValue={values.kind} className="w-full">
+              <NativeSelect
+                {...aria}
+                name="kind"
+                value={kind}
+                onChange={(e) => setKind(e.target.value)}
+                className="w-full"
+              >
                 <NativeSelectOption value="SYSTEM_DESIGN">System design</NativeSelectOption>
                 <NativeSelectOption value="LOW_LEVEL_DESIGN">Low-level design</NativeSelectOption>
+                <NativeSelectOption value="TECHNICAL">Technical interview</NativeSelectOption>
+                <NativeSelectOption value="HR">HR / behavioural</NativeSelectOption>
               </NativeSelect>
             )}
           </FormField>
@@ -112,9 +139,9 @@ export function DesignForm({
           </FormField>
         </div>
         {text("prompt", "Question (Markdown)", 5)}
-        {text("requirements", "Requirements (Markdown)", 5, "Functional and non-functional.")}
-        {text("approach", "Approach (Markdown)", 8, "A model answer, step by step.")}
-        {text("tradeoffs", "Trade-offs (Markdown)", 5)}
+        {text("requirements", labels.requirements[0], 5, labels.requirements[1])}
+        {text("approach", labels.approach[0], 8, labels.approach[1])}
+        {text("tradeoffs", labels.tradeoffs[0], 5, labels.tradeoffs[1])}
         {text("followUps", "Follow-up questions (optional)", 3)}
         <FormField
           id="design-companies"

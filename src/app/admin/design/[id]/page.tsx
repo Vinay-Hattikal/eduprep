@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ArrowLeft, CheckCircle2, ExternalLink } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ExternalLink, Plus } from "lucide-react";
 import { setDesignStatusAction } from "@/app/admin/design/actions";
 import { DesignForm } from "@/app/admin/design/design-form";
 import { PageHeader } from "@/components/shared/page-header";
+import { companyTabHref } from "@/lib/content/companies";
 import { PageSkeleton } from "@/components/shared/skeletons";
 import { ContentStatusBadge } from "@/components/shared/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -83,6 +84,19 @@ async function Detail({ params, searchParams }: PageProps<"/admin/design/[id]">)
           </>
         }
       />
+      {/* Written for a company (D-067): back to its interview questions, or the next one. */}
+      {question.companies.slice(0, 3).map((slug) => (
+        <div key={slug} className="flex flex-wrap items-center gap-2 text-sm">
+          <Button asChild variant="outline" size="sm">
+            <Link href={companyTabHref(slug, "interview")}>Back to {slug}</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/admin/design/new?company=${slug}&kind=${question.kind}`}>
+              <Plus /> Add another for {slug}
+            </Link>
+          </Button>
+        </div>
+      ))}
       {query.created || query.saved ? (
         <Alert>
           <CheckCircle2 />

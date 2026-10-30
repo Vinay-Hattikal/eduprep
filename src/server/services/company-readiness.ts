@@ -62,7 +62,7 @@ async function sectionCoverage(company: Company): Promise<Coverage[]> {
 /** The company's checklist, progress and next step. */
 export async function companyReadiness(company: Company) {
   const linked = { companies: { some: { companyId: company.id } } };
-  const [questions, problems, checkedDrafts, mocks, coverage] = await Promise.all([
+  const [questions, problems, checkedDrafts, interviews, mocks, coverage] = await Promise.all([
     db.question.groupBy({
       by: ["status"],
       where: { ...linked, status: { not: "ARCHIVED" } },
@@ -75,6 +75,11 @@ export async function companyReadiness(company: Company) {
     }),
     db.problem.count({
       where: { ...linked, status: { in: DRAFT_STATUSES }, validatedAt: { not: null } },
+    }),
+    db.designQuestion.groupBy({
+      by: ["status"],
+      where: { ...linked, status: { not: "ARCHIVED" } },
+      _count: { _all: true },
     }),
     db.testBlueprint.groupBy({
       by: ["status"],
@@ -99,6 +104,7 @@ export async function companyReadiness(company: Company) {
     rounds: company.rounds,
     questions: byStatus(questions),
     problems: { ...byStatus(problems), checked: checkedDrafts },
+    interviews: byStatus(interviews),
     mocks: byStatus(mocks),
     coverage,
   });

@@ -3,6 +3,7 @@
 // unit-tested; src/server/services/company-readiness.ts gathers the counts.
 
 import type { ContentStatus, RoundType, SectionType } from "@/generated/prisma/enums";
+import { INTERVIEW_ROUND_TYPES } from "@/lib/content/companies";
 
 /** Rounds whose sections are tests a mock can copy (the rest are interviews and discussions). */
 export const TEST_ROUND_TYPES: readonly RoundType[] = ["ONLINE_TEST", "CODING_TEST"];
@@ -80,11 +81,13 @@ export type ReadinessInput = {
   questions: { published: number; draft: number };
   problems: { published: number; draft: number; checked: number };
   mocks: { published: number; draft: number };
+  /** Interview (design, technical, HR) questions linked to the company. */
+  interviews: { published: number; draft: number };
   coverage: readonly Coverage[];
 };
 
 export type ChecklistTab =
-  "profile" | "process" | "sources" | "questions" | "coding" | "mocks" | "overview";
+  "profile" | "process" | "sources" | "questions" | "coding" | "interview" | "mocks" | "overview";
 
 export type ChecklistItem = {
   key: string;
@@ -111,6 +114,7 @@ export function readinessChecklist(input: ReadinessInput): ChecklistItem[] {
     input.rounds.some((r) => r.type === "CODING_TEST") || sections.some((s) => s.type === "CODING");
   const short = input.coverage.filter((c) => c.available < c.need);
   const firstShort = short[0];
+  const interviewRounds = input.rounds.filter((r) => INTERVIEW_ROUND_TYPES.includes(r.type)).length;
   const overviewOk = input.overview.trim().length >= MIN_OVERVIEW_CHARS;
 
   return [
@@ -177,6 +181,16 @@ export function readinessChecklist(input: ReadinessInput): ChecklistItem[] {
         : "No coding round",
       tab: "coding",
       next: "Add a coding problem with its tests and solution",
+    },
+    {
+      key: "interview",
+      label: "Interview questions",
+      done: !interviewRounds || input.interviews.published > 0,
+      detail: interviewRounds
+        ? `${input.interviews.published} published, ${input.interviews.draft} draft`
+        : "No interview round",
+      tab: "interview",
+      next: "Add the questions asked in the interviews",
     },
     {
       key: "coverage",

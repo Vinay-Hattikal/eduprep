@@ -340,21 +340,21 @@ Re-uploading the same `company` + `item_type` + `item_id` updates the row.
 
 Tracks are live on import (like the taxonomy).
 
-### 4.8 `design/design-questions.csv`: system design and low-level design
+### 4.8 `design/design-questions.csv`: design and interview questions
 
 | Column | Required | Rules |
 |---|---|---|
 | `external_id` | Yes | e.g. `SD-0001`, `LLD-0001` |
 | `slug` | Yes | URL slug, unique |
-| `kind` | Yes | `system_design` or `low_level_design` |
+| `kind` | Yes | `system_design`, `low_level_design`, `technical` (technical interview) or `hr` (HR / behavioural) |
 | `title` | Yes | e.g. `Design a URL shortener` |
 | `difficulty` | Yes | `easy`, `medium`, `hard` |
 | `prompt` | Yes | Markdown: the question as asked |
-| `requirements` | Yes | Markdown: functional and scale requirements |
-| `approach` | Yes | Markdown: outline of a good answer |
-| `tradeoffs` | Yes | Markdown: what to discuss |
+| `requirements` | Yes | Markdown: functional and scale requirements (interview kinds: what the interviewer looks for) |
+| `approach` | Yes | Markdown: outline of a good answer (interview kinds: a strong answer) |
+| `tradeoffs` | Yes | Markdown: what to discuss (interview kinds: common mistakes) |
 | `follow_ups` | No | Markdown |
-| `companies` | No | Company slugs where it was asked, joined with `\|` |
+| `companies` | No | Company slugs where it was asked, joined with `\|`. Each becomes a company link (links added in admin are kept). Pick the interview round on the company's Interview questions tab. |
 | `tracks` | No | Role track slugs, joined with `\|` |
 
 Imported as drafts; publish them in admin › Design questions.

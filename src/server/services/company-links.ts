@@ -6,12 +6,22 @@ import { nextExternalId } from "@/lib/content/asked-at";
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/services/audit";
 
-// Linking questions and coding problems to companies from the admin panel (D-057). A link says
-// "this company asks it", with optional months. Links don't change the item itself, so they
-// never send it back to draft (same as D-054 for imports).
+// Linking questions, coding problems and design/interview questions to companies from the admin
+// panel (D-057, D-067). A link says "this company asks it", with optional months and round.
+// Links don't change the item itself, so they never send it back to draft (same as D-054).
 
 type Actor = { id: string };
-type Item = { questionId: string } | { problemId: string };
+export type LinkKind = "question" | "problem" | "design";
+type Item = { questionId: string } | { problemId: string } | { designQuestionId: string };
+
+const ITEM_FIELD = {
+  question: "questionId",
+  problem: "problemId",
+  design: "designQuestionId",
+} as const satisfies Record<LinkKind, string>;
+
+/** The link for an item of this kind and id. */
+export const linkItem = (kind: LinkKind, id: string) => ({ [ITEM_FIELD[kind]]: id }) as Item;
 
 /** Company pages list their questions, so their sitemap date moves when links change (D-058). */
 async function touchCompanies(tx: Prisma.TransactionClient, ids: readonly string[]) {
@@ -33,8 +43,14 @@ export async function touchCompaniesListing(
   });
 }
 
-const itemWhere = (item: Item) =>
-  "questionId" in item ? { questionId: item.questionId } : { problemId: item.problemId };
+const itemWhere = (item: Item) => item;
+
+/** The kind and id of an item, for audit entries. */
+function describe(item: Item): [string, string] {
+  if ("questionId" in item) return ["question", item.questionId];
+  if ("problemId" in item) return ["problem", item.problemId];
+  return ["design_question", item.designQuestionId];
+}
 
 /** Every company, for the "Asked at" pickers. */
 export async function companyOptions() {
@@ -86,8 +102,7 @@ export async function setCompanyLinks(item: Item, links: readonly AskedAt[], act
     await touchCompanies(tx, [
       ...new Set([...removed, ...created, ...updated].map((l) => l.companyId)),
     ]);
-    const [entityType, entityId] =
-      "questionId" in item ? ["question", item.questionId] : ["problem", item.problemId];
+    const [entityType, entityId] = describe(item);
     await recordAudit(
       {
         actorId: actor.id,
@@ -135,7 +150,11 @@ export async function unlinkFromCompany(companyItemId: string, actor: Actor) {
         action: "company.unlink",
         entityType: "company",
         entityId: link.companyId,
-        before: { questionId: link.questionId, problemId: link.problemId },
+        before: {
+          questionId: link.questionId,
+          problemId: link.problemId,
+          designQuestionId: link.designQuestionId,
+        },
       },
       tx,
     );
@@ -143,10 +162,25 @@ export async function unlinkFromCompany(companyItemId: string, actor: Actor) {
   return link.companyId;
 }
 
-/** Questions or problems not yet linked to the company, matching an ID or text. */
-export async function searchLinkable(companyId: string, kind: "question" | "problem", q: string) {
+/** Items of this kind not yet linked to the company, matching an ID or text. */
+export async function searchLinkable(companyId: string, kind: LinkKind, q: string) {
   const text = q.trim().slice(0, 100);
   if (!text) return [];
+  if (kind === "design") {
+    return db.designQuestion.findMany({
+      where: {
+        status: { not: "ARCHIVED" },
+        companies: { none: { companyId } },
+        OR: [
+          { externalId: { contains: text, mode: "insensitive" } },
+          { title: { contains: text, mode: "insensitive" } },
+        ],
+      },
+      orderBy: { externalId: "asc" },
+      take: 20,
+      select: { id: true, externalId: true, title: true, status: true, difficulty: true },
+    });
+  }
   if (kind === "question") {
     return db.question.findMany({
       where: {
@@ -198,4 +232,9 @@ export async function suggestNextQuestionId(id: string): Promise<string> {
     ).map((q) => q.externalId),
   );
   return candidates.find((c) => !taken.has(c)) ?? "";
+}
+
+/** Which interview round a link belongs to (null: not tied to a round). */
+export async function setLinkRound(linkId: string, companyId: string, roundOrder: number | null) {
+  await db.companyItem.updateMany({ where: { id: linkId, companyId }, data: { roundOrder } });
 }

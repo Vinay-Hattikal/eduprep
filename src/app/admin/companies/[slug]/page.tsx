@@ -7,6 +7,7 @@ import { companyStatusAction, verifyCompanyAction } from "@/app/admin/companies/
 import { CompanyForm } from "@/app/admin/companies/company-form";
 import { CompanyMocks } from "@/app/admin/companies/[slug]/company-mocks";
 import { ChangeButton, HiringProcess } from "@/app/admin/companies/[slug]/hiring-process";
+import { InterviewQuestions } from "@/app/admin/companies/[slug]/interview-questions";
 import { LinkedContent } from "@/app/admin/companies/[slug]/linked-content";
 import { CompanyOverview, CompanyProgress } from "@/app/admin/companies/[slug]/overview";
 import { SourceForm } from "@/app/admin/companies/hiring-forms";
@@ -107,9 +108,10 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
           <CheckCircle2 />
           <AlertTitle>Published what was ready</AlertTitle>
           <AlertDescription>
-            {count("questions")} questions, {count("problems")} coding problems, {count("mocks")}{" "}
-            mock tests{query.company === "1" ? " and the company" : ""}. Anything still draft is
-            listed under Publish everything with the reason.
+            {count("questions")} questions, {count("problems")} coding problems,{" "}
+            {count("interviews")} interview questions, {count("mocks")} mock tests
+            {query.company === "1" ? " and the company" : ""}. Anything still draft is listed under
+            Publish everything with the reason.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -181,6 +183,7 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
                 {t.key === "sources" ? <TabCount n={company.sources.length} /> : null}
                 {t.key === "questions" ? <TabCount n={company.questionCount} /> : null}
                 {t.key === "coding" ? <TabCount n={company.problemCount} /> : null}
+                {t.key === "interview" ? <TabCount n={company.interviewCount} /> : null}
               </Link>
             </li>
           ))}
@@ -285,6 +288,9 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
       {tab === "coding" ? (
         <LinkedContent kind="problem" company={company} canEdit={canEdit} query={query} />
       ) : null}
+      {tab === "interview" ? (
+        <InterviewQuestions company={company} canEdit={canEdit} query={query} />
+      ) : null}
       {tab === "mocks" ? (
         <CompanyMocks
           company={company}
@@ -302,6 +308,7 @@ const TABS = [
   { key: "sources", label: "Sources" },
   { key: "questions", label: "MCQ questions" },
   { key: "coding", label: "Coding" },
+  { key: "interview", label: "Interview questions" },
   { key: "mocks", label: "Mock tests" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];

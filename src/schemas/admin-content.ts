@@ -140,7 +140,7 @@ export const designFormSchema = z.object({
   id: z.string().min(1).max(40).optional(),
   externalId: externalIdField,
   slug: slugField,
-  kind: z.enum(["SYSTEM_DESIGN", "LOW_LEVEL_DESIGN"]),
+  kind: z.enum(["SYSTEM_DESIGN", "LOW_LEVEL_DESIGN", "TECHNICAL", "HR"]),
   title: z.string().trim().min(3, "Too short.").max(160),
   difficulty,
   prompt: markdown("Write the question."),

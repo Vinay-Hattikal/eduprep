@@ -55,6 +55,7 @@ const ready: ReadinessInput = {
   questions: { published: 2, draft: 0 },
   problems: { published: 0, draft: 0, checked: 0 },
   mocks: { published: 1, draft: 0 },
+  interviews: { published: 0, draft: 0 },
   coverage: [{ type: "MCQ", topicId: "pct", name: "PCT", need: 2, available: 2, tagged: 2 }],
 };
 
@@ -77,6 +78,21 @@ describe("readinessChecklist", () => {
     });
     expect(nextStep(items)).toMatchObject({ key: "process", tab: "process" });
     expect(items.find((i) => i.key === "sources")?.done).toBe(false);
+  });
+
+  it("asks for interview questions only when there's an interview round", () => {
+    const withInterview = readinessChecklist({
+      ...ready,
+      rounds: [...ready.rounds, { type: "HR_INTERVIEW", sections: [] }],
+    });
+    expect(withInterview.find((i) => i.key === "interview")).toMatchObject({
+      done: false,
+      tab: "interview",
+    });
+    expect(readinessChecklist(ready).find((i) => i.key === "interview")).toMatchObject({
+      done: true,
+      detail: "No interview round",
+    });
   });
 
   it("names the short topic, and requires coding only with a coding round", () => {

@@ -7,52 +7,74 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PageSkeleton } from "@/components/shared/skeletons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { companyTabHref } from "@/lib/content/companies";
 import { requirePermission } from "@/server/auth";
 import { designFormOptions } from "@/server/services/design-questions";
 
 export const metadata: Metadata = { title: "New design question" };
 
-export default function NewDesignQuestionPage() {
+export default function NewDesignQuestionPage({ searchParams }: PageProps<"/admin/design/new">) {
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
-        <Link href="/admin/design">
-          <ArrowLeft /> Design questions
-        </Link>
-      </Button>
-      <PageHeader title="New design question" description="Saved as a draft." />
       <Suspense fallback={<PageSkeleton />}>
-        <NewDesignQuestion />
+        <NewDesignQuestion searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function NewDesignQuestion() {
+const KINDS = ["SYSTEM_DESIGN", "LOW_LEVEL_DESIGN", "TECHNICAL", "HR"] as const;
+
+/**
+ * A blank design or interview question. From a company's Interview questions tab (D-067):
+ * `?company=<slug>` tags it with that company and `?kind=TECHNICAL|HR` picks the kind.
+ */
+async function NewDesignQuestion({
+  searchParams,
+}: {
+  searchParams: PageProps<"/admin/design/new">["searchParams"];
+}) {
   await requirePermission("content.edit");
-  const { tracks } = await designFormOptions();
+  const query = await searchParams;
+  const { tracks, companies } = await designFormOptions();
+  const company = companies.find((c) => c.slug === query.company);
+  const kind = KINDS.find((k) => k === query.kind) ?? "SYSTEM_DESIGN";
   return (
-    <Card>
-      <CardContent>
-        <DesignForm
-          canEdit
-          tracks={tracks}
-          values={{
-            externalId: "",
-            slug: "",
-            kind: "SYSTEM_DESIGN",
-            title: "",
-            difficulty: "MEDIUM",
-            prompt: "",
-            requirements: "",
-            approach: "",
-            tradeoffs: "",
-            followUps: "",
-            companies: [],
-            tracks: [],
-          }}
-        />
-      </CardContent>
-    </Card>
+    <>
+      <Button asChild variant="ghost" size="sm" className="-ml-2 max-w-full">
+        <Link href={company ? companyTabHref(company.slug, "interview") : "/admin/design"}>
+          <ArrowLeft />
+          <span className="truncate">
+            {company ? `${company.name} interview questions` : "Design questions"}
+          </span>
+        </Link>
+      </Button>
+      <PageHeader
+        title={company ? `New interview question for ${company.name}` : "New design question"}
+        description="Saved as a draft."
+      />
+      <Card>
+        <CardContent>
+          <DesignForm
+            canEdit
+            tracks={tracks}
+            values={{
+              externalId: "",
+              slug: "",
+              kind,
+              title: "",
+              difficulty: "MEDIUM",
+              prompt: "",
+              requirements: "",
+              approach: "",
+              tradeoffs: "",
+              followUps: "",
+              companies: company ? [company.slug] : [],
+              tracks: [],
+            }}
+          />
+        </CardContent>
+      </Card>
+    </>
   );
 }

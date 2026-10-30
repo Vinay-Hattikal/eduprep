@@ -5,6 +5,7 @@ import { db } from "@/server/db";
 import { recordAudit } from "@/server/services/audit";
 import { publishProblems, transitionBlueprint } from "@/server/services/blueprints";
 import { companyPublishBlocker, setCompanyStatus } from "@/server/services/companies";
+import { setDesignStatus } from "@/server/services/design-questions";
 import { transitionProblem } from "@/server/services/problems";
 import { publishQuestions, questionCheckError } from "@/server/services/questions";
 
@@ -20,7 +21,7 @@ type Actor = Parameters<typeof setCompanyStatus>[2];
  */
 export async function companyPublishPlan(companyId: string, { blockers = true } = {}) {
   const linked = { companies: { some: { companyId } }, status: { in: DRAFT_STATUSES } };
-  const [company, questions, problems, mocks] = await Promise.all([
+  const [company, questions, problems, interviews, mocks] = await Promise.all([
     db.company.findUnique({
       where: { id: companyId },
       select: { status: true, _count: { select: { sources: true } } },
@@ -31,6 +32,7 @@ export async function companyPublishPlan(companyId: string, { blockers = true } 
       orderBy: { externalId: "asc" },
       select: { id: true, title: true, validatedAt: true },
     }),
+    db.designQuestion.findMany({ where: linked, select: { id: true } }),
     db.testBlueprint.findMany({
       where: { companyId, kind: "COMPANY_MOCK", status: { in: DRAFT_STATUSES } },
       select: { id: true, title: true },
@@ -49,11 +51,13 @@ export async function companyPublishPlan(companyId: string, { blockers = true } 
   return {
     questionIds: questions.map((q) => q.id),
     problems: readyProblems.map((p) => ({ id: p.id, title: p.title })),
+    interviewIds: interviews.map((d) => d.id),
     mocks,
     publishCompany,
     goLive: {
       questions: questions.length - questionErrors.length,
       problems: readyProblems.length,
+      interviews: interviews.length,
       company: publishCompany && !companyBlocker,
       mocks: mockBlockers.filter((b) => !b.length).length,
     },
@@ -78,6 +82,7 @@ export type CompanyPublishPlan = NonNullable<Awaited<ReturnType<typeof companyPu
 export type CompanyPublishResult = {
   questions: number;
   problems: number;
+  interviews: number;
   mocks: number;
   company: boolean;
 };
@@ -98,12 +103,14 @@ export async function publishCompanyContent(
   let problems = 0;
   for (const problem of plan.problems)
     if ((await transitionProblem(problem.id, "publish", actor)).ok) problems += 1;
+  for (const id of plan.interviewIds) await setDesignStatus(id, "PUBLISHED", actor);
+  const interviews = plan.interviewIds.length;
   const company = plan.publishCompany && (await setCompanyStatus(companyId, "publish", actor)).ok;
   let mocks = 0;
   for (const mock of plan.mocks)
     if ((await transitionBlueprint(mock.id, "publish", actor)).ok) mocks += 1;
 
-  const result = { questions, problems, mocks, company };
+  const result = { questions, problems, interviews, mocks, company };
   await recordAudit({
     actorId: actor.id,
     action: "company.publish_all",

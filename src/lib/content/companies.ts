@@ -46,3 +46,11 @@ export const COMPANY_ACTION_LABELS: Record<CompanyStatusAction, string> = {
 /** A tab of a company's admin workspace (D-057, D-067); "overview" is the default tab. */
 export const companyTabHref = (slug: string, tab: string = "overview") =>
   `/admin/companies/${slug}${tab === "overview" ? "" : `?tab=${tab}`}`;
+
+/** Rounds where interview questions are asked (the Interview questions tab, D-067). */
+export const INTERVIEW_ROUND_TYPES: readonly RoundType[] = [
+  "TECHNICAL_INTERVIEW",
+  "HR_INTERVIEW",
+  "MANAGERIAL_INTERVIEW",
+  "GROUP_DISCUSSION",
+];

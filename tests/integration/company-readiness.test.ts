@@ -98,7 +98,13 @@ describe("company readiness", () => {
 
   it("publishes what's ready and explains what stays draft", async () => {
     const before = (await companyPublishPlan(companyId))!;
-    expect(before.goLive).toEqual({ questions: 2, problems: 0, company: false, mocks: 0 });
+    expect(before.goLive).toEqual({
+      questions: 2,
+      problems: 0,
+      interviews: 0,
+      company: false,
+      mocks: 0,
+    });
     expect(before.staysDraft).toEqual([
       "QA-RC-3 fails the automatic checks. Open it and fix the errors.",
       "Company: Add at least one source before publishing.",
@@ -111,7 +117,7 @@ describe("company readiness", () => {
     });
     const result = await publishCompanyContent(companyId, admin);
     if ("error" in result) throw new Error(result.error);
-    expect(result).toEqual({ questions: 2, problems: 0, mocks: 1, company: true });
+    expect(result).toEqual({ questions: 2, problems: 0, interviews: 0, mocks: 1, company: true });
     // Only the broken question is left, with its reason.
     expect((await companyPublishPlan(companyId))!.staysDraft).toEqual([
       "QA-RC-3 fails the automatic checks. Open it and fix the errors.",

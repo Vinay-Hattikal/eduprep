@@ -427,22 +427,26 @@ model CompanySource {
 // Links a question to a company, so one question is reused across companies (D-025).
 // Coding problems join here in Phase 4.
 model CompanyItem {
-  id          String   @id @default(cuid())
-  companyId   String   @map("company_id")
-  questionId  String?  @map("question_id") // exactly one of questionId / problemId is set
-  problemId   String?  @map("problem_id")
-  roundOrder  Int?     @map("round_order")
-  askedIn     String[] @map("asked_in") // YYYY-MM
-  reportCount Int      @default(0) @map("report_count")
+  id               String   @id @default(cuid())
+  companyId        String   @map("company_id")
+  questionId       String?  @map("question_id") // exactly one of the three item ids is set
+  problemId        String?  @map("problem_id")
+  designQuestionId String?  @map("design_question_id")
+  roundOrder       Int?     @map("round_order")
+  askedIn          String[] @map("asked_in") // YYYY-MM
+  reportCount      Int      @default(0) @map("report_count")
 
-  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  question Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  problem  Problem?  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  question       Question?       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  problem        Problem?        @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  designQuestion DesignQuestion? @relation(fields: [designQuestionId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, questionId])
   @@unique([companyId, problemId])
+  @@unique([companyId, designQuestionId])
   @@index([questionId])
   @@index([problemId])
+  @@index([designQuestionId])
   @@map("company_items")
 }
 
@@ -1535,9 +1539,13 @@ model RoleTrack {
 enum DesignKind {
   SYSTEM_DESIGN
   LOW_LEVEL_DESIGN
+  TECHNICAL // technical interview question (D-067): what they look for, a strong answer, mistakes
+  HR // HR or behavioural interview question, same fields
 }
 
-// System design and low-level design questions: prompt, then approach and trade-offs.
+// Design and interview questions: prompt, then approach and trade-offs (or, for interview kinds,
+// what the interviewer looks for, a strong answer and common mistakes). Companies that ask one
+// are company_items links, like questions and problems (D-067).
 model DesignQuestion {
   id            String        @id @default(cuid())
   externalId    String        @unique @map("external_id")
@@ -1550,12 +1558,13 @@ model DesignQuestion {
   approach      String
   tradeoffs     String
   followUps     String?       @map("follow_ups")
-  companies     String[] // company slugs where it was asked
   tracks        String[] // role track slugs
   status        ContentStatus @default(DRAFT)
   importBatchId String?       @map("import_batch_id")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  companies CompanyItem[]
 
   @@index([status, kind])
   @@map("design_questions")

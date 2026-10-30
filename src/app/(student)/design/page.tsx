@@ -26,16 +26,18 @@ export default function DesignPage({ searchParams }: PageProps<"/design">) {
   );
 }
 
+const KINDS = ["SYSTEM_DESIGN", "LOW_LEVEL_DESIGN", "TECHNICAL", "HR"] as const;
+
 async function Questions({ searchParams }: { searchParams: PageProps<"/design">["searchParams"] }) {
   const user = await requirePermission("student.access");
   const { kind } = await searchParams;
-  const filterKind = kind === "SYSTEM_DESIGN" || kind === "LOW_LEVEL_DESIGN" ? kind : undefined;
+  const filterKind = KINDS.find((k) => k === kind);
   const questions = await listDesignQuestions(user, { kind: filterKind });
 
   return (
     <div className="space-y-4">
       <nav aria-label="Kind" className="flex flex-wrap gap-1">
-        {([undefined, "SYSTEM_DESIGN", "LOW_LEVEL_DESIGN"] as const).map((k) => (
+        {[undefined, ...KINDS].map((k) => (
           <Button
             key={k ?? "all"}
             asChild

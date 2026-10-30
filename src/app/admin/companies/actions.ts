@@ -81,6 +81,7 @@ export async function publishCompanyContentAction(formData: FormData) {
     published: "1",
     questions: String(result.questions),
     problems: String(result.problems),
+    interviews: String(result.interviews),
     mocks: String(result.mocks),
     company: result.company ? "1" : "0",
   });

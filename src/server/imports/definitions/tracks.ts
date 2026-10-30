@@ -22,6 +22,8 @@ const DIFFICULTIES: Record<string, Difficulty> = { easy: "EASY", medium: "MEDIUM
 const KINDS: Record<string, DesignKind> = {
   system_design: "SYSTEM_DESIGN",
   low_level_design: "LOW_LEVEL_DESIGN",
+  technical: "TECHNICAL",
+  hr: "HR",
 };
 
 function duplicate(
@@ -261,7 +263,10 @@ async function designContext(db: DbReader, rows: ParsedRow[]): Promise<DesignCon
   const [companies, tracks, existing, slugs] = await Promise.all([
     db.company.findMany({ select: { slug: true } }),
     db.roleTrack.findMany({ select: { slug: true } }),
-    db.designQuestion.findMany({ where: { externalId: { in: ids } } }),
+    db.designQuestion.findMany({
+      where: { externalId: { in: ids } },
+      include: { companies: { select: { company: { select: { slug: true } } } } },
+    }),
     db.designQuestion.findMany({ select: { slug: true, externalId: true } }),
   ]);
   return {
@@ -282,7 +287,7 @@ async function designContext(db: DbReader, rows: ParsedRow[]): Promise<DesignCon
           approach: q.approach,
           tradeoffs: q.tradeoffs,
           followUps: q.followUps,
-          companies: q.companies,
+          companies: q.companies.map((c) => c.company.slug),
           tracks: q.tracks,
         },
       ]),
@@ -318,13 +323,24 @@ export const designQuestionImport: ImportDefinition<DesignValue> = {
   async commit(rows, { tx, batchId }) {
     const outcomes: CommitOutcome[] = [];
     for (const row of rows) {
-      const value = row.value!;
+      const { companies, ...value } = row.value!;
       // Imports never publish (D-010): changed questions go back to draft.
       const question = await tx.designQuestion.upsert({
         where: { externalId: value.externalId },
         create: { ...value, status: "DRAFT", importBatchId: batchId },
         update: { ...value, status: "DRAFT", importBatchId: batchId },
       });
+      // Named companies get a link; links added in the admin panel are kept (D-054, D-067).
+      if (companies.length) {
+        const known = await tx.company.findMany({
+          where: { slug: { in: companies } },
+          select: { id: true },
+        });
+        await tx.companyItem.createMany({
+          data: known.map((c) => ({ companyId: c.id, designQuestionId: question.id })),
+          skipDuplicates: true,
+        });
+      }
       outcomes.push({ rowNumber: row.rowNumber, entityId: question.id, action: row.action! });
     }
     return outcomes;

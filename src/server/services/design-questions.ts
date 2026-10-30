@@ -4,6 +4,7 @@ import type { ContentStatus, DesignKind, Difficulty } from "@/generated/prisma/e
 import type { Actor } from "@/lib/content/workflow";
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/services/audit";
+import { setCompanyLinks } from "@/server/services/company-links";
 
 export type DesignValues = {
   id?: string;
@@ -26,7 +27,11 @@ export type DesignSaveResult =
   | { ok: false; fieldErrors: Record<string, string>; formError?: string };
 
 export async function getAdminDesignQuestion(id: string) {
-  return db.designQuestion.findUnique({ where: { id } });
+  const question = await db.designQuestion.findUnique({
+    where: { id },
+    include: { companies: { select: { company: { select: { slug: true } } } } },
+  });
+  return question && { ...question, companies: question.companies.map((c) => c.company.slug) };
 }
 
 /** Role tracks and company slugs the form offers or checks against. */
@@ -50,13 +55,16 @@ export async function saveDesignQuestion(
   actor: Actor,
 ): Promise<DesignSaveResult> {
   const [before, sameId, sameSlug, companies, tracks] = await Promise.all([
-    values.id ? db.designQuestion.findUnique({ where: { id: values.id } }) : null,
+    values.id ? getAdminDesignQuestion(values.id) : null,
     db.designQuestion.findUnique({
       where: { externalId: values.externalId },
       select: { id: true },
     }),
     db.designQuestion.findUnique({ where: { slug: values.slug }, select: { id: true } }),
-    db.company.findMany({ where: { slug: { in: values.companies } }, select: { slug: true } }),
+    db.company.findMany({
+      where: { slug: { in: values.companies } },
+      select: { id: true, slug: true },
+    }),
     db.roleTrack.findMany({ where: { slug: { in: values.tracks } }, select: { slug: true } }),
   ]);
   if (values.id && !before)
@@ -72,7 +80,9 @@ export async function saveDesignQuestion(
   if (Object.keys(fieldErrors).length)
     return { ok: false, fieldErrors, formError: "Fix the highlighted fields." };
 
-  const { id: _id, ...data } = values;
+  const { id: _id, companies: _companies, ...data } = values;
+  // The editor's "Asked at" list is the whole set of company links (no months for these).
+  const links = companies.map((c) => ({ companyId: c.id, askedIn: [] }));
   if (!before) {
     const created = await db.$transaction(async (tx) => {
       const question = await tx.designQuestion.create({ data: { ...data, status: "DRAFT" } });
@@ -88,9 +98,12 @@ export async function saveDesignQuestion(
       );
       return question;
     });
+    await setCompanyLinks({ designQuestionId: created.id }, links, actor);
     return { ok: true, id: created.id, created: true, movedToDraft: false };
   }
 
+  // Company links don't change the question itself, so they never send it back to draft.
+  await setCompanyLinks({ designQuestionId: before.id }, links, actor);
   const changed = (Object.keys(data) as (keyof typeof data)[]).filter(
     (key) => JSON.stringify(before[key] ?? null) !== JSON.stringify(data[key] ?? null),
   );
