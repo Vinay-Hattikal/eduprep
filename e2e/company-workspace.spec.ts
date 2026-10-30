@@ -97,6 +97,7 @@ test("company tabs fit a 360 px phone", async ({ page }, testInfo) => {
   await signInAs(page, accounts.admin);
   for (const tab of [
     "",
+    "?tab=profile",
     "?tab=process",
     "?tab=sources",
     "?tab=questions",

@@ -248,17 +248,17 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
 
 **Goal:** an admin picks or creates a company and fills in everything for it from one place: profile, hiring process, MCQs, coding problems with tests and solutions, interview questions and mocks. The admin can see at a glance what's missing and publish it all when ready. Builds on the company workspace (D-057). No new roles, no review step (D-056).
 
-**Status: proposed, waiting for the owner's approval.** Nothing below is built yet.
+**Status:** approved 2026-10-30. Step 1 is built (D-067); Steps 2 and 3 are next.
 
 ### Step 1: see what's missing, finish coding problems in place, publish everything
 
 | # | Task | Status |
 |---|---|---|
-| D.1 | Company checklist and progress panel | ⬜ |
-| D.2 | Question coverage per test section | ⬜ |
-| D.3 | Guided coding flow inside the workspace | ⬜ |
-| D.4 | "Publish everything" for a company | ⬜ |
-| D.5 | Next-step prompts after each save | ⬜ |
+| D.1 | Company checklist and progress panel | ✅ |
+| D.2 | Question coverage per test section | ✅ |
+| D.3 | Guided coding flow inside the workspace | ✅ |
+| D.4 | "Publish everything" for a company | ✅ |
+| D.5 | Next-step prompts after each save | ✅ |
 
 **D.1 Checklist and progress panel.** A new first tab, **Overview**, and a progress bar ("6 of 9 done") under the company name on every tab.
 - Checklist items, each with a ✓/✗, a short reason and a "Fix" link to the right tab:
@@ -271,7 +271,7 @@ Legend: ✅ done · 🟡 built and tested with development drivers, waiting for 
   - Mock test: at least one company mock, and whether it's published.
   - Company itself published.
 - One service, `companyReadiness(companyId)` in `src/server/services/company-readiness.ts`, runs grouped counts (about 6 queries, no per-item loops). It returns the items, so the panel, the companies list and the tests share it.
-- The admin companies list gets a "Progress" column (e.g. 6/9) and a filter "Not ready".
+- The admin companies list's "Progress" column and "Not ready" filter moved to D.12, which needs the counts for many companies in one query.
 - Tests: unit tests for the pure rules that turn counts into checklist items; an integration test for `companyReadiness` on a half-built company; e2e that a new company shows the checklist and that items turn ✓ as content is added.
 
 **D.2 Question coverage per section.** On the Hiring process tab, each section shows "Percentages: 6 published / 7 needed" in red when short.

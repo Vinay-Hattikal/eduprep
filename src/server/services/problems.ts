@@ -368,33 +368,46 @@ export type TestCaseInput = {
 
 /** Adds one test at the end. Tests change the judge's answer, so the problem is re-checked. */
 export async function addTestCase(values: TestCaseInput, actor: Actor) {
+  const { problemId, ...test } = values;
+  await addTestCases(problemId, [test], actor);
+}
+
+/** Adds tests at the end in one go ("Paste several", D-067), with one judge re-check. */
+export async function addTestCases(
+  problemId: string,
+  tests: readonly Omit<TestCaseInput, "problemId">[],
+  actor: Actor,
+) {
+  if (!tests.length) return;
   const last = await db.problemTestCase.findFirst({
-    where: { problemId: values.problemId },
+    where: { problemId },
     orderBy: { order: "desc" },
     select: { order: true },
   });
+  const first = (last?.order ?? 0) + 1;
   await db.$transaction(async (tx) => {
-    const test = await tx.problemTestCase.create({
-      data: {
-        ...values,
-        input: values.input.replace(/\r\n/g, "\n"),
-        output: values.output.replace(/\r\n/g, "\n"),
-        order: (last?.order ?? 0) + 1,
-      },
+    await tx.problemTestCase.createMany({
+      data: tests.map((t, i) => ({
+        ...t,
+        problemId,
+        input: t.input.replace(/\r\n/g, "\n"),
+        output: t.output.replace(/\r\n/g, "\n"),
+        order: first + i,
+      })),
     });
-    await markChanged(tx, values.problemId);
+    await markChanged(tx, problemId);
     await recordAudit(
       {
         actorId: actor.id,
         action: "problem.test_add",
         entityType: "problem",
-        entityId: values.problemId,
-        after: { testId: test.id },
+        entityId: problemId,
+        after: { tests: tests.length, from: first },
       },
       tx,
     );
   });
-  await enqueueJob("problem.validate", { problemId: values.problemId });
+  await enqueueJob("problem.validate", { problemId });
 }
 
 export async function deleteTestCase(problemId: string, testId: string, actor: Actor) {

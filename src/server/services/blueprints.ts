@@ -1,5 +1,6 @@
 import "server-only";
 
+import { splitAcrossTopics } from "@/lib/content/company-readiness";
 import type { ContentStatus, SectionType } from "@/generated/prisma/enums";
 import type { Actor } from "@/lib/content/workflow";
 import type { BlueprintForm, BlueprintSectionForm } from "@/schemas/blueprint";
@@ -235,8 +236,6 @@ export async function draftFromCompany(companyId: string): Promise<BlueprintForm
     round.sections
       .filter((s) => s.topics.length > 0)
       .map((s) => {
-        const per = Math.floor(s.questionCount / s.topics.length);
-        const extra = s.questionCount % s.topics.length;
         return {
           name: s.name,
           type: s.type,
@@ -244,9 +243,12 @@ export async function draftFromCompany(companyId: string): Promise<BlueprintForm
           marksPerItem: 1,
           negativeMarks: s.negativeMarks,
           canGoBack: s.canGoBack,
-          rules: s.topics
-            .map((t, i) => ({ topicId: t.id, difficulty: null, count: per + (i < extra ? 1 : 0) }))
-            .filter((r) => r.count > 0),
+          // The same split as the coverage check on the company's admin page (D-067).
+          rules: splitAcrossTopics(s.questionCount, s.topics).map(({ topic, count }) => ({
+            topicId: topic.id,
+            difficulty: null,
+            count,
+          })),
         };
       }),
   );

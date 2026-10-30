@@ -631,3 +631,12 @@ Every significant product or technical decision is recorded here, so humans and 
   - **Imports:** content packs accept ZIPs with backslash paths (Windows). Bulk publishing skips questions changed after they were checked and runs one batch at a time.
   - **Database:** every transaction waits up to 15 s for a connection (set once on the Prisma client) instead of failing after 2 s under load.
 - Left for later: per-message and per-job idempotency keys (columns with unique indexes) would replace the current "already sent" checks; a receipt outbox job would let the receipt and booking confirmation retry on their own.
+
+## D-067: Company workspace, part 2 (Step 1)
+- Date: 2026-10-30
+- Status: Accepted (plan: plan.md "Company workspace, part 2")
+- Decision:
+  - **Overview tab** (the company page's first tab): a 9-item checklist (profile, hiring process, sources, recently verified, MCQs, coding when there's a coding round, enough questions for a mock, company mock, published), each with what's there and a link to fix it. A progress bar and "Next: …" (the first unfinished item) show above every tab. New companies land on it. The rules are pure (`src/lib/content/company-readiness.ts`); `companyReadiness` gathers the counts in about 6 grouped queries.
+  - **Coverage:** each test section's topics show published items against what the company mock needs ("Strings 0/20 · add"), with the need worked out by the same split "Create mock" uses (`splitAcrossTopics`), summed when a topic is in several sections. Short topics link to a new question or problem tagged with the company and with the topic picked (`?topic=`).
+  - **Coding problems written for a company** show "Back to <company>" and "Add another problem" on the problem page (from the problem's company links, no extra URL state). Tests can be pasted many at once (input, `===`, output; `---` between tests; up to 100) with one judge re-check.
+  - **Publish everything:** publishes the company's draft questions that pass the automatic checks (bulk, D-064), its judge-checked problems, the company (if it has a source) and its company mock, in that order, each through its own publish rules. The Overview lists beforehand what goes live and what stays draft and why. Audited as `company.publish_all`.

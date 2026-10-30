@@ -30,6 +30,7 @@ const param = (value: string | string[] | undefined) =>
 /**
  * A blank question, or (company-wise entry, D-057):
  * - `?company=<slug>`: tagged with that company, back link to its Questions tab;
+ * - `?topic=<id>`: that subject and topic picked (the company page's coverage links, D-067);
  * - `?copyFrom=<id>`: "Then add another": same subject, topic, type, difficulty, source and
  *   companies as the question just saved, with the next ID suggested.
  */
@@ -53,6 +54,9 @@ async function NewQuestion({
   const company = companySlug ? companies.find((c) => c.slug === companySlug) : undefined;
 
   const initial = { ...EMPTY_QUESTION };
+  const topicId = param(query.topic);
+  const subject = topicId && taxonomy.find((s) => s.topics.some((t) => t.id === topicId));
+  if (subject) Object.assign(initial, { subjectId: subject.id, topicId });
   let initialCompanies = company ? [{ companyId: company.id, askedIn: "" }] : [];
   if (previous) {
     Object.assign(initial, {

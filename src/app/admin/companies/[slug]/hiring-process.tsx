@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { hiringChangeAction } from "@/app/admin/companies/hiring-actions";
 import { RoundForm, SectionForm } from "@/app/admin/companies/hiring-forms";
@@ -7,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROUND_TYPE_LABELS } from "@/lib/content/companies";
+import { coverageKey, TEST_ROUND_TYPES, type Coverage } from "@/lib/content/company-readiness";
+import { cn } from "@/lib/utils";
 import { PLATFORMS } from "@/server/imports/definitions/company-details";
 import type { getCompanyBySlug } from "@/server/services/companies";
 
@@ -52,12 +55,15 @@ export function HiringProcess({
   company,
   canEdit,
   topics,
+  coverage,
 }: {
   company: Company;
   canEdit: boolean;
   topics: TopicOptions;
+  coverage: readonly Coverage[];
 }) {
   const rounds = company.rounds;
+  const byTopic = new Map(coverage.map((c) => [coverageKey(c.type, c.topicId), c]));
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
@@ -153,9 +159,18 @@ export function HiringProcess({
                               </div>
                             ) : null}
                           </div>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {section.topics.map((t) => t.name).join(", ")}
-                          </p>
+                          {TEST_ROUND_TYPES.includes(round.type) ? (
+                            <SectionCoverage
+                              slug={company.slug}
+                              type={section.type}
+                              topics={section.topics}
+                              coverage={byTopic}
+                            />
+                          ) : (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {section.topics.map((t) => t.name).join(", ")}
+                            </p>
+                          )}
                           {canEdit ? (
                             <details className="mt-2">
                               <summary className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-primary">
@@ -239,5 +254,58 @@ export function HiringProcess({
         </Card>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Each topic's published items against what the company mock needs (D-067). A short topic links
+ * to a new question or problem for this company with the topic already picked.
+ */
+function SectionCoverage({
+  slug,
+  type,
+  topics,
+  coverage,
+}: {
+  slug: string;
+  type: "MCQ" | "CODING";
+  topics: readonly { id: string; name: string }[];
+  coverage: ReadonlyMap<string, Coverage>;
+}) {
+  if (!topics.length)
+    return <p className="mt-1 text-xs text-destructive">No topics: pick at least one.</p>;
+  const add = type === "MCQ" ? "questions" : "problems";
+  return (
+    <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Published items per topic">
+      {topics.map((t) => {
+        const c = coverage.get(coverageKey(type, t.id));
+        const short = c ? c.available < c.need : false;
+        const label = c ? `${t.name} ${c.available}/${c.need}` : t.name;
+        return (
+          <li key={t.id}>
+            {short ? (
+              <Link
+                href={`/admin/${add}/new?company=${slug}&topic=${t.id}`}
+                className={cn(
+                  "inline-flex items-center rounded-full border border-destructive/40 px-2 py-0.5 text-xs",
+                  "text-destructive hover:bg-destructive/10",
+                )}
+                title={`Only ${c!.available} published ${add} in ${t.name}; the mock needs ${c!.need}. Add one.`}
+                data-testid="coverage-short"
+              >
+                {label} · add
+              </Link>
+            ) : (
+              <span
+                className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
+                title={c ? `${c.tagged} tagged with this company` : undefined}
+              >
+                {label}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

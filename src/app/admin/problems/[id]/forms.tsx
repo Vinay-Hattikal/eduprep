@@ -2,6 +2,7 @@
 
 import {
   addTestCaseAction,
+  addTestCasesAction,
   saveProblemAction,
   saveSolutionAction,
   transitionProblemAction,
@@ -428,6 +429,48 @@ export function AddTestForm({ problemId }: { problemId: string }) {
         </div>
         <Button type="submit" variant="secondary" disabled={pending}>
           {pending ? "Adding…" : "Add test"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/** Many tests at once: input, a line with ===, output; tests separated by a line with ---. */
+export function PasteTestsForm({ problemId }: { problemId: string }) {
+  const [state, onSubmit, pending] = useFormSubmit<ProblemFormState>(addTestCasesAction, {});
+  return (
+    <form onSubmit={onSubmit} className="space-y-3" aria-label="Paste tests">
+      <input type="hidden" name="problemId" value={problemId} />
+      {state.formError ? (
+        <Alert variant="destructive">
+          <AlertDescription>{state.formError}</AlertDescription>
+        </Alert>
+      ) : null}
+      <div className="space-y-1.5">
+        <Label htmlFor="paste-tests">Tests</Label>
+        <Textarea
+          id="paste-tests"
+          name="tests"
+          rows={10}
+          className="font-mono text-sm"
+          placeholder={"5 9\n2 7 11 15 1\n===\nYES\n---\n3 100\n1 2 3\n===\nNO"}
+          required
+        />
+        <p className="text-xs text-muted-foreground">
+          Input, then a line with only <code>===</code>, then the expected output. Put a line with
+          only <code>---</code> between tests. Up to 100 at once.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="paste-sample">These tests are</Label>
+          <NativeSelect id="paste-sample" name="isSample" defaultValue="no">
+            <NativeSelectOption value="no">Hidden tests</NativeSelectOption>
+            <NativeSelectOption value="yes">Samples (shown)</NativeSelectOption>
+          </NativeSelect>
+        </div>
+        <Button type="submit" variant="secondary" disabled={pending} data-testid="paste-tests">
+          {pending ? "Adding…" : "Add these tests"}
         </Button>
       </div>
     </form>

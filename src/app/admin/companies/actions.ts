@@ -9,6 +9,7 @@ import { requirePermission } from "@/server/auth";
 import { refreshPublicPages } from "@/server/services/public-pages";
 import { todayUtc } from "@/server/imports/definitions/companies";
 import { markCompanyVerified, saveCompany, setCompanyStatus } from "@/server/services/companies";
+import { publishCompanyContent } from "@/server/services/company-publish";
 
 export type CompanyFormState = { fieldErrors?: Record<string, string>; formError?: string };
 
@@ -36,7 +37,8 @@ export async function saveCompanyAction(
   }
   revalidatePath("/admin/companies");
   refreshPublicPages();
-  redirect(`/admin/companies/${result.slug}?${query}`);
+  // A new company lands on its Overview checklist; edits stay on the Profile tab.
+  redirect(`/admin/companies/${result.slug}?${parsed.data.id ? "tab=profile&" : ""}${query}`);
 }
 
 const statusAction = z.enum(["publish", "unpublish", "archive", "restore"]);
@@ -62,4 +64,16 @@ export async function verifyCompanyAction(formData: FormData) {
   revalidatePath("/admin/companies");
   refreshPublicPages();
   redirect(`/admin/companies/${slug}?verified=1`);
+}
+
+/** "Publish everything" (D-067): the company's ready drafts, the company and its mock. */
+export async function publishCompanyContentAction(formData: FormData) {
+  const user = await requirePermission("companies.publish");
+  const id = String(formData.get("id") ?? "");
+  const slug = String(formData.get("slug") ?? "");
+  const result = await publishCompanyContent(id, user);
+  revalidatePath("/admin/companies");
+  refreshPublicPages();
+  const summary = [result.questions, result.problems, result.mocks, result.company ? 1 : 0];
+  redirect(`/admin/companies/${slug}?published_all=${summary.join(".")}`);
 }

@@ -8,8 +8,10 @@ import { requirePermission } from "@/server/auth";
 import { refreshPublicPages } from "@/server/services/public-pages";
 import { companyLinksProblem, setCompanyLinks } from "@/server/services/company-links";
 import { fieldErrors, problemFormFromData, solutionFormSchema } from "@/schemas/admin-content";
+import { parseTestBlocks } from "@/lib/coding/test-blocks";
 import {
   addTestCase,
+  addTestCases,
   deleteSolution,
   deleteTestCase,
   requestValidation,
@@ -145,6 +147,26 @@ export async function addTestCaseAction(
   revalidatePath(`/admin/problems/${values.problemId}`);
   refreshPublicPages();
   back(values.problemId, "test=added&validating=1");
+}
+
+/** "Paste several" (D-067): many tests in one form, all samples or all hidden. */
+export async function addTestCasesAction(
+  _prev: ProblemFormState,
+  formData: FormData,
+): Promise<ProblemFormState> {
+  const user = await requirePermission("content.edit");
+  const problemId = id.parse(formData.get("problemId"));
+  const parsed = parseTestBlocks(String(formData.get("tests") ?? ""));
+  if ("error" in parsed) return { formError: parsed.error };
+  const isSample = formData.get("isSample") === "yes";
+  await addTestCases(
+    problemId,
+    parsed.tests.map((t) => ({ ...t, isSample, explanation: null })),
+    user,
+  );
+  revalidatePath(`/admin/problems/${problemId}`);
+  refreshPublicPages();
+  back(problemId, `test=added&validating=1`);
 }
 
 export async function deleteTestCaseAction(formData: FormData) {

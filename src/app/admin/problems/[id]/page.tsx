@@ -2,7 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ArrowLeft, CheckCircle2, CircleAlert, ExternalLink, Loader2, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  CheckCircle2,
+  CircleAlert,
+  ExternalLink,
+  Loader2,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import {
   deleteSolutionAction,
   deleteTestCaseAction,
@@ -10,6 +19,7 @@ import {
 } from "@/app/admin/problems/actions";
 import {
   AddTestForm,
+  PasteTestsForm,
   ProblemForm,
   ProblemWorkflow,
   SolutionForm,
@@ -89,8 +99,8 @@ async function Detail({ params, searchParams }: PageProps<"/admin/problems/[id]"
           <CheckCircle2 />
           <AlertTitle>Problem created as a draft</AlertTitle>
           <AlertDescription>
-            Add at least 1 sample and 5 hidden tests and a reference solution, then check it in the
-            judge.
+            Next: add at least 1 sample and 5 hidden tests (paste several at once in Tests below)
+            and a reference solution. The judge check runs by itself after each change.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -147,6 +157,26 @@ async function Detail({ params, searchParams }: PageProps<"/admin/problems/[id]"
           { label: "Published", done: problem.status === "PUBLISHED" },
         ]}
       />
+
+      {/* Written for a company (D-067): back to its workspace, or the next problem for it. */}
+      {problem.companies.slice(0, 3).map(({ company }) => (
+        <div
+          key={company.slug}
+          className="flex flex-wrap items-center gap-2 text-sm"
+          data-testid="problem-company"
+        >
+          <Building2 className="size-4 text-muted-foreground" aria-hidden="true" />
+          <span className="text-muted-foreground">For {company.name}:</span>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/admin/companies/${company.slug}?tab=coding`}>Back to {company.name}</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/admin/problems/new?company=${company.slug}`}>
+              <Plus /> Add another problem
+            </Link>
+          </Button>
+        </div>
+      ))}
 
       <Card data-testid="judge-check">
         <CardHeader>
@@ -259,7 +289,19 @@ async function Detail({ params, searchParams }: PageProps<"/admin/problems/[id]"
               </li>
             ))}
           </ol>
-          {canEdit ? <AddTestForm problemId={problem.id} /> : null}
+          {canEdit ? (
+            <>
+              <AddTestForm problemId={problem.id} />
+              <details className="rounded-lg border border-dashed p-4">
+                <summary className="cursor-pointer text-sm font-medium">
+                  Paste several tests
+                </summary>
+                <div className="mt-3">
+                  <PasteTestsForm problemId={problem.id} />
+                </div>
+              </details>
+            </>
+          ) : null}
         </CardContent>
       </Card>
 

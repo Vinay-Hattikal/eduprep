@@ -24,16 +24,20 @@ export default function NewProblemPage({ searchParams }: PageProps<"/admin/probl
   );
 }
 
-/** A blank problem; with `?company=<slug>` it is tagged with that company (D-057). */
+/**
+ * A blank problem; with `?company=<slug>` it is tagged with that company (D-057), and with
+ * `?topic=<id>` that topic is picked (the company page's coverage links, D-067).
+ */
 async function NewProblem({
   searchParams,
 }: {
   searchParams: PageProps<"/admin/problems/new">["searchParams"];
 }) {
   await requirePermission("content.edit");
-  const { company: slug } = await searchParams;
+  const { company: slug, topic } = await searchParams;
   const [topics, companies] = await Promise.all([listDsaTopics(), companyOptions()]);
   const company = typeof slug === "string" ? companies.find((c) => c.slug === slug) : undefined;
+  const topicIds = topics.some((t) => t.id === topic) ? [topic as string] : [];
   return (
     <>
       <Button asChild variant="ghost" size="sm" className="-ml-2 max-w-full">
@@ -49,7 +53,7 @@ async function NewProblem({
       <Card>
         <CardContent>
           <ProblemForm
-            values={EMPTY_PROBLEM}
+            values={{ ...EMPTY_PROBLEM, topicIds }}
             topics={topics}
             companies={companies}
             initialCompanies={company ? [{ companyId: company.id, askedIn: "" }] : []}

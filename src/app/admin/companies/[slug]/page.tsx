@@ -8,6 +8,7 @@ import { CompanyForm } from "@/app/admin/companies/company-form";
 import { CompanyMocks } from "@/app/admin/companies/[slug]/company-mocks";
 import { ChangeButton, HiringProcess } from "@/app/admin/companies/[slug]/hiring-process";
 import { LinkedContent } from "@/app/admin/companies/[slug]/linked-content";
+import { CompanyOverview, CompanyProgress, tabHref } from "@/app/admin/companies/[slug]/overview";
 import { SourceForm } from "@/app/admin/companies/hiring-forms";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -23,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { requirePermission } from "@/server/auth";
 import { todayUtc } from "@/server/imports/definitions/companies";
 import { companyActions, getCompanyBySlug } from "@/server/services/companies";
+import { companyPublishPlan } from "@/server/services/company-publish";
+import { companyReadiness } from "@/server/services/company-readiness";
 import { getTaxonomyTree } from "@/server/services/questions";
 
 export const metadata: Metadata = { title: "Company" };
@@ -52,13 +55,20 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
   const user = await requirePermission("companies.manage");
   const { slug } = await params;
   const query = await searchParams;
-  const tab = TABS.some((t) => t.key === query.tab) ? (query.tab as TabKey) : "profile";
+  const tab = TABS.some((t) => t.key === query.tab) ? (query.tab as TabKey) : "overview";
   // The topic tree is only needed by the hiring-process editors.
   const [company, taxonomy] = await Promise.all([
     getCompanyBySlug(slug),
     tab === "process" ? getTaxonomyTree() : [],
   ]);
   if (!company) notFound();
+  // The checklist drives the progress bar on every tab; the publish plan only the Overview.
+  const [readiness, plan] = await Promise.all([
+    companyReadiness(company),
+    tab === "overview" ? companyPublishPlan(company.id) : null,
+  ]);
+  const publishedAll =
+    typeof query.published_all === "string" ? query.published_all.split(".").map(Number) : null;
   const actions = companyActions(company.status, user.roles);
   const error = typeof query.error === "string" ? query.error : null;
   const today = todayUtc().toISOString().slice(0, 10);
@@ -90,6 +100,17 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
                     ? "Source added"
                     : "Saved"}
           </AlertTitle>
+        </Alert>
+      ) : null}
+      {publishedAll ? (
+        <Alert data-testid="published-all">
+          <CheckCircle2 />
+          <AlertTitle>Published what was ready</AlertTitle>
+          <AlertDescription>
+            {publishedAll[0]} questions, {publishedAll[1]} coding problems, {publishedAll[2]} mock
+            tests{publishedAll[3] ? " and the company" : ""}. Anything still draft is listed below
+            with the reason.
+          </AlertDescription>
         </Alert>
       ) : null}
       {query.verified ? (
@@ -139,12 +160,14 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
         </form>
       </div>
 
+      <CompanyProgress slug={company.slug} readiness={readiness} />
+
       <nav aria-label="Company sections" className="-mx-1 overflow-x-auto">
         <ul className="flex min-w-max gap-1 border-b px-1">
           {TABS.map((t) => (
             <li key={t.key}>
               <Link
-                href={`/admin/companies/${company.slug}${t.key === "profile" ? "" : `?tab=${t.key}`}`}
+                href={tabHref(company.slug, t.key)}
                 aria-current={tab === t.key ? "page" : undefined}
                 className={cn(
                   "-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium",
@@ -163,6 +186,15 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
           ))}
         </ul>
       </nav>
+
+      {tab === "overview" ? (
+        <CompanyOverview
+          company={company}
+          readiness={readiness}
+          plan={plan!}
+          canPublish={can(user.roles, "companies.publish") && company.status !== "ARCHIVED"}
+        />
+      ) : null}
 
       {tab === "profile" ? (
         <CompanyForm
@@ -192,7 +224,12 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
       ) : null}
 
       {tab === "process" ? (
-        <HiringProcess company={company} canEdit={canEdit} topics={topics} />
+        <HiringProcess
+          company={company}
+          canEdit={canEdit}
+          topics={topics}
+          coverage={readiness.coverage}
+        />
       ) : null}
 
       {tab === "sources" ? (
@@ -259,6 +296,7 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
 }
 
 const TABS = [
+  { key: "overview", label: "Overview" },
   { key: "profile", label: "Profile" },
   { key: "process", label: "Hiring process" },
   { key: "sources", label: "Sources" },
