@@ -228,7 +228,12 @@ export async function submitAnswer(
   if (!question) return { status: "not-found" };
 
   const today = istDay(now);
-  const counted = input.mode !== "DAILY";
+  // Only today's question of the day skips the free limit; the mode comes from the browser.
+  const mode =
+    input.mode === "DAILY" && (await getDailyQuestionId(today)) !== question.id
+      ? "PRACTICE"
+      : input.mode;
+  const counted = mode !== "DAILY";
   const access = await getAccess(user, now);
   const usage = await practiceUsage(user, today, access);
   // A company pack covers that company's questions, whatever the daily count.
@@ -251,7 +256,7 @@ export async function submitAnswer(
       data: {
         userId: user.id,
         questionId: question.id,
-        mode: input.mode,
+        mode,
         selectedOptions: input.selectedOptions,
         numericAnswer: input.numericAnswer,
         isCorrect: correct,

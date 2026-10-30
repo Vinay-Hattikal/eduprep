@@ -316,8 +316,10 @@ export async function transitionQuestion(
   const problem = transitionProblem(question, action, actor);
   if (problem) return { ok: false, error: problem };
   if (action === "publish") {
-    await publishChecked([question], actor);
-    return { ok: true };
+    const stale = await publishChecked([question], actor);
+    return stale.length
+      ? { ok: false, error: `${question.externalId} changed while publishing. Try again.` }
+      : { ok: true };
   }
 
   const status = nextStatus(action);
@@ -369,21 +371,40 @@ export async function publishQuestions(ids: readonly string[], actor: Actor) {
     if (problem) errors.push(problem);
     else ready.push(question);
   }
-  await publishChecked(ready, actor);
-  return { done: ready.length, errors };
+  const stale = await publishChecked(ready, actor);
+  for (const question of stale)
+    errors.push(`${question.externalId} changed while publishing. Try again.`);
+  return { done: ready.length - stale.length, errors };
 }
 
 const PUBLISH_CHUNK = 500;
 
-/** Publishes questions that already passed transitionProblem. */
-async function publishChecked(questions: readonly QuestionRow[], actor: Actor) {
-  if (!questions.length) return;
+/**
+ * Publishes questions that already passed transitionProblem. Returns the ones skipped because
+ * they changed after the check (edited or archived while a large publish was running).
+ */
+async function publishChecked(
+  questions: readonly QuestionRow[],
+  actor: Actor,
+): Promise<QuestionRow[]> {
+  const stale: QuestionRow[] = [];
+  if (!questions.length) return stale;
   const samplesPerTopic = await getSetting("seo.publicSamplesPerTopic");
   for (let i = 0; i < questions.length; i += PUBLISH_CHUNK) {
-    const chunk = questions.slice(i, i + PUBLISH_CHUNK);
-    const ids = chunk.map((q) => q.id);
+    const checked = questions.slice(i, i + PUBLISH_CHUNK);
     await db.$transaction(
       async (tx) => {
+        // One publish at a time, so two can't both count a topic's samples before either
+        // commits; and only rows unchanged since they were checked, locked until commit.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('question.publish'))`;
+        const current = await tx.$queryRaw<{ id: string; updated_at: Date }[]>`
+          SELECT id, updated_at FROM questions
+           WHERE id = ANY(${checked.map((q) => q.id)}) FOR UPDATE`;
+        const version = new Map(current.map((r) => [r.id, r.updated_at.getTime()]));
+        const chunk = checked.filter((q) => version.get(q.id) === q.updatedAt.getTime());
+        stale.push(...checked.filter((q) => !chunk.includes(q)));
+        if (!chunk.length) return;
+        const ids = chunk.map((q) => q.id);
         const samples = await pickPublicSamples(tx, chunk, samplesPerTopic);
         const data = {
           status: "PUBLISHED" as const,
@@ -424,9 +445,10 @@ async function publishChecked(questions: readonly QuestionRow[], actor: Actor) {
         // Publishing changes the company pages that list them (D-058).
         await touchCompaniesListing(tx, { questionIds: ids });
       },
-      { timeout: 60_000 },
+      { timeout: 60_000, maxWait: 30_000 },
     );
   }
+  return stale;
 }
 
 /**

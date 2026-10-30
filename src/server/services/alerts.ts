@@ -7,6 +7,7 @@ import {
   nextDigestAt,
 } from "@/lib/jobs/alerts";
 import { formatDate } from "@/lib/format";
+import { istDay } from "@/lib/learning/dates";
 import { db } from "@/server/db";
 import { enqueueJob } from "@/server/jobs/queue";
 import { notify } from "@/server/services/notifications";
@@ -15,6 +16,28 @@ import { notify } from "@/server/services/notifications";
 // turned alerts off and writes to the outbox until real email and WhatsApp are connected.
 
 const BATCH = 500;
+
+/**
+ * Students on this page who already got a message (a retried or re-run job sends to the rest
+ * only). `after` and `bodyHas` say which message: this digest, or this contest's reminder.
+ */
+async function alreadySent(
+  userIds: string[],
+  template: "jobs.digest" | "contest.reminder",
+  filter: { after?: Date; bodyHas?: string },
+) {
+  const rows = await db.notification.findMany({
+    where: {
+      userId: { in: userIds },
+      template,
+      ...(filter.after && { createdAt: { gte: filter.after } }),
+      ...(filter.bodyHas && { body: { contains: filter.bodyHas } }),
+    },
+    select: { userId: true },
+    distinct: ["userId"],
+  });
+  return new Set(rows.map((r) => r.userId));
+}
 
 /** Pages through students who want alerts, with what matching needs. */
 async function* alertStudents() {
@@ -47,11 +70,16 @@ async function* alertStudents() {
  * previous one, so no job is missed or sent twice.
  */
 export async function sendJobDigest(since: string, now = new Date()) {
+  await scheduleJobDigest(now);
+  // This run was due at nextDigestAt(since); students messaged since then were reached by an
+  // earlier attempt of it.
+  const runStart = nextDigestAt(new Date(since));
   const jobs = await db.jobPosting.findMany({
     where: {
       status: "PUBLISHED",
       publishedAt: { gt: new Date(since), lte: now },
-      OR: [{ applyBy: null }, { applyBy: { gte: now } }],
+      // applyBy is a date (the last day, IST): a job closing today is still open tonight.
+      OR: [{ applyBy: null }, { applyBy: { gte: istDay(now) } }],
     },
     orderBy: { publishedAt: "desc" },
     select: {
@@ -70,7 +98,13 @@ export async function sendJobDigest(since: string, now = new Date()) {
   });
   if (jobs.length) {
     for await (const students of alertStudents()) {
+      const sent = await alreadySent(
+        students.map((s) => s.id),
+        "jobs.digest",
+        { after: runStart },
+      );
       for (const student of students) {
+        if (sent.has(student.id)) continue;
         const matching = jobs
           .filter((job) =>
             jobMatchesStudent(
@@ -96,24 +130,38 @@ export async function sendJobDigest(since: string, now = new Date()) {
       }
     }
   }
-  await scheduleJobDigest(now);
 }
 
 /** Queues the next digest unless one is already waiting (the worker calls this at start). */
 export async function scheduleJobDigest(since = new Date()) {
-  // The digest that's running calls this at its end; it isn't QUEUED, so it doesn't count.
-  if (await db.job.count({ where: { type: "jobs.digest", status: "QUEUED" } })) return;
-  await enqueueJob(
-    "jobs.digest",
-    { since: since.toISOString() },
-    { runAt: nextDigestAt(since), maxAttempts: 3 },
-  );
+  // A lock held until the job is queued, so two workers starting together queue one digest.
+  // The digest that's running calls this too; it isn't QUEUED, so it doesn't count.
+  await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('jobs.digest'))`;
+    if (await tx.job.count({ where: { type: "jobs.digest", status: "QUEUED" } })) return;
+    await enqueueJob(
+      "jobs.digest",
+      { since: since.toISOString() },
+      { runAt: nextDigestAt(since), maxAttempts: 3 },
+    );
+  });
 }
 
 /** Queues the reminder for a contest that was just published. */
 export async function scheduleContestReminder(contestId: string, startsAt: Date, now = new Date()) {
   const at = contestReminderAt(startsAt, now);
-  if (at)
+  if (!at) return;
+  const queued = await db.job.count({
+    where: {
+      type: "contest.reminder",
+      status: { in: ["QUEUED", "RUNNING", "DONE"] },
+      AND: [
+        { payload: { path: ["contestId"], equals: contestId } },
+        { payload: { path: ["startsAt"], equals: startsAt.toISOString() } },
+      ],
+    },
+  });
+  if (!queued)
     await enqueueJob(
       "contest.reminder",
       { contestId, startsAt: startsAt.toISOString() },
@@ -133,7 +181,13 @@ export async function sendContestReminder(contestId: string, startsAt: string) {
   if (!contest || contest.status !== "PUBLISHED" || contest.startsAt.toISOString() !== startsAt)
     return;
   for await (const students of alertStudents()) {
+    const sent = await alreadySent(
+      students.map((s) => s.id),
+      "contest.reminder",
+      { bodyHas: `/contests/${contest.slug}` },
+    );
     for (const student of students) {
+      if (sent.has(student.id)) continue;
       await notify(student.id, "contest.reminder", {
         name: student.name,
         contest: contest.title,

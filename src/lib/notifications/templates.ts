@@ -174,7 +174,7 @@ If you didn't ask for it, ignore this message; nobody can use it without your ${
       )}\n\nAll openings: ${url("/jobs")}\nTurn job alerts off on your account page: ${url("/account")}${signOff}`,
   }),
   "contest.reminder": (d) => ({
-    subject: `Tomorrow: ${d.contest}`,
+    subject: `${d.contest} opens ${formatSlot(new Date(d.startsAt))}`,
     body: `Hi ${d.name},\n\n${d.contest} opens ${formatSlot(new Date(d.startsAt))} (IST). One attempt, a live leaderboard and your All-India rank.\n\nSee the details and start when it opens: ${url(`/contests/${d.slug}`)}\n\nTurn reminders off on your account page: ${url("/account")}${signOff}`,
   }),
   "contest.result": (d) => ({

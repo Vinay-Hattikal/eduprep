@@ -355,3 +355,51 @@ describe("admin views", () => {
     expect(draft!.sections[0]!.rules.map((r) => r.count).sort()).toEqual([2, 3]);
   });
 });
+
+describe("rules the server keeps", () => {
+  it("won't change an answer once a later question was opened, where going back is off", async () => {
+    const form = await blueprint({ slug: "no-going-back", title: "No going back" });
+    form.sections = [{ ...form.sections[0]!, canGoBack: false }];
+    const saved = await saveBlueprint(form, admin());
+    if (!saved.ok) throw new Error(JSON.stringify(saved));
+    await transitionBlueprint(saved.id, "publish", admin());
+
+    const started = await startSitting(admin(), "no-going-back");
+    if (started.status !== "started") throw new Error(started.status);
+    const [first, second] = await db.sittingItem.findMany({
+      where: { sittingId: started.sittingId },
+      orderBy: { position: "asc" },
+    });
+    const save = (id: string, patch: Parameters<typeof saveItem>[3]) =>
+      saveItem(admin(), started.sittingId, id, patch);
+    expect(await save(first!.id, { selectedOptions: ["A"], visited: true })).toEqual({ ok: true });
+    expect(await save(second!.id, { visited: true })).toEqual({ ok: true });
+    expect(await save(first!.id, { selectedOptions: ["B"] })).toEqual({
+      ok: false,
+      reason: "closed",
+    });
+    // Time spent still records.
+    expect(await save(first!.id, { addTimeSec: 5 })).toEqual({ ok: true });
+  });
+
+  it("counts a coding answer judged after the test was submitted", async () => {
+    const started = await startSitting(admin(), "aptitude-and-coding");
+    if (started.status !== "started") throw new Error(started.status);
+    const { sittingId } = started;
+    expect(await advanceSection(admin(), sittingId, 0)).toBe(true);
+    const coding = await db.sittingItem.findFirstOrThrow({
+      where: { sittingId, sectionIndex: 1 },
+    });
+    const queued = await submitSittingCode(admin(), sittingId, coding.id, {
+      language: "cpp",
+      code: CPP,
+      kind: "SUBMIT",
+    });
+    expect(queued.status).toBe("queued");
+    // Submitted while the code waits in the judge queue.
+    await submitSitting(admin(), sittingId);
+    expect((await db.testSitting.findUniqueOrThrow({ where: { id: sittingId } })).score).toBe(0);
+    await drainJobs();
+    expect((await db.testSitting.findUniqueOrThrow({ where: { id: sittingId } })).score).toBe(10);
+  });
+});

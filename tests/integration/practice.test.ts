@@ -175,10 +175,25 @@ describe("answering", () => {
       status: "limit",
       usage: { used: 2, limit: 2 },
     });
+    // Only today's question of the day is free: "DAILY" on any other question still counts.
+    const daily = async (externalId: string) => {
+      const { id } = await db.question.findUniqueOrThrow({ where: { externalId } });
+      await db.dailyQuestion.upsert({
+        where: { date: istDay() },
+        create: { date: istDay(), questionId: id },
+        update: { questionId: id },
+      });
+    };
+    await daily("QA-PCT-0001");
+    expect(await answer("QA-TW-0001", { options: ["B"] }, "DAILY")).toMatchObject({
+      status: "limit",
+    });
+    await daily("QA-TW-0001");
     expect(await answer("QA-TW-0001", { options: ["B"] }, "DAILY")).toMatchObject({
       status: "answered",
     });
     expect(await practiceUsage(student)).toEqual({ used: 2, limit: 2 });
+    await db.dailyQuestion.deleteMany();
 
     // Admins previewing the student app aren't limited.
     expect((await practiceUsage({ id: adminId, roles: ["ADMIN"] })).limit).toBeNull();

@@ -117,6 +117,19 @@ describe("email sign-up", () => {
     });
   });
 
+  it("counts guesses sent at the same moment against the five tries", async () => {
+    await signUp({ name: "Ravi", email: "ravi@example.com", password: "blue-river-42" }, nextIp());
+    const code = await lastCode("ravi@example.com");
+    const wrong = code === "999999" ? "000000" : "999999";
+    await Promise.all(Array.from({ length: 20 }, () => verifyEmail("ravi@example.com", wrong)));
+    const row = await db.verificationCode.findFirstOrThrow({
+      where: { target: "ravi@example.com" },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(row.attempts).toBe(5);
+    expect(await verifyEmail("ravi@example.com", code)).toMatchObject({ ok: false });
+  });
+
   it("limits password guesses per account", async () => {
     await signUp({ name: "Ravi", email: "ravi@example.com", password: "blue-river-42" }, nextIp());
     await verifyEmail("ravi@example.com", await lastCode("ravi@example.com"));

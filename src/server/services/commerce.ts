@@ -161,7 +161,8 @@ export async function quoteOrder(
   if (code) {
     coupon = await db.coupon.findUnique({ where: { code } });
     if (coupon) {
-      const problem = couponProblem(coupon, product.kind, now);
+      const problem =
+        couponProblem(coupon, product.kind, now) ?? (await couponInUse(coupon, user.id, now));
       if (problem) return { ok: false, error: problem, field: "code" };
     } else {
       referral = await db.referralCode.findUnique({ where: { code } });
@@ -190,6 +191,37 @@ export async function quoteOrder(
         : null,
     gst: { ...gstSplit(result.totalPaise, gstPercent), percent: gstPercent },
   };
+}
+
+/** Unpaid orders this recent count against a coupon's limit, so it can't be oversold. */
+const COUPON_HOLD_MS = 30 * 60_000;
+
+/**
+ * Redemptions are only counted when an order is paid, and a payment can't be refused, so the
+ * limit is enforced here: a student uses a code once, and open checkouts hold their redemption.
+ */
+async function couponInUse(
+  coupon: { id: string; maxRedemptions: number | null; redemptions: number },
+  userId: string,
+  now: Date,
+): Promise<string | null> {
+  const [used, pending] = await Promise.all([
+    db.order.count({
+      where: { userId, couponId: coupon.id, status: { in: ["PAID", "REFUNDED"] } },
+    }),
+    db.order.count({
+      where: {
+        couponId: coupon.id,
+        status: "CREATED",
+        userId: { not: userId },
+        createdAt: { gt: new Date(now.getTime() - COUPON_HOLD_MS) },
+      },
+    }),
+  ]);
+  if (used) return "You've already used this code.";
+  if (coupon.maxRedemptions !== null && coupon.redemptions + pending >= coupon.maxRedemptions)
+    return "This code has been used up.";
+  return null;
 }
 
 export type CreateOrderResult =
@@ -301,7 +333,18 @@ async function processPaymentEvent(
     if ((error as { code?: string }).code === "P2002") return "duplicate";
     throw error;
   }
+  try {
+    return await handlePaymentEvent(event, now);
+  } catch (error) {
+    // Each step below is safe to repeat (the order is claimed once), so let the retry run it.
+    await db.paymentEvent.deleteMany({
+      where: { provider: provider.name, eventId: event.eventId },
+    });
+    throw error;
+  }
+}
 
+async function handlePaymentEvent(event: PaymentEvent, now: Date): Promise<WebhookOutcome> {
   const order = await db.order.findUnique({ where: { providerOrderId: event.providerOrderId } });
   if (!order) return "ignored";
 

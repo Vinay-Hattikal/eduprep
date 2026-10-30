@@ -174,7 +174,12 @@ export function ExamRunner({ view }: { view: RunnerView }) {
   };
 
   // ---------- navigation ----------
-  const [furthest, setFurthest] = useState<Record<number, number>>({});
+  const [furthest, setFurthest] = useState<Record<number, number>>(() => {
+    const opened: Record<number, number> = {};
+    for (const item of view.items)
+      if (item.visited) opened[item.section] = Math.max(opened[item.section] ?? 0, item.position);
+    return opened;
+  });
   const isLocked = (item: RunnerItem) => {
     if (sequential && item.section !== view.current) return true;
     const rules = view.sections[item.section]!;

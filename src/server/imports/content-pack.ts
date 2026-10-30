@@ -43,7 +43,7 @@ const MAX_FILES = 500;
 export function readPack(data: Uint8Array): Map<string, Uint8Array> {
   let entries: Record<string, Uint8Array>;
   try {
-    entries = unzipSync(data);
+    entries = normalizeEntries(unzipSync(data));
   } catch {
     throw new ImportActionError("This isn't a ZIP file, or it's damaged.");
   }
@@ -55,6 +55,13 @@ export function readPack(data: Uint8Array): Map<string, Uint8Array> {
   const strip =
     roots.size === 1 && files.every(([name]) => name.includes("/")) ? `${[...roots][0]}/` : "";
   return new Map(files.map(([name, content]) => [name.slice(strip.length), content]));
+}
+
+/** Windows tools write ZIP paths with backslashes; the folder plan uses forward slashes. */
+function normalizeEntries(entries: Record<string, Uint8Array>): Record<string, Uint8Array> {
+  return Object.fromEntries(
+    Object.entries(entries).map(([name, content]) => [name.replace(/\\/g, "/"), content]),
+  );
 }
 
 /** Imports one planned file: validate, then confirm and commit when any row is importable. */

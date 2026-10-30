@@ -46,6 +46,9 @@ describe("content packs", () => {
     );
     expect([...files.keys()].sort()).toEqual(["00-taxonomy/taxonomy.csv", "README.md"]);
     expect(() => readPack(strToU8("not a zip"))).toThrow(ImportActionError);
+    // Windows' Compress-Archive writes backslashes.
+    const windows = readPack(zipSync({ "pack\\02-mcq\\aptitude\\pct.csv": strToU8("x") }));
+    expect([...windows.keys()]).toEqual(["02-mcq/aptitude/pct.csv"]);
   });
 
   it("refuses a ZIP with nothing to import", async () => {

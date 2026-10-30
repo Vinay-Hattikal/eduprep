@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { ProfileType, Role } from "@/generated/prisma/enums";
 import { can, type Permission } from "@/lib/permissions";
-import { forwardedIp } from "@/lib/client-ip";
+import { clientKey } from "@/lib/public-rate-limit";
 import { db } from "@/server/db";
 import { env } from "@/server/env";
 import {
@@ -135,8 +135,13 @@ export async function endSession(): Promise<void> {
   (await cookies()).delete(SESSION_COOKIE);
 }
 
-/** The caller's IP as seen by the first proxy (for rate limits and the sessions list). */
-export const clientIp = forwardedIp;
+/**
+ * The caller's address for sign-in rate limits and the sessions list: read from our proxies' end
+ * of X-Forwarded-For (the sender controls the other end), as the public-page limit does (D-058).
+ */
+export function clientIp(requestHeaders: Headers): string | null {
+  return clientKey(requestHeaders, { trustedHops: env().TRUSTED_PROXY_HOPS });
+}
 
 export async function requestIp(): Promise<string> {
   return clientIp(await headers()) ?? "unknown";

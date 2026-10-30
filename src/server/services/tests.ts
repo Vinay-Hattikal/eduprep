@@ -630,6 +630,23 @@ export async function saveItem(
   if (!item) return { ok: false, reason: "not-found" };
   if (!canAnswer(clockOf(sitting, now), item.sectionIndex, now))
     return { ok: false, reason: "closed" };
+  // In a section without going back, an answer is final once a later question was opened.
+  // (The runner saves in order, so the last change to a question lands before the next opens.)
+  const changesAnswer =
+    patch.selectedOptions !== undefined ||
+    patch.numericAnswer !== undefined ||
+    patch.markedForReview !== undefined;
+  if (changesAnswer && !(sitting.sections as SectionSnapshot[])[item.sectionIndex]?.canGoBack) {
+    const movedOn = await db.sittingItem.count({
+      where: {
+        sittingId,
+        sectionIndex: item.sectionIndex,
+        position: { gt: item.position },
+        visited: true,
+      },
+    });
+    if (movedOn) return { ok: false, reason: "closed" };
+  }
 
   const data: Prisma.SittingItemUpdateInput = {};
   if (patch.selectedOptions !== undefined) {
@@ -750,72 +767,7 @@ export async function finishSitting(
         data: { status: "SUBMITTED", submittedAt: now, autoSubmitted: auto },
       });
       if (claimed.count === 0) return null;
-
-      const sitting = await tx.testSitting.findUniqueOrThrow({ where: { id: sittingId } });
-      const sections = sitting.sections as SectionSnapshot[];
-      const items = await tx.sittingItem.findMany({
-        where: { sittingId },
-        include: {
-          question: {
-            select: {
-              id: true,
-              type: true,
-              correctOptions: true,
-              numericAnswer: true,
-              tolerance: true,
-              difficulty: true,
-              topicId: true,
-            },
-          },
-          submissions: { where: { kind: "SUBMIT", score: { not: null } }, select: { score: true } },
-        },
-      });
-
-      const scored = items.map((item) => {
-        const input: ScoredInput = item.question
-          ? {
-              kind: "mcq",
-              section: item.sectionIndex,
-              key: item.question,
-              selectedOptions: item.selectedOptions,
-              numericAnswer: item.numericAnswer,
-            }
-          : {
-              kind: "coding",
-              section: item.sectionIndex,
-              bestScore: item.submissions.length
-                ? Math.max(...item.submissions.map((s) => s.score!))
-                : null,
-            };
-        return { item, input, score: scoreItem(input, sections[item.sectionIndex]!) };
-      });
-      // Items share a handful of results (right, wrong, skipped), so one update per result
-      // rather than one per item: this transaction is what everyone runs at a contest's end.
-      const byResult = new Map<
-        string,
-        { isCorrect: boolean | null; marks: number; ids: string[] }
-      >();
-      for (const { item, score } of scored) {
-        const key = `${score.isCorrect}:${score.marks}`;
-        const group = byResult.get(key) ?? {
-          isCorrect: score.isCorrect,
-          marks: score.marks,
-          ids: [],
-        };
-        group.ids.push(item.id);
-        byResult.set(key, group);
-      }
-      for (const { isCorrect, marks, ids } of byResult.values())
-        await tx.sittingItem.updateMany({ where: { id: { in: ids } }, data: { isCorrect, marks } });
-      const totals = scoreSections(
-        sections,
-        scored.map(({ input, score }) => ({ ...input, score })),
-      );
-      await tx.testSitting.update({
-        where: { id: sittingId },
-        data: { score: totals.score, maxScore: totals.maxScore },
-      });
-
+      const { sitting, scored } = await scoreSitting(tx, sittingId);
       await recordTestAnswers(tx, sitting.userId, scored, now, rules);
       return { userId: sitting.userId, contestId: sitting.contestId };
     },
@@ -830,6 +782,86 @@ export async function finishSitting(
       ...(finished.contestId ? (["contest-debut"] as const) : []),
     ]);
   }
+}
+
+/**
+ * Called when a coding answer inside a test is judged. The test may have been submitted while
+ * it waited in the judge queue (a submit seconds before time-up); its marks still count.
+ */
+export async function rescoreSubmittedSitting(sittingItemId: string) {
+  await db.$transaction(async (tx) => {
+    const item = await tx.sittingItem.findUnique({
+      where: { id: sittingItemId },
+      select: { sittingId: true, sitting: { select: { status: true } } },
+    });
+    if (item?.sitting.status === "SUBMITTED") await scoreSitting(tx, item.sittingId);
+  });
+}
+
+/** Marks every item and totals the sitting. */
+async function scoreSitting(tx: Prisma.TransactionClient, sittingId: string) {
+  const sitting = await tx.testSitting.findUniqueOrThrow({ where: { id: sittingId } });
+  const sections = sitting.sections as SectionSnapshot[];
+  const items = await tx.sittingItem.findMany({
+    where: { sittingId },
+    include: {
+      question: {
+        select: {
+          id: true,
+          type: true,
+          correctOptions: true,
+          numericAnswer: true,
+          tolerance: true,
+          difficulty: true,
+          topicId: true,
+        },
+      },
+      submissions: { where: { kind: "SUBMIT", score: { not: null } }, select: { score: true } },
+    },
+  });
+
+  const scored = items.map((item) => {
+    const input: ScoredInput = item.question
+      ? {
+          kind: "mcq",
+          section: item.sectionIndex,
+          key: item.question,
+          selectedOptions: item.selectedOptions,
+          numericAnswer: item.numericAnswer,
+        }
+      : {
+          kind: "coding",
+          section: item.sectionIndex,
+          bestScore: item.submissions.length
+            ? Math.max(...item.submissions.map((s) => s.score!))
+            : null,
+        };
+    return { item, input, score: scoreItem(input, sections[item.sectionIndex]!) };
+  });
+  // Items share a handful of results (right, wrong, skipped), so one update per result
+  // rather than one per item: this transaction is what everyone runs at a contest's end.
+  const byResult = new Map<string, { isCorrect: boolean | null; marks: number; ids: string[] }>();
+  for (const { item, score } of scored) {
+    const key = `${score.isCorrect}:${score.marks}`;
+    const group = byResult.get(key) ?? {
+      isCorrect: score.isCorrect,
+      marks: score.marks,
+      ids: [],
+    };
+    group.ids.push(item.id);
+    byResult.set(key, group);
+  }
+  for (const { isCorrect, marks, ids } of byResult.values())
+    await tx.sittingItem.updateMany({ where: { id: { in: ids } }, data: { isCorrect, marks } });
+  const totals = scoreSections(
+    sections,
+    scored.map(({ input, score }) => ({ ...input, score })),
+  );
+  await tx.testSitting.update({
+    where: { id: sittingId },
+    data: { score: totals.score, maxScore: totals.maxScore },
+  });
+  return { sitting, scored };
 }
 
 /** Answered MCQs count for mastery, mistakes and the streak (AttemptMode TEST). */

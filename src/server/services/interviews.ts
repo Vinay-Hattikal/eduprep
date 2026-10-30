@@ -456,19 +456,27 @@ async function confirmInTx(
         "The slot was taken while you were paying. Your credit is saved: pick another slot.",
       );
   }
-  const credit = await tx.interviewCredit.findFirst({
-    where: { userId: booking.candidateId, typeId: booking.typeId, status: "AVAILABLE" },
-    orderBy: { createdAt: "asc" },
-  });
-  if (!credit) throw new BookingError("You have no credit for this interview type.");
-  await tx.interviewCredit.update({
-    where: { id: credit.id },
-    data: { status: "USED", bookingId: booking.id, usedAt: now },
-  });
-  await tx.booking.update({
-    where: { id: booking.id },
+  // Two bookings of one candidate can be confirmed at once (they lock different interviewers),
+  // so both writes are conditional: a credit is used once, and a booking is confirmed once.
+  const confirmed = await tx.booking.updateMany({
+    where: { id: booking.id, status: { in: ["HELD", "EXPIRED"] } },
     data: { status: "CONFIRMED", holdExpiresAt: null },
   });
+  if (!confirmed.count) return; // confirmed by a parallel request
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const credit = await tx.interviewCredit.findFirst({
+      where: { userId: booking.candidateId, typeId: booking.typeId, status: "AVAILABLE" },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    if (!credit) break;
+    const claimed = await tx.interviewCredit.updateMany({
+      where: { id: credit.id, status: "AVAILABLE" },
+      data: { status: "USED", bookingId: booking.id, usedAt: now },
+    });
+    if (claimed.count) return;
+  }
+  throw new BookingError("You have no credit for this interview type.");
 }
 
 /** Called by the payment webhook when an order made for a held booking is paid. */

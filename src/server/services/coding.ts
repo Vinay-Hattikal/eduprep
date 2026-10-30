@@ -480,6 +480,11 @@ export async function judgeSubmission(submissionId: string, now = () => new Date
       rules,
     );
   });
+  if (submission.kind === "SUBMIT" && submission.sittingItemId) {
+    // tests.ts imports this module, so load it on demand.
+    const { rescoreSubmittedSitting } = await import("@/server/services/tests");
+    await rescoreSubmittedSitting(submission.sittingItemId);
+  }
 }
 
 /** A practice SUBMIT: attempts, first solve, DSA mastery and the daily streak. */
@@ -548,10 +553,13 @@ export async function validateProblem(
   });
   if (!problem) return;
   const report = await checkProblem(problem);
-  await db.problem.update({
-    where: { id: problem.id },
+  // The judge can take a while. If the problem changed meanwhile (every edit that affects the
+  // check updates the row and queues its own check), this result is stale: drop it.
+  const saved = await db.problem.updateMany({
+    where: { id: problem.id, updatedAt: problem.updatedAt },
     data: { validatedAt: report.ok ? now() : null, validationNote: report.lines.join("\n") },
   });
+  if (!saved.count) return;
   // Same publish rules (and audit) as the Publish button, as the admin who asked for it.
   if (report.ok && publishBy) {
     const actor = await db.user.findUnique({

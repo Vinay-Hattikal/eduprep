@@ -190,6 +190,51 @@ describe("paying", () => {
     );
   });
 
+  it("processes a webhook retry when the first delivery failed part-way", async () => {
+    const created = await createOrder(buyer, { kind: "PRO", ref: "monthly" });
+    if (!created.ok) throw new Error(created.error);
+    const order = await db.order.findUniqueOrThrow({ where: { id: created.orderId } });
+    const { body, signature } = mockWebhook({
+      type: "payment.captured",
+      providerOrderId: order.providerOrderId,
+      providerPaymentId: `pay_${order.id}`,
+      amountPaise: order.totalPaise,
+    });
+    // Fulfilment breaks on the first delivery.
+    await db.order.update({ where: { id: order.id }, data: { productRef: "broken" } });
+    await expect(handlePaymentWebhook(body, mockHeaders(signature))).rejects.toThrow();
+    await db.order.update({ where: { id: order.id }, data: { productRef: "monthly" } });
+    expect((await db.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe("CREATED");
+    // The provider sends the same event again.
+    expect(await handlePaymentWebhook(body, mockHeaders(signature))).toBe("processed");
+    expect((await db.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe("PAID");
+  });
+
+  it("lets each student use a coupon once, and holds redemptions for open checkouts", async () => {
+    await createCoupon(
+      {
+        code: "TWICE",
+        description: null,
+        percentOff: 10,
+        amountOffPaise: null,
+        kinds: [],
+        maxRedemptions: 2,
+        validUntil: null,
+      },
+      admin(),
+    );
+    const order = { kind: "PRO" as const, ref: "monthly", code: "TWICE" };
+    const mine = await createOrder(buyer, order);
+    if (!mine.ok) throw new Error(mine.error);
+    await pay(mine.orderId);
+    expect(await quoteOrder(buyer, order)).toMatchObject({ ok: false, error: /already used/ });
+
+    // One redemption used, one held by an unpaid checkout: the code is used up for others.
+    expect((await createOrder(friend, order)).ok).toBe(true);
+    const third = await student(`third-${Date.now()}@example.com`);
+    expect(await quoteOrder(third, order)).toMatchObject({ ok: false, error: /used up/ });
+  });
+
   it("rejects a wrong amount and records failures", async () => {
     const created = await createOrder(buyer, { kind: "PRO", ref: "monthly" });
     if (!created.ok) throw new Error(created.error);

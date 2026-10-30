@@ -1,6 +1,7 @@
 // Job alerts and contest reminders (D-059).
 
 import { beforeAll, describe, expect, it } from "vitest";
+import { istDay } from "@/lib/learning/dates";
 import { db } from "@/server/db";
 import {
   scheduleContestReminder,
@@ -56,6 +57,16 @@ describe("daily job digest", () => {
     await db.jobPosting.create({
       data: { ...base, slug: "acme-dev-1", title: "Developer", publishedAt: new Date() },
     });
+    // Its last day is today (IST): still open, so it's in tonight's digest.
+    await db.jobPosting.create({
+      data: {
+        ...base,
+        slug: "acme-today-1",
+        title: "Closing today",
+        publishedAt: new Date(),
+        applyBy: istDay(),
+      },
+    });
     // Published before the digest window: not in this digest.
     await db.jobPosting.create({
       data: {
@@ -71,7 +82,12 @@ describe("daily job digest", () => {
     const sent = await messages(eligible, "jobs.digest");
     expect(sent.length).toBeGreaterThan(0);
     expect(sent[0]!.body).toContain("Developer at Acme");
+    expect(sent[0]!.body).toContain("Closing today");
     expect(sent[0]!.body).not.toContain("Old role");
+    // A retry of the same digest doesn't message the same students again.
+    const count = (await messages(eligible, "jobs.digest")).length;
+    await sendJobDigest(new Date(Date.now() - 86_400_000).toISOString());
+    expect(await messages(eligible, "jobs.digest")).toHaveLength(count);
     expect(await messages(wrongBranch, "jobs.digest")).toHaveLength(0);
     expect(await messages(optedOut, "jobs.digest")).toHaveLength(0);
 
@@ -99,6 +115,9 @@ describe("contest reminders", () => {
     });
 
     await scheduleContestReminder(contest.id, startsAt);
+    // Unpublished and published again unchanged: still one reminder.
+    await scheduleContestReminder(contest.id, startsAt);
+    expect(await db.job.count({ where: { type: "contest.reminder" } })).toBe(1);
     const job = await db.job.findFirstOrThrow({ where: { type: "contest.reminder" } });
     expect(job.runAt.getTime()).toBe(startsAt.getTime() - 86_400_000);
 
@@ -109,5 +128,9 @@ describe("contest reminders", () => {
     expect(await messages(eligible, "contest.reminder")).not.toHaveLength(0);
     expect(await messages(wrongBranch, "contest.reminder")).not.toHaveLength(0);
     expect(await messages(optedOut, "contest.reminder")).toHaveLength(0);
+    // Sent again (a retry): nobody gets it twice.
+    const before = (await messages(eligible, "contest.reminder")).length;
+    await sendContestReminder(contest.id, startsAt.toISOString());
+    expect(await messages(eligible, "contest.reminder")).toHaveLength(before);
   });
 });
