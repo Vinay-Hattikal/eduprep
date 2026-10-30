@@ -29,6 +29,14 @@ export function QuickPassage({ onCreated }: { onCreated: (externalId: string) =>
       onCreated(result.externalId);
     });
 
+  // The fields sit inside the question form: Enter adds the passage instead of submitting it.
+  const onEnter = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      create();
+    }
+  };
+
   if (!open)
     return (
       <Button
@@ -49,6 +57,7 @@ export function QuickPassage({ onCreated }: { onCreated: (externalId: string) =>
           onChange={(e) => set("externalId", e.target.value)}
           placeholder="ID, e.g. RC-0042"
           aria-label="New passage ID"
+          onKeyDown={onEnter}
           className="font-mono"
           autoFocus
         />
@@ -57,6 +66,7 @@ export function QuickPassage({ onCreated }: { onCreated: (externalId: string) =>
           onChange={(e) => set("title", e.target.value)}
           placeholder="Title"
           aria-label="New passage title"
+          onKeyDown={onEnter}
         />
       </div>
       <Textarea

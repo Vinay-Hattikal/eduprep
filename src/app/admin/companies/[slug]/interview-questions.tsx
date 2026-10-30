@@ -115,12 +115,16 @@ export async function InterviewQuestions({
               </CardTitle>
               {group.subtitle ? <CardDescription>{group.subtitle}</CardDescription> : null}
             </div>
-            {canEdit && group.key !== "none" ? (
-              <Button asChild size="sm" variant="outline">
-                <Link href={`/admin/design/new?company=${company.slug}&kind=${group.kind}`}>
-                  <Plus /> Add {group.kind === "HR" ? "HR" : "technical"} question
-                </Link>
-              </Button>
+            {canEdit && (group.key !== "none" || !rounds.length) ? (
+              <div className="flex flex-wrap gap-2">
+                {(group.key === "none" ? ["TECHNICAL", "HR"] : [group.kind]).map((kind) => (
+                  <Button key={kind} asChild size="sm" variant="outline">
+                    <Link href={`/admin/design/new?company=${company.slug}&kind=${kind}`}>
+                      <Plus /> Add {kind === "HR" ? "HR" : "technical"} question
+                    </Link>
+                  </Button>
+                ))}
+              </div>
             ) : null}
           </CardHeader>
           <CardContent>

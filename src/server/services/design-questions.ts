@@ -96,20 +96,20 @@ export async function saveDesignQuestion(
         },
         tx,
       );
+      await setCompanyLinks({ designQuestionId: question.id }, links, actor, tx);
       return question;
     });
-    await setCompanyLinks({ designQuestionId: created.id }, links, actor);
     return { ok: true, id: created.id, created: true, movedToDraft: false };
   }
 
-  // Company links don't change the question itself, so they never send it back to draft.
-  await setCompanyLinks({ designQuestionId: before.id }, links, actor);
   const changed = (Object.keys(data) as (keyof typeof data)[]).filter(
     (key) => JSON.stringify(before[key] ?? null) !== JSON.stringify(data[key] ?? null),
   );
-  if (!changed.length) return { ok: true, id: before.id, created: false, movedToDraft: false };
-  const movedToDraft = before.status === "PUBLISHED";
+  const movedToDraft = changed.length > 0 && before.status === "PUBLISHED";
   await db.$transaction(async (tx) => {
+    // Company links don't change the question itself, so they never send it back to draft.
+    await setCompanyLinks({ designQuestionId: before.id }, links, actor, tx);
+    if (!changed.length) return;
     await tx.designQuestion.update({
       where: { id: before.id },
       // Archived questions stay archived until restored; everything else becomes a draft.

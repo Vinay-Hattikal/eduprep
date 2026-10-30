@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { DesignKind } from "@/generated/prisma/enums";
 import { ArrowLeft } from "lucide-react";
 import { DesignForm } from "@/app/admin/design/design-form";
 import { PageHeader } from "@/components/shared/page-header";
@@ -23,7 +24,7 @@ export default function NewDesignQuestionPage({ searchParams }: PageProps<"/admi
   );
 }
 
-const KINDS = ["SYSTEM_DESIGN", "LOW_LEVEL_DESIGN", "TECHNICAL", "HR"] as const;
+const KINDS = Object.values(DesignKind);
 
 /**
  * A blank design or interview question. From a company's Interview questions tab (D-067):

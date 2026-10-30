@@ -85,10 +85,17 @@ export async function LinkedContent({
       : [],
     canEdit && q ? searchLinkable(company.id, kind, q) : [],
   ]);
-  // Questions on the same passage sit together (D-067), then by ID.
+  // Questions on the same passage sit together (D-067), then the rest, by ID within each.
   const sortKey = (l: (typeof links)[number]) =>
-    `${l.question?.passage?.externalId ?? "~"}/${l.question?.externalId ?? l.problem?.externalId ?? ""}`;
-  links.sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+    [
+      l.question?.passage ? 0 : 1,
+      l.question?.passage?.externalId ?? "",
+      l.question?.externalId ?? l.problem?.externalId ?? "",
+    ] as const;
+  links.sort((a, b) => {
+    const [x, y] = [sortKey(a), sortKey(b)];
+    return x[0] - y[0] || (x[1] < y[1] ? -1 : x[1] > y[1] ? 1 : 0) || (x[2] < y[2] ? -1 : 1);
+  });
 
   return (
     <div className="space-y-6">

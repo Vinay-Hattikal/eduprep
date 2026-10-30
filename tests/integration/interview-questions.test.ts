@@ -4,7 +4,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { getCompanyBySlug } from "@/server/services/companies";
-import { copyHiringPattern } from "@/server/services/company-hiring";
+import { copyHiringPattern, deleteRound, moveRound } from "@/server/services/company-hiring";
 import { linkToCompany, setLinkRound } from "@/server/services/company-links";
 import { publishCompanyContent } from "@/server/services/company-publish";
 import { companyReadiness } from "@/server/services/company-readiness";
@@ -66,7 +66,9 @@ describe("interview questions", () => {
     const link = await db.companyItem.findFirstOrThrow({
       where: { companyId, designQuestionId: saved.id },
     });
-    await setLinkRound(link.id, companyId, 2);
+    expect(await setLinkRound(link.id, companyId, 2, admin)).toBe(true);
+    // Not an interview round of this company.
+    expect(await setLinkRound(link.id, companyId, 9, admin)).toBe(false);
 
     const r = await companyReadiness((await getCompanyBySlug("iq-co"))!);
     expect(r.items.find((i) => i.key === "interview")).toMatchObject({
@@ -199,5 +201,38 @@ describe("copying a hiring pattern", () => {
         admin,
       ),
     ).toMatchObject({ ok: false, error: expect.stringMatching(/already has rounds/) });
+  });
+});
+
+describe("review fixes", () => {
+  it("re-importing an unchanged design file keeps published questions live", async () => {
+    const file = await template("design/design-questions.csv");
+    await importFile("DESIGN_QUESTIONS", "design.csv", file, admin.id, { publish: true });
+    const question = await db.designQuestion.findFirstOrThrow({ where: { status: "PUBLISHED" } });
+    // A link added in the admin panel, which the file doesn't list.
+    await linkToCompany(companyId, { designQuestionId: question.id }, admin);
+    const again = await importFile("DESIGN_QUESTIONS", "design.csv", file, admin.id);
+    expect(again.updatedCount).toBe(0);
+    expect((await db.designQuestion.findUniqueOrThrow({ where: { id: question.id } })).status).toBe(
+      "PUBLISHED",
+    );
+  });
+
+  it("interview questions follow their round when rounds move or one is deleted", async () => {
+    const company = await db.company.findUniqueOrThrow({
+      where: { slug: "iq-co" },
+      include: { rounds: { orderBy: { order: "asc" } } },
+    });
+    const hr = company.rounds[1];
+    const link = await db.companyItem.findFirstOrThrow({
+      where: { companyId: company.id, designQuestionId: { not: null } },
+    });
+    await db.companyItem.update({ where: { id: link.id }, data: { roundOrder: hr!.order } });
+    await moveRound(hr!.id, "up", admin);
+    expect((await db.companyItem.findUniqueOrThrow({ where: { id: link.id } })).roundOrder).toBe(1);
+    await deleteRound(hr!.id, admin);
+    expect(
+      (await db.companyItem.findUniqueOrThrow({ where: { id: link.id } })).roundOrder,
+    ).toBeNull();
   });
 });

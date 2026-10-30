@@ -184,6 +184,8 @@ export type DesignValue = {
   followUps: string | null;
   companies: string[];
   tracks: string[];
+  /** False when only new company links come in: the question itself isn't touched (D-054). */
+  contentChanged?: boolean;
 };
 
 export type DesignContext = {
@@ -249,12 +251,20 @@ export function validateDesignRows(
       tracks,
     };
     const existing = ctx.existing.get(externalId);
+    // Links are added, never removed, by an import, and links made in the admin panel stay, so
+    // the row changes something only if its content differs or it names a new company.
+    const contentChanged =
+      !existing ||
+      !sameValues({ ...existing, id: undefined, companies: [] }, { ...value, companies: [] });
+    const newLinks = companies.filter(
+      (c) => ctx.companies.has(c) && !existing?.companies.includes(c),
+    );
     const action = !existing
       ? "CREATE"
-      : sameValues({ ...existing, id: undefined }, value)
-        ? "UNCHANGED"
-        : "UPDATE";
-    return finishRow(row, r.messages, value, action, existing?.id);
+      : contentChanged || newLinks.length
+        ? "UPDATE"
+        : "UNCHANGED";
+    return finishRow(row, r.messages, { ...value, contentChanged }, action, existing?.id);
   });
 }
 
@@ -322,27 +332,39 @@ export const designQuestionImport: ImportDefinition<DesignValue> = {
   },
   async commit(rows, { tx, batchId }) {
     const outcomes: CommitOutcome[] = [];
+    const slugs = [...new Set(rows.flatMap((row) => row.value!.companies))];
+    const companyIds = new Map(
+      (
+        await tx.company.findMany({
+          where: { slug: { in: slugs } },
+          select: { id: true, slug: true },
+        })
+      ).map((c) => [c.slug, c.id]),
+    );
+    const links: { companyId: string; designQuestionId: string }[] = [];
     for (const row of rows) {
-      const { companies, ...value } = row.value!;
-      // Imports never publish (D-010): changed questions go back to draft.
-      const question = await tx.designQuestion.upsert({
-        where: { externalId: value.externalId },
-        create: { ...value, status: "DRAFT", importBatchId: batchId },
-        update: { ...value, status: "DRAFT", importBatchId: batchId },
-      });
+      const { companies, contentChanged = true, ...value } = row.value!;
+      // Imports never publish (D-010): changed questions go back to draft. A row that only adds
+      // companies leaves the question as it is.
+      const question = contentChanged
+        ? await tx.designQuestion.upsert({
+            where: { externalId: value.externalId },
+            create: { ...value, status: "DRAFT", importBatchId: batchId },
+            update: { ...value, status: "DRAFT", importBatchId: batchId },
+            select: { id: true },
+          })
+        : await tx.designQuestion.findUniqueOrThrow({
+            where: { externalId: value.externalId },
+            select: { id: true },
+          });
       // Named companies get a link; links added in the admin panel are kept (D-054, D-067).
-      if (companies.length) {
-        const known = await tx.company.findMany({
-          where: { slug: { in: companies } },
-          select: { id: true },
-        });
-        await tx.companyItem.createMany({
-          data: known.map((c) => ({ companyId: c.id, designQuestionId: question.id })),
-          skipDuplicates: true,
-        });
+      for (const slug of companies) {
+        const companyId = companyIds.get(slug);
+        if (companyId) links.push({ companyId, designQuestionId: question.id });
       }
       outcomes.push({ rowNumber: row.rowNumber, entityId: question.id, action: row.action! });
     }
+    if (links.length) await tx.companyItem.createMany({ data: links, skipDuplicates: true });
     return outcomes;
   },
 };

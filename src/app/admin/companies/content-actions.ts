@@ -52,13 +52,18 @@ export async function unlinkItemAction(formData: FormData) {
 
 /** Which interview round an interview question belongs to (D-067). */
 export async function setLinkRoundAction(formData: FormData) {
-  await requirePermission("companies.manage");
+  const user = await requirePermission("companies.manage");
   const companySlug = slug.parse(formData.get("slug"));
   const round = String(formData.get("round") ?? "");
-  await setLinkRound(
+  const moved = await setLinkRound(
     id.parse(formData.get("linkId")),
     id.parse(formData.get("companyId")),
     round ? z.coerce.number().int().min(1).max(50).parse(round) : null,
+    user,
   );
-  back(companySlug, "design", "&round=1");
+  back(
+    companySlug,
+    "design",
+    moved ? "&round=1" : `&error=${encodeURIComponent("That round no longer exists.")}`,
+  );
 }

@@ -3,6 +3,7 @@ import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AskedAt } from "@/lib/content/asked-at";
 import { nextExternalId } from "@/lib/content/asked-at";
+import { INTERVIEW_ROUND_TYPES } from "@/lib/content/companies";
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/services/audit";
 
@@ -72,9 +73,16 @@ export async function companyLinksProblem(links: readonly AskedAt[]): Promise<st
  * Makes the item's company links exactly `links`. Kept links keep their round and report count;
  * their months are replaced by what the editor shows. False when nothing changed.
  */
-export async function setCompanyLinks(item: Item, links: readonly AskedAt[], actor: Actor) {
+export async function setCompanyLinks(
+  item: Item,
+  links: readonly AskedAt[],
+  actor: Actor,
+  client?: Prisma.TransactionClient,
+): Promise<boolean> {
+  if (!client) return db.$transaction((tx) => setCompanyLinks(item, links, actor, tx));
   const where = itemWhere(item);
-  return db.$transaction(async (tx) => {
+  const tx = client;
+  {
     const existing = new Map(
       (await tx.companyItem.findMany({ where })).map((e) => [e.companyId, e]),
     );
@@ -114,7 +122,7 @@ export async function setCompanyLinks(item: Item, links: readonly AskedAt[], act
       tx,
     );
     return true;
-  });
+  }
 }
 
 /** Links an existing question or problem to a company (no months). */
@@ -234,7 +242,40 @@ export async function suggestNextQuestionId(id: string): Promise<string> {
   return candidates.find((c) => !taken.has(c)) ?? "";
 }
 
-/** Which interview round a link belongs to (null: not tied to a round). */
-export async function setLinkRound(linkId: string, companyId: string, roundOrder: number | null) {
-  await db.companyItem.updateMany({ where: { id: linkId, companyId }, data: { roundOrder } });
+/**
+ * Which interview round a link belongs to (null: not tied to a round). False when the round
+ * isn't one of the company's interview rounds.
+ */
+export async function setLinkRound(
+  linkId: string,
+  companyId: string,
+  roundOrder: number | null,
+  actor: Actor,
+): Promise<boolean> {
+  if (
+    roundOrder !== null &&
+    !(await db.companyRound.count({
+      where: { companyId, order: roundOrder, type: { in: [...INTERVIEW_ROUND_TYPES] } },
+    }))
+  )
+    return false;
+  return db.$transaction(async (tx) => {
+    const moved = await tx.companyItem.updateMany({
+      where: { id: linkId, companyId },
+      data: { roundOrder },
+    });
+    if (!moved.count) return false;
+    await touchCompanies(tx, [companyId]);
+    await recordAudit(
+      {
+        actorId: actor.id,
+        action: "company.link_round",
+        entityType: "company",
+        entityId: companyId,
+        after: { linkId, roundOrder },
+      },
+      tx,
+    );
+    return true;
+  });
 }

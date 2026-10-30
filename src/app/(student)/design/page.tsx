@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { DesignKind } from "@/generated/prisma/enums";
 import { PencilRuler } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -26,7 +27,7 @@ export default function DesignPage({ searchParams }: PageProps<"/design">) {
   );
 }
 
-const KINDS = ["SYSTEM_DESIGN", "LOW_LEVEL_DESIGN", "TECHNICAL", "HR"] as const;
+const KINDS = Object.values(DesignKind);
 
 async function Questions({ searchParams }: { searchParams: PageProps<"/design">["searchParams"] }) {
   const user = await requirePermission("student.access");

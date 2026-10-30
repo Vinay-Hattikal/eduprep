@@ -3,6 +3,7 @@
 // the matching CSV columns (data-import.md), so a form and an import accept the same values.
 
 import { z } from "zod";
+import { DesignKind } from "@/generated/prisma/enums";
 import { CODING_LANGUAGE_IDS } from "@/lib/coding/languages";
 import { slugify } from "@/lib/utils";
 import { optionalNumber } from "@/schemas/company";
@@ -140,7 +141,7 @@ export const designFormSchema = z.object({
   id: z.string().min(1).max(40).optional(),
   externalId: externalIdField,
   slug: slugField,
-  kind: z.enum(["SYSTEM_DESIGN", "LOW_LEVEL_DESIGN", "TECHNICAL", "HR"]),
+  kind: z.enum(DesignKind),
   title: z.string().trim().min(3, "Too short.").max(160),
   difficulty,
   prompt: markdown("Write the question."),

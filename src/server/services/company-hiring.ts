@@ -74,8 +74,10 @@ export async function deleteRound(roundId: string, actor: Actor): Promise<Result
   });
   if (!round) return { ok: false, error: "This round no longer exists." };
   await db.$transaction(async (tx) => {
+    const before = await roundOrders(tx, round.companyId);
     await tx.companyRound.delete({ where: { id: roundId } });
     await renumber(roundList(tx, round.companyId));
+    await followRounds(tx, round.companyId, before);
     await audit(tx, actor, round.companyId, "company.round_delete", { round: round.name });
   });
   return { ok: true, slug: round.company.slug };
@@ -92,11 +94,14 @@ export async function moveRound(
   });
   if (!round) return { ok: false, error: "This round no longer exists." };
   await db.$transaction(async (tx) => {
-    if (await swapWithNeighbour(roundList(tx, round.companyId), round.id, direction))
+    const before = await roundOrders(tx, round.companyId);
+    if (await swapWithNeighbour(roundList(tx, round.companyId), round.id, direction)) {
+      await followRounds(tx, round.companyId, before);
       await audit(tx, actor, round.companyId, "company.round_move", {
         round: round.name,
         direction,
       });
+    }
   });
   return { ok: true, slug: round.company.slug };
 }
@@ -217,6 +222,42 @@ async function swapWithNeighbour(list: OrderedList, id: string, direction: "up" 
   return true;
 }
 
+const roundOrders = async (tx: Prisma.TransactionClient, companyId: string) =>
+  new Map(
+    (
+      await tx.companyRound.findMany({ where: { companyId }, select: { id: true, order: true } })
+    ).map((r) => [r.id, r.order]),
+  );
+
+/**
+ * Interview questions are tied to a round by its number (company_items.round_order, D-067), so
+ * when rounds move or one is deleted, the links follow their round; a deleted round's questions
+ * are no longer tied to one.
+ */
+async function followRounds(
+  tx: Prisma.TransactionClient,
+  companyId: string,
+  before: Map<string, number>,
+) {
+  const after = await roundOrders(tx, companyId);
+  const moves = [...before].flatMap(([id, from]) => {
+    const to = after.get(id) ?? null;
+    return to === from ? [] : [{ from, to }];
+  });
+  // Parked as negative numbers first, so a swap doesn't move a link twice.
+  for (const { from, to } of moves)
+    await tx.companyItem.updateMany({
+      where: { companyId, roundOrder: from },
+      data: { roundOrder: to === null ? null : -to },
+    });
+  for (const { to } of moves)
+    if (to !== null)
+      await tx.companyItem.updateMany({
+        where: { companyId, roundOrder: -to },
+        data: { roundOrder: to },
+      });
+}
+
 /** Closes gaps after a delete: orders become 1, 2, 3… in their current sequence. */
 async function renumber(list: OrderedList) {
   for (const [i, row] of (await list.rows()).entries())
@@ -280,15 +321,7 @@ export async function copyHiringPattern(
 ): Promise<Result> {
   if (fromId === toId) return { ok: false, error: "Pick another company to copy from." };
   const [from, to] = await Promise.all([
-    db.company.findUnique({
-      where: { id: fromId },
-      include: {
-        rounds: {
-          orderBy: { order: "asc" },
-          include: { sections: { orderBy: { order: "asc" }, include: { topics: true } } },
-        },
-      },
-    }),
+    loadPattern(fromId),
     db.company.findUnique({
       where: { id: toId },
       include: { _count: { select: { rounds: true } } },
@@ -300,6 +333,27 @@ export async function copyHiringPattern(
   if (!parts.rounds && !parts.eligibility && !parts.pay)
     return { ok: false, error: "Choose what to copy." };
 
+  try {
+    await copyInto(from, to.id, parts, actor);
+  } catch (error) {
+    // Two copies at once: the second meets the first's rounds (unique company + order).
+    if ((error as { code?: string }).code === "P2002")
+      return {
+        ok: false,
+        error: "This company already has rounds. Delete them to copy a pattern.",
+      };
+    throw error;
+  }
+  return { ok: true, slug: to.slug };
+}
+
+async function copyInto(
+  from: NonNullable<Awaited<ReturnType<typeof loadPattern>>>,
+  toId: string,
+  parts: CopyParts,
+  actor: Actor,
+) {
+  const to = { id: toId };
   await db.$transaction(async (tx) => {
     if (parts.rounds)
       for (const round of from.rounds)
@@ -344,5 +398,15 @@ export async function copyHiringPattern(
     });
     await audit(tx, actor, to.id, "company.copy_pattern", { from: from.slug, ...parts });
   });
-  return { ok: true, slug: to.slug };
 }
+
+const loadPattern = (id: string) =>
+  db.company.findUnique({
+    where: { id },
+    include: {
+      rounds: {
+        orderBy: { order: "asc" },
+        include: { sections: { orderBy: { order: "asc" }, include: { topics: true } } },
+      },
+    },
+  });
