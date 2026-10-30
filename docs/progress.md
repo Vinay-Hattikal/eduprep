@@ -5,7 +5,7 @@ Where the project stands right now. **Update at the end of every work session.**
 - Task list and status for every phase: [plan.md](plan.md)
 - This file: current focus, known issues, session log
 
-Last updated: 2026-10-29 (public pages complete, D-058)
+Last updated: 2026-10-30 (alerts, readiness, content packs, previews, CSP, bulk publish, load test, review fixes: D-059 to D-066)
 
 ---
 
@@ -17,7 +17,7 @@ Last updated: 2026-10-29 (public pages complete, D-058)
 - **Company workspace (D-057):** each company's admin page has tabs: Profile, Hiring process, Sources, MCQ questions, Coding and Mock tests. Questions and coding problems are added from there already tagged with the company. "Then add another" keeps the setup and suggests the next ID. "Asked at" and "+ New topic" are in the editors. Next: the owner enters content; the remaining Phase 6 work waits for keys and hosting.
 - **Admin panel completion (D-055):** coding problems, design questions, role tracks, interview types, passages and admin roles can now be created and edited in the admin panel, not only imported.
 - **Owner's order (2026-10-28):** finish building and testing the application first. API keys, payments, domain and hosting are undecided and come last.
-- **Later, after the build:** the owner gets the accounts and keys; then each service gets one real test on staging, following [deployment.md](deployment.md). Remaining Phase 6 work: hosting choice and staging, monitoring and backups, Razorpay Route payouts, CSP, load test, legal review, content load, beta.
+- **Later, after the build:** the owner gets the accounts and keys; then each service gets one real test on staging, following [deployment.md](deployment.md). Remaining Phase 6 work: hosting choice and staging, monitoring and backups, Razorpay Route payouts, a load test re-run on the production servers, legal review, content load, beta.
 
 ## What exists
 
@@ -92,7 +92,7 @@ Phase 6, mocked or replaced until then (D-020, D-022, D-029):
 
 - **Real providers are untested with real keys** (Razorpay, Resend, MSG91, WhatsApp, Google Meet, Redis). Their request formats and signatures are unit-tested against the providers' documented behaviour; each needs one staging run (deployment.md).
 - **Docker isn't installed on this machine,** so the Dockerfile and compose file haven't been built here. CI or the hosting machine will be the first build.
-- **CI has not run yet.** No GitHub remote and nothing committed. Every step passes locally.
+- **CI results on GitHub haven't been checked here** (no `gh` CLI on this machine). The code is on GitHub with `.github/workflows/ci.yml`; check the Actions tab. Every step passes locally.
 - **`npm audit`: 9 high (braces, GHSA-vfj7-8cjw-p6xm).** No patched version; build tooling only. KaTeX fixed with an override.
 - **Re-running `npm run db:seed` resets the names, descriptions and order of the five seeded interview types** (the seed updates them). Rubrics, length, price and on/off edits are kept.
 - **E2E tests share the local dev database.** They reset the seeded students and publish the sample content at start (`content:sample -- --publish --reset-students`), and leave a few `QA-E2E-…` and `e2e-…` items behind. Integration tests use their own `eduprep_test` database.
@@ -103,7 +103,6 @@ Phase 6, mocked or replaced until then (D-020, D-022, D-029):
 - **The Google Calendar + Meet driver hasn't run against Google yet** (no credentials here). It's written to the Calendar API and switched on with `MEETING_DRIVER=google`; test it with a Workspace service account before launch.
 - **Invoices lack the GSTIN and registered address** until the company is registered (Phase 6).
 - **Interviewer earnings use the type's list price**, even when the candidate paid with a bundle or coupon discount. Revisit if discounts grow.
-- **Support admins can't open a customer's invoice page** (it's in the student area); super admins can. Add an admin invoice view if support needs it.
 - **Mastery constants** (decay 0.9, prior 2, difficulty weights) are reasonable defaults; tune them with real student data.
 - Ports in use on this machine: 5432 and 5433 belong to other Postgres instances, so eduprep uses 5444. Dev 3000, e2e 3200. `npm run db:stop` stops a Postgres left running.
 
@@ -114,6 +113,8 @@ See PRD section 14.
 ## Session log
 
 Newest first. One line per session: date, who, what changed, what's next.
+
+- 2026-10-30 · Claude · **Seven features, then a full review.** Job alerts and contest reminders (D-059); readiness counts coding by test minutes (D-060); ZIP content packs (D-061); share preview images for question, problem, company and mock pages plus a performance budget that caught a company-page layout shift (D-062); Content-Security-Policy (D-063); bulk publish, 1,200 questions in 1.7 s instead of 17.9 s (D-064); `npm run test:load`, which found submits failing at 200 simultaneous students, now fixed (D-065). A full code review found 15 bugs, all fixed with tests (D-066), then a `/simplify` pass. Verified: `npm run check` (308 unit), 144/144 integration, load test passing, full e2e 103 passed, 0 failed. Next: the owner adds content; remaining Phase 6 work waits for keys and hosting.
 
 - 2026-10-29 · Claude · **Cleanup and review fixes:** `/simplify` (shared helpers, one public-cache refresh, cheaper queries, one ordering helper) and `/code-review` fixes. A question made private stays private when republished; bulk sample changes refresh public pages; the rate limit reads the address from our proxies' side (`TRUSTED_PROXY_HOPS`) and counts link preloads separately; publish-after-import skips unchanged rows and can't leave a batch stuck; Save and publish queues one judge check. Verified: `npm run check` (299 unit), 131/131 integration, full e2e 96 passed, 0 failed.
 

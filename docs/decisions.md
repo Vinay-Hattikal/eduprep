@@ -615,3 +615,19 @@ Every significant product or technical decision is recorded here, so humans and 
   - `npm run test:load` (`tests/load/load.test.ts`) runs the real services against the disposable `_test` database: 200 students (`LOAD_STUDENTS`) start, load, autosave 20 answers, advance and submit a test **at the same instant**, the worst case (a contest's start and end); then the judge works through 40 Python submissions (`LOAD_JUDGE`) with 1, 4 and 8 workers. With `LOAD_BASE_URL` it also sends 50 concurrent visitors to public pages over HTTP. It fails on any error and on p95 times over the budgets in the file.
   - **What it found:** 85 of 200 submits failed with "Unable to start a transaction in the given time": the 10-connection pool filled up and Prisma gives up after 2 s. Fixes: starting and submitting a sitting now wait up to 15 s for a connection; submitting writes item results and mistakes in grouped updates (about 6 queries instead of about 40); `DATABASE_POOL_SIZE` (default 10) sets connections per process.
   - **Measured on this laptop (2026-10-29):** 200 simultaneous students, no errors. p95 start 2.2 s, view 0.7 s, autosave 0.4 s, submit 2.6 s (it was 4.5 s, with failures). Autosave throughput is about 370 per second; at one save every 30 s per student, that's thousands of students taking tests together. The judge did 119 submissions a minute with 1 worker, 281 with 4, 337 with 8 (local judge, Python). A bigger pool barely helped here because the students, Prisma and PostgreSQL share one CPU; re-run on the production servers before launch and set the pool size and `WORKER_CONCURRENCY` from those numbers.
+
+## D-066: Platform review fixes
+- Date: 2026-10-30
+- Status: Accepted
+- Context: a full review of `src` after D-059 to D-065.
+- Decision:
+  - **Sign-in codes:** each check uses up a try in the same statement that checks the limit, so guesses sent in parallel can't get past five. Sign-in, sign-up and code rate limits read the address from our proxies' end of `X-Forwarded-For`, like the public-page limit (`TRUSTED_PROXY_HOPS`).
+  - **Paywall:** only today's question of the day skips the free limit; "daily" on any other question counts as practice.
+  - **Interviews:** a credit is used once and a booking is confirmed once, even when two bookings are confirmed at the same moment.
+  - **Payments:** if granting a paid order fails, the event record is removed so the provider's retry is processed instead of skipped. Coupons can be used once per student, and unpaid checkouts from the last 30 minutes count against a coupon's limit.
+  - **Judge:** a judge check's result is dropped if the problem changed while it ran, so a stale pass can't validate or publish an edited problem. A coding answer judged after its test was submitted re-scores the test.
+  - **Tests:** sections without going back are enforced on the server: an answer can't change once a later question in the section was opened. The runner starts from the opened questions after a reload.
+  - **Alerts:** jobs closing today are in tonight's digest. The next digest is queued when a digest starts, a retried digest or reminder skips students already messaged, two workers can't queue two digests, and a contest gets one reminder however often it's republished. The reminder subject names the start time.
+  - **Imports:** content packs accept ZIPs with backslash paths (Windows). Bulk publishing skips questions changed after they were checked and runs one batch at a time.
+  - **Database:** every transaction waits up to 15 s for a connection (set once on the Prisma client) instead of failing after 2 s under load.
+- Left for later: per-message and per-job idempotency keys (columns with unique indexes) would replace the current "already sent" checks; a receipt outbox job would let the receipt and booking confirmation retry on their own.
