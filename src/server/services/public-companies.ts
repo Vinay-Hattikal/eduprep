@@ -43,9 +43,20 @@ export async function getPublishedCompany(slug: string) {
   "use cache";
   cacheTag(COMPANIES_TAG, `company:${slug}`);
   cacheLife("hours");
+  return loadCompanyPage(slug, true);
+}
 
+/**
+ * The public page of a company that isn't published yet, for admins checking it before they
+ * publish (D-067). Not cached; shows the content that is already live.
+ */
+export async function getCompanyPreview(slug: string) {
+  return loadCompanyPage(slug, false);
+}
+
+async function loadCompanyPage(slug: string, publishedOnly: boolean) {
   const company = await db.company.findFirst({
-    where: { slug, status: "PUBLISHED" },
+    where: { slug, ...(publishedOnly ? { status: "PUBLISHED" } : { status: { not: "ARCHIVED" } }) },
     include: {
       rounds: {
         orderBy: { order: "asc" },

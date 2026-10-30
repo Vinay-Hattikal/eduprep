@@ -36,7 +36,7 @@ import { getCurrentUser } from "@/server/auth";
 import { db } from "@/server/db";
 import { recentDriveReports } from "@/server/services/drive-reports";
 import { companyJobs } from "@/server/services/job-postings";
-import { getPublishedCompany } from "@/server/services/public-companies";
+import { getCompanyPreview, getPublishedCompany } from "@/server/services/public-companies";
 
 export async function generateMetadata({
   params,
@@ -68,8 +68,9 @@ export default function CompanyPage({ params }: PageProps<"/companies/[slug]">) 
 
 async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]">["params"] }) {
   const { slug } = await params;
-  const company = await getPublishedCompany(slug);
+  const company = (await getPublishedCompany(slug)) ?? (await adminPreview(slug));
   if (!company) notFound();
+  const draft = company.status !== "PUBLISHED";
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -101,7 +102,17 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
 
   return (
     <article className="space-y-8">
-      <JsonLd data={jsonLd} />
+      {draft ? (
+        <p
+          className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm"
+          data-testid="draft-preview"
+        >
+          Draft: only admins see this page. It shows the questions, problems and mocks that are
+          already published; publish the company from its admin page.
+        </p>
+      ) : (
+        <JsonLd data={jsonLd} />
+      )}
 
       <nav
         aria-label="Breadcrumb"
@@ -689,4 +700,10 @@ async function PersonalEligibility({ rules }: { rules: Parameters<typeof checkEl
       </ul>
     </div>
   );
+}
+
+/** A draft company's page for admins only (D-067): visitors get a 404 as before. */
+async function adminPreview(slug: string) {
+  const user = await getCurrentUser();
+  return user && can(user.roles, "companies.manage") ? getCompanyPreview(slug) : null;
 }
