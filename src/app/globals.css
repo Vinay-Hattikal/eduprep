@@ -29,6 +29,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
+  --color-inverse: var(--inverse);
+  --color-inverse-foreground: var(--inverse-foreground);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
@@ -100,6 +102,8 @@
   --highlight: #e8821e;
   --highlight-foreground: #1f1306;
   --ring: #0f6e6a;
+  --inverse: #15171c; /* ink band: footer */
+  --inverse-foreground: #ece8e1;
 
   /* Status */
   --destructive: #c2412d;
@@ -157,6 +161,8 @@
   --highlight: #f7a24b;
   --highlight-foreground: #1f1306;
   --ring: #4fb3a9;
+  --inverse: #090b0d;
+  --inverse-foreground: #ece8e1;
 
   --destructive: #f07a62;
   --success: #5cc48a;

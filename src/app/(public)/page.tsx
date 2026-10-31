@@ -1,61 +1,26 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  BadgeCheck,
-  Briefcase,
-  CalendarCheck,
-  CheckCircle2,
-  Clock,
-  Code2,
-  GraduationCap,
-  History,
-  MonitorCheck,
-  Target,
-  Video,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Suspense } from "react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, CheckCircle2, Clock, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { siteConfig } from "@/config/site";
+import { cn } from "@/lib/utils";
+import { getPublishedCompanies } from "@/server/services/public-companies";
 
-const features = [
-  {
-    icon: BadgeCheck,
-    title: "Verified company patterns",
-    description:
-      "Rounds, sections, timers and eligibility for each company, with sources and a last-verified date on every page.",
-  },
-  {
-    icon: MonitorCheck,
-    title: "The real exam interface",
-    description:
-      "Mock tests copy the platform you'll actually sit: section locks, per-section timers and no-going-back rules.",
-  },
-  {
-    icon: Target,
-    title: "Readiness score per company",
-    description:
-      "See exactly how ready you are for each target company, and which topics to fix first.",
-  },
-  {
-    icon: History,
-    title: "Recently asked questions",
-    description:
-      "Questions tagged with when candidates reported them, so you practise what's being asked now.",
-  },
-  {
-    icon: Code2,
-    title: "Coding with a real judge",
-    description:
-      "Company-tagged problems in C, C++, Java, Python and JavaScript, plus timed online-assessment mode.",
-  },
-  {
-    icon: Video,
-    title: "1:1 mock interviews",
-    description:
-      "Google Meet interviews with engineers who know your target company, and a detailed scorecard after.",
-  },
+// The landing page (D-068, "Ink & Saffron"): show the product, not icon cards. The hero is a
+// recreation of the exam window students sit; each feature tile shows a piece of the product.
+
+const subjects = [
+  "Quantitative Aptitude",
+  "Logical Reasoning",
+  "Verbal Ability",
+  "Data Interpretation",
+  "Operating Systems",
+  "DBMS",
+  "Computer Networks",
+  "OOPs",
+  "Data Structures & Algorithms",
+  "Programming Languages",
+  "Pseudocode",
 ];
 
 const steps = [
@@ -75,155 +40,184 @@ const steps = [
   },
 ];
 
-const subjects = [
-  "Quantitative Aptitude",
-  "Logical Reasoning",
-  "Verbal Ability",
-  "Data Interpretation",
-  "Operating Systems",
-  "DBMS",
-  "Computer Networks",
-  "OOPs",
-  "Data Structures & Algorithms",
-  "Programming Languages",
-  "Pseudocode",
-];
-
-const readinessTopics = [
-  { topic: "Time and Work", value: 82 },
-  { topic: "Blood Relations", value: 64 },
-  { topic: "Pointers in C", value: 41 },
-];
+/** Ruled exam-paper lines, behind the hero and the closing call to action. */
+const RULED =
+  "bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_31px,var(--border)_31px,var(--border)_32px)]";
 
 export default function LandingPage() {
   return (
     <main>
       {/* Hero */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden border-b border-border/70">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,var(--secondary),transparent_60%)]"
+          className={cn(
+            "pointer-events-none absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,black,transparent_85%)] opacity-60",
+            RULED,
+          )}
         />
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24">
-          <div className="space-y-6">
-            <Badge variant="secondary" className="h-6 px-3">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-14 px-4 pt-14 pb-20 sm:px-6 lg:grid-cols-12 lg:pt-20 lg:pb-28">
+          <div className="space-y-7 lg:col-span-6">
+            <p className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-highlight" aria-hidden="true" />
               For BE/BTech freshers and experienced engineers
-            </Badge>
-            <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-              Prepare for the company you want, not just any test
+            </p>
+            <h1 className="text-[2.4rem] leading-[1.05] font-extrabold tracking-[-0.035em] text-balance sm:text-[3.4rem] xl:text-[3.75rem]">
+              Prepare for{" "}
+              {/* A flat marker stripe (one colour, not a gradient) that wraps with the words. */}
+              <span className="bg-[linear-gradient(color-mix(in_oklab,var(--highlight)_38%,transparent),color-mix(in_oklab,var(--highlight)_38%,transparent))] [box-decoration-break:clone] bg-[length:100%_0.32em] bg-bottom bg-no-repeat">
+                the company you want
+              </span>
+              , not just any test
             </h1>
             <p className="max-w-xl text-lg text-pretty text-muted-foreground">
               {siteConfig.name} gives you each company&apos;s real hiring pattern, practice for
               every subject, mock tests that look like the actual exam, and 1:1 mock interviews.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg" className="h-11 px-5 text-base">
+              <Button asChild size="lg">
                 <Link href="/sign-up">
                   Start preparing <ArrowRight data-icon="inline-end" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="h-11 px-5 text-base">
+              <Button asChild size="lg" variant="outline">
                 <Link href="#how-it-works">See how it works</Link>
               </Button>
             </div>
-            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-              {["11 subjects", "130+ topics", "Real exam interfaces", "No ads"].map((item) => (
-                <li key={item} className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-4 text-success" aria-hidden="true" />
-                  {item}
-                </li>
+            <dl className="grid max-w-md grid-cols-3 gap-4 border-t border-border pt-6">
+              {[
+                ["11", "subjects"],
+                ["130+", "topics"],
+                ["0", "ads"],
+              ].map(([value, label]) => (
+                <div key={label}>
+                  <dt className="sr-only">{label}</dt>
+                  <dd className="numeral text-3xl font-bold">{value}</dd>
+                  <dd className="text-sm text-muted-foreground">{label}</dd>
+                </div>
               ))}
-            </ul>
+            </dl>
           </div>
 
-          {/* Product preview */}
-          <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-            <Card className="shadow-xl shadow-primary/5">
-              <CardContent className="space-y-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Readiness for your target company
-                    </p>
-                    <p className="tabular text-4xl font-semibold tracking-tight">62%</p>
-                  </div>
-                  <Badge className="bg-highlight text-highlight-foreground">Drive in 18 days</Badge>
-                </div>
-                <div className="space-y-3">
-                  {readinessTopics.map((item) => (
-                    <div key={item.topic} className="space-y-1.5">
-                      <div className="flex justify-between text-sm">
-                        <span>{item.topic}</span>
-                        <span className="tabular text-muted-foreground">{item.value}%</span>
-                      </div>
-                      <Progress value={item.value} aria-label={`${item.topic} mastery`} />
-                    </div>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-2 border-t pt-4 text-xs">
-                  <Badge variant="outline">
-                    <Clock /> Section 2 · 18:42 left
-                  </Badge>
-                  <Badge variant="outline">
-                    <History /> Asked in Aug 2026
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="absolute -right-4 -bottom-10 hidden w-56 py-3 shadow-lg sm:block">
-              <CardContent className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-full bg-success/15 text-success">
-                  <CalendarCheck className="size-5" aria-hidden="true" />
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium">Mock interview</p>
-                  <p className="text-muted-foreground">Tomorrow, 7:00 PM</p>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="relative lg:col-span-6">
+            <ExamWindow />
+            <div className="absolute -bottom-8 -left-4 hidden w-60 rounded-xl border border-border bg-card p-4 shadow-[0_12px_32px_-12px_rgb(21_23_28/0.25)] sm:block lg:-left-10">
+              <p className="text-xs font-medium text-muted-foreground">
+                Readiness for your target company
+              </p>
+              <div className="mt-1 flex items-end gap-2">
+                <span className="numeral text-4xl font-bold">62%</span>
+                <span className="mb-1 rounded bg-highlight/15 px-1.5 py-0.5 text-xs font-semibold text-highlight-foreground dark:text-highlight">
+                  Drive in 18 days
+                </span>
+              </div>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full w-[62%] rounded-full bg-primary" />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
+      {/* Companies */}
+      <Suspense fallback={<div className="h-40" />}>
+        <CompanyStrip />
+      </Suspense>
+
       {/* Features */}
-      <section id="features" className="scroll-mt-20 border-t bg-surface">
-        <div className="mx-auto w-full max-w-6xl space-y-10 px-4 py-16 sm:px-6 lg:py-20">
-          <div className="max-w-2xl space-y-3">
-            <h2 className="text-3xl font-semibold tracking-tight text-balance">
+      <section id="features" className="scroll-mt-20 bg-surface">
+        <div className="mx-auto w-full max-w-6xl space-y-12 px-4 py-20 sm:px-6 lg:py-24">
+          <div className="grid gap-6 lg:grid-cols-12">
+            <h2 className="text-4xl leading-tight font-bold text-balance lg:col-span-7">
               Built around how companies actually hire
             </h2>
-            <p className="text-muted-foreground">
+            <p className="self-end text-lg text-muted-foreground lg:col-span-5">
               Generic question banks don&apos;t tell you what your company tests, in what format, or
               how ready you are. We do.
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature) => (
-              <Card key={feature.title}>
-                <CardContent className="space-y-3">
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                    <feature.icon className="size-5" aria-hidden="true" />
+
+          <div className="grid gap-4 lg:grid-cols-12">
+            <Tile className="lg:col-span-7" title="The real exam interface">
+              Mock tests copy the platform you&apos;ll actually sit: section locks, per-section
+              timers and no-going-back rules.
+              <QuestionPalette className="mt-6" />
+            </Tile>
+            <Tile className="lg:col-span-5" title="Readiness score per company">
+              See exactly how ready you are for each target company, and which topics to fix first.
+              <div className="mt-6 space-y-3">
+                {[
+                  ["Time and Work", 82],
+                  ["Blood Relations", 64],
+                  ["Pointers in C", 41],
+                ].map(([topic, value]) => (
+                  <div key={topic} className="space-y-1.5">
+                    <div className="flex justify-between text-sm text-foreground">
+                      <span>{topic}</span>
+                      <span className="tabular font-medium">{value}%</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={cn(
+                          "h-full rounded-full",
+                          Number(value) < 50 ? "bg-highlight" : "bg-primary",
+                        )}
+                        style={{ width: `${value}%` }}
+                      />
+                    </div>
                   </div>
-                  <h3 className="font-semibold">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+                ))}
+              </div>
+            </Tile>
+            <Tile className="lg:col-span-4" title="Verified company patterns">
+              Rounds, sections, timers and eligibility for each company, with sources and a
+              last-verified date on every page.
+              <p className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-success">
+                <BadgeCheck className="size-4" aria-hidden="true" /> Verified 19 Oct · 2 sources
+              </p>
+            </Tile>
+            <Tile className="lg:col-span-4" title="Recently asked questions">
+              Questions tagged with when candidates reported them, so you practise what&apos;s being
+              asked now.
+              <div className="mt-5 flex flex-wrap gap-2">
+                {["Asked Oct 2026", "Asked Sep 2026"].map((label) => (
+                  <span
+                    key={label}
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium"
+                  >
+                    <Clock className="size-3" aria-hidden="true" /> {label}
+                  </span>
+                ))}
+              </div>
+            </Tile>
+            <Tile className="lg:col-span-4" title="Coding with a real judge">
+              Company-tagged problems in C, C++, Java, Python and JavaScript, plus timed
+              online-assessment mode.
+              <div className="mt-5 flex items-center justify-between rounded-lg bg-inverse px-3 py-2 font-mono text-xs text-inverse-foreground">
+                <span>6/6 tests · 41 ms</span>
+                {/* The ink band is dark in both themes, so this is the dark-mode success green. */}
+                <span className="font-semibold text-[#5cc48a]">Accepted</span>
+              </div>
+            </Tile>
+            <Tile className="lg:col-span-12" title="1:1 mock interviews" horizontal>
+              Google Meet interviews with engineers who know your target company, and a detailed
+              scorecard after.
+            </Tile>
           </div>
         </div>
       </section>
 
       {/* How it works */}
       <section id="how-it-works" className="scroll-mt-20">
-        <div className="mx-auto w-full max-w-6xl space-y-10 px-4 py-16 sm:px-6 lg:py-20">
-          <h2 className="text-3xl font-semibold tracking-tight">How it works</h2>
-          <ol className="grid gap-6 md:grid-cols-3">
+        <div className="mx-auto w-full max-w-6xl space-y-12 px-4 py-20 sm:px-6 lg:py-24">
+          <h2 className="text-4xl font-bold">How it works</h2>
+          <ol className="grid gap-10 md:grid-cols-3 md:gap-8">
             {steps.map((step, index) => (
-              <li key={step.title} className="space-y-3">
-                <span className="tabular flex size-9 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground">
-                  {index + 1}
+              <li key={step.title} className="space-y-3 border-t-2 border-foreground pt-5">
+                <span className="numeral block text-5xl font-bold text-primary">
+                  {String(index + 1).padStart(2, "0")}
                 </span>
-                <h3 className="text-lg font-semibold">{step.title}</h3>
+                <h3 className="text-xl font-semibold">{step.title}</h3>
                 <p className="text-muted-foreground">{step.description}</p>
               </li>
             ))}
@@ -232,88 +226,59 @@ export default function LandingPage() {
       </section>
 
       {/* Audience */}
-      <section id="who-its-for" className="scroll-mt-20 border-t bg-surface">
-        <div className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-16 sm:px-6 md:grid-cols-2 lg:py-20">
-          <Card>
-            <CardContent className="space-y-4">
-              <GraduationCap className="size-8 text-primary" aria-hidden="true" />
-              <h2 className="text-2xl font-semibold tracking-tight">Freshers</h2>
-              <p className="text-muted-foreground">
-                Final- and pre-final-year BE/BTech students preparing for campus and off-campus
-                drives.
-              </p>
-              <ul className="space-y-2 text-sm">
-                {[
-                  "Aptitude, reasoning, verbal and CS fundamentals",
-                  "Company mocks in the real exam format",
-                  "Eligibility checks for every company",
-                ].map((item) => (
-                  <li key={item} className="flex gap-2">
-                    <CheckCircle2
-                      className="mt-0.5 size-4 shrink-0 text-success"
-                      aria-hidden="true"
-                    />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="space-y-4">
-              <Briefcase className="size-8 text-primary" aria-hidden="true" />
-              <h2 className="text-2xl font-semibold tracking-tight">Experienced engineers</h2>
-              <p className="text-muted-foreground">
-                1–8 years in, switching roles or moving from service to product companies.
-              </p>
-              <ul className="space-y-2 text-sm">
-                {[
-                  "DSA and system design for SDE interviews",
-                  "Role tracks: backend, frontend, data, QA, DevOps",
-                  "Mock interviews with engineers from your target company",
-                ].map((item) => (
-                  <li key={item} className="flex gap-2">
-                    <CheckCircle2
-                      className="mt-0.5 size-4 shrink-0 text-success"
-                      aria-hidden="true"
-                    />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+      <section id="who-its-for" className="scroll-mt-20 border-y border-border/70">
+        <div className="mx-auto grid w-full max-w-6xl md:grid-cols-2">
+          <Audience
+            title="Freshers"
+            lead="Final- and pre-final-year BE/BTech students preparing for campus and off-campus drives."
+            points={[
+              "Aptitude, reasoning, verbal and CS fundamentals",
+              "Company mocks in the real exam format",
+              "Eligibility checks for every company",
+            ]}
+          />
+          <Audience
+            inverse
+            title="Experienced engineers"
+            lead="1–8 years in, switching roles or moving from service to product companies."
+            points={[
+              "DSA and system design for SDE interviews",
+              "Role tracks: backend, frontend, data, QA, DevOps",
+              "Mock interviews with engineers from your target company",
+            ]}
+          />
         </div>
       </section>
 
       {/* Subjects */}
-      <section className="mx-auto w-full max-w-6xl space-y-6 px-4 py-16 sm:px-6">
-        <h2 className="text-2xl font-semibold tracking-tight">
-          Every subject placement tests cover
-        </h2>
-        <ul className="flex flex-wrap gap-2">
-          {subjects.map((subject) => (
-            <li key={subject}>
-              <Badge variant="outline" className="h-8 px-3 text-sm">
-                {subject}
-              </Badge>
+      <section className="mx-auto w-full max-w-6xl space-y-8 px-4 py-20 sm:px-6">
+        <h2 className="text-3xl font-bold">Every subject placement tests cover</h2>
+        <ul className="flex flex-wrap gap-x-3 gap-y-3 font-heading text-xl font-semibold tracking-tight text-foreground/85 sm:text-2xl">
+          {subjects.map((subject, index) => (
+            <li key={subject} className="flex items-center gap-3">
+              {subject}
+              {index < subjects.length - 1 ? (
+                <span className="size-1.5 rounded-full bg-highlight" aria-hidden="true" />
+              ) : null}
             </li>
           ))}
         </ul>
       </section>
 
       {/* CTA */}
-      <section className="px-4 pb-16 sm:px-6">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-6 rounded-2xl bg-primary px-6 py-10 text-primary-foreground sm:px-10 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Your next drive is closer than you think
-            </h2>
-            <p className="opacity-90">
+      <section className="px-4 pb-20 sm:px-6">
+        <div className="relative mx-auto flex w-full max-w-6xl flex-col items-start gap-6 overflow-hidden rounded-2xl bg-primary px-6 py-12 text-primary-foreground sm:px-12 md:flex-row md:items-center md:justify-between">
+          <div
+            aria-hidden="true"
+            className={cn("pointer-events-none absolute inset-0 opacity-15", RULED)}
+          />
+          <div className="relative space-y-2">
+            <h2 className="text-3xl font-bold">Your next drive is closer than you think</h2>
+            <p className="text-lg opacity-90">
               Start with your target company and see where you stand today.
             </p>
           </div>
-          <Button asChild size="lg" variant="secondary" className="h-11 px-5 text-base">
+          <Button asChild size="lg" variant="secondary" className="relative">
             <Link href="/sign-up">
               Get started free <ArrowRight data-icon="inline-end" />
             </Link>
@@ -321,5 +286,230 @@ export default function LandingPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+/** A feature tile: a title, a line of copy, and a small piece of the product under it. */
+function Tile({
+  title,
+  children,
+  className,
+  horizontal,
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  horizontal?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border border-border bg-card p-6 sm:p-7",
+        horizontal && "flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between",
+        className,
+      )}
+    >
+      <h3 className="font-heading text-xl font-semibold tracking-tight">{title}</h3>
+      <div className={cn("text-muted-foreground", horizontal ? "max-w-xl" : "mt-2")}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Audience({
+  title,
+  lead,
+  points,
+  inverse,
+}: {
+  title: string;
+  lead: string;
+  points: string[];
+  inverse?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "space-y-5 px-4 py-16 sm:px-10 lg:py-20",
+        inverse ? "bg-inverse text-inverse-foreground" : "bg-surface",
+      )}
+    >
+      <h2 className="text-3xl font-bold">{title}</h2>
+      <p
+        className={cn(
+          "max-w-md text-lg",
+          inverse ? "text-inverse-foreground/75" : "text-muted-foreground",
+        )}
+      >
+        {lead}
+      </p>
+      <ul className="space-y-3">
+        {points.map((point) => (
+          <li key={point} className="flex gap-3">
+            <CheckCircle2
+              className={cn("mt-0.5 size-5 shrink-0", inverse ? "text-highlight" : "text-primary")}
+              aria-hidden="true"
+            />
+            {point}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Published companies to start from (cached with the companies list). */
+async function CompanyStrip() {
+  const companies = (await getPublishedCompanies()).slice(0, 8);
+  if (!companies.length) return null;
+  return (
+    <section className="border-b border-border/70">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-12 sm:px-6 lg:flex-row lg:items-center">
+        <p className="shrink-0 text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase lg:w-48">
+          Start with a company
+        </p>
+        <ul className="flex flex-1 flex-wrap gap-2">
+          {companies.map((company) => (
+            <li key={company.id}>
+              <Link
+                href={`/companies/${company.slug}`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 font-heading text-base font-semibold tracking-tight transition-colors hover:border-primary hover:text-primary"
+              >
+                {company.name}
+                <ArrowUpRight className="size-4 opacity-60" aria-hidden="true" />
+              </Link>
+            </li>
+          ))}
+          <li>
+            <Link
+              href="/companies"
+              className="inline-flex items-center gap-1 px-3 py-2 text-sm font-semibold text-primary hover:underline"
+            >
+              All companies <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </li>
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ---------- the exam window (illustration, not interactive) ----------
+
+const STATES = [
+  "answered",
+  "answered",
+  "review",
+  "answered",
+  "skipped",
+  "answered",
+  "current",
+  "seen",
+  "seen",
+  "seen",
+  "seen",
+  "seen",
+  "seen",
+  "seen",
+  "seen",
+] as const;
+
+const STATE_CLASS: Record<(typeof STATES)[number], string> = {
+  answered: "bg-palette-answered text-white",
+  review: "bg-palette-review text-white",
+  skipped: "bg-palette-not-answered text-white",
+  current: "bg-card text-foreground ring-2 ring-primary",
+  seen: "bg-palette-not-visited/60 text-foreground/70",
+};
+
+function QuestionPalette({ className }: { className?: string }) {
+  return (
+    <div className={cn("grid max-w-xs grid-cols-5 gap-1.5", className)} aria-hidden="true">
+      {STATES.map((state, i) => (
+        <span
+          key={i}
+          className={cn(
+            "tabular flex aspect-square items-center justify-center rounded-md text-xs font-semibold",
+            STATE_CLASS[state],
+          )}
+        >
+          {i + 1}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ExamWindow() {
+  return (
+    <figure
+      className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_24px_60px_-24px_rgb(21_23_28/0.35)]"
+      aria-label="A mock test in the exam interface"
+    >
+      <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-2.5 text-xs">
+        <div className="flex gap-1">
+          {["Quant", "Reasoning", "Verbal"].map((section, i) => (
+            <span
+              key={section}
+              className={cn(
+                "rounded-md px-2.5 py-1 font-semibold",
+                i === 0 ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+              )}
+            >
+              {section}
+            </span>
+          ))}
+        </div>
+        <span className="tabular inline-flex items-center gap-1.5 rounded-md bg-inverse px-2 py-1 font-mono font-semibold text-inverse-foreground">
+          <Clock className="size-3" aria-hidden="true" /> 18:42
+        </span>
+      </div>
+      <div className="grid gap-6 p-5 sm:grid-cols-[1fr_auto]">
+        <div className="space-y-4">
+          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Question 7 of 20 · Percentages
+          </p>
+          <p className="font-medium text-foreground">
+            A price rises by 20% and then falls by 20%. What is the net change?
+          </p>
+          <ul className="space-y-2 text-sm">
+            {["No change", "4% decrease", "4% increase", "2% decrease"].map((option, i) => (
+              <li
+                key={option}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg border px-3 py-2",
+                  i === 1
+                    ? "border-primary bg-secondary text-secondary-foreground"
+                    : "border-border",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex size-5 items-center justify-center rounded-full border text-[0.65rem] font-bold",
+                    i === 1 ? "border-primary bg-primary text-primary-foreground" : "border-border",
+                  )}
+                >
+                  {"ABCD"[i]}
+                </span>
+                {option}
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2 pt-1 text-xs">
+            <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-medium">
+              <Flag className="size-3" aria-hidden="true" /> Mark for review
+            </span>
+            <span className="rounded-md bg-primary px-2.5 py-1 font-semibold text-primary-foreground">
+              Save &amp; next
+            </span>
+          </div>
+        </div>
+        <div className="hidden border-l border-border pl-5 sm:block">
+          <p className="mb-2 text-xs font-semibold text-muted-foreground">Questions</p>
+          <QuestionPalette />
+        </div>
+      </div>
+    </figure>
   );
 }

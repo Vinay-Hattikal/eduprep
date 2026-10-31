@@ -18,7 +18,7 @@ export function StatCard({ label, value, hint, icon: Icon, className }: StatCard
           <span>{label}</span>
           {Icon ? <Icon className="size-4" aria-hidden="true" /> : null}
         </div>
-        <div className="tabular text-2xl font-semibold tracking-tight">{value}</div>
+        <div className="numeral text-3xl font-bold">{value}</div>
         {hint ? <div className="text-xs text-muted-foreground">{hint}</div> : null}
       </CardContent>
     </Card>

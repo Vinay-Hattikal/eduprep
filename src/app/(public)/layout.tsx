@@ -23,10 +23,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   const links = env().TEST_MODE ? allLinks.filter((l) => l.href !== "/pricing") : allLinks;
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-4 sm:px-6">
           <Logo />
-          <nav aria-label="Main" className="hidden items-center gap-5 text-sm lg:flex">
+          <nav aria-label="Main" className="hidden items-center gap-1 text-sm lg:flex">
             {/* Content pages only; the landing page's section links stay in the footer. */}
             {links
               .filter((link) => !link.href.startsWith("/#"))
@@ -34,7 +34,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  className="rounded-md px-2.5 py-1.5 font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   {link.label}
                 </Link>
@@ -51,42 +51,49 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
       <div className="flex-1">{children}</div>
 
-      <footer className="border-t bg-surface">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:flex-row sm:items-start sm:justify-between sm:px-6">
-          <div className="max-w-sm space-y-2">
-            <Logo />
-            <p className="text-sm text-muted-foreground">{siteConfig.tagline}.</p>
+      <footer className="bg-inverse text-inverse-foreground">
+        <div className="mx-auto w-full max-w-6xl px-4 pt-14 pb-8 sm:px-6">
+          <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+            <div className="max-w-sm space-y-3">
+              <p className="font-heading text-2xl font-bold tracking-tight">{siteConfig.name}</p>
+              <p className="text-sm text-inverse-foreground/70">{siteConfig.tagline}.</p>
+            </div>
+            {[
+              { title: "Prepare", links: links.filter((l) => !l.href.startsWith("/#")) },
+              { title: "On this site", links: links.filter((l) => l.href.startsWith("/#")) },
+              {
+                title: "Company",
+                links: [
+                  { href: "/become-interviewer", label: "Become an interviewer" },
+                  { href: "/terms", label: "Terms" },
+                  { href: "/privacy", label: "Privacy" },
+                  { href: "/refund-policy", label: "Refunds" },
+                ],
+              },
+            ].map((group) => (
+              <div key={group.title} className="space-y-3 text-sm">
+                <p className="text-xs font-semibold tracking-[0.08em] text-inverse-foreground/60 uppercase">
+                  {group.title}
+                </p>
+                <ul className="space-y-2">
+                  {group.links.map((link) => (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        className="text-inverse-foreground/85 underline-offset-4 hover:text-inverse-foreground hover:underline"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
-          <div className="space-y-2 text-sm">
-            <p className="font-medium">Product</p>
-            <ul className="space-y-1.5 text-muted-foreground">
-              {links.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="hover:text-foreground">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+          <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-inverse-foreground/15 pt-6 text-xs text-inverse-foreground/60">
+            <p>© {siteConfig.name}. Made in India.</p>
+            <p>{siteConfig.url.replace(/^https?:\/\//, "")}</p>
           </div>
-          <div className="space-y-2 text-sm">
-            <p className="font-medium">Company</p>
-            <ul className="space-y-1.5 text-muted-foreground">
-              {[
-                { href: "/become-interviewer", label: "Become an interviewer" },
-                { href: "/terms", label: "Terms" },
-                { href: "/privacy", label: "Privacy" },
-                { href: "/refund-policy", label: "Refunds" },
-              ].map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="hover:text-foreground">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <p className="text-sm text-muted-foreground">© {siteConfig.name}. Made in India.</p>
         </div>
       </footer>
     </div>

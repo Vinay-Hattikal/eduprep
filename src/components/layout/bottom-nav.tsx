@@ -29,10 +29,17 @@ export function BottomNav({ items }: { items: NavItem[] }) {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex flex-col items-center gap-1 py-2 text-[0.6875rem] font-medium transition-colors",
-                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <Icon className="size-5" aria-hidden="true" />
+                <span
+                  className={cn(
+                    "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
+                    active && "bg-secondary text-secondary-foreground",
+                  )}
+                >
+                  <Icon className="size-5" aria-hidden="true" />
+                </span>
                 <span className="truncate">{item.title}</span>
               </Link>
             </li>
@@ -48,7 +55,7 @@ export function BottomNavPlaceholder() {
   return (
     <div
       aria-hidden="true"
-      className="fixed inset-x-0 bottom-0 z-40 h-[calc(3.5rem+env(safe-area-inset-bottom))] border-t bg-background/95 lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 h-[calc(4rem+env(safe-area-inset-bottom))] border-t bg-background/95 lg:hidden"
     />
   );
 }

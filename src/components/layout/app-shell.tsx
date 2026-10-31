@@ -26,7 +26,11 @@ export function AppShell({ areaLabel, homeHref, nav, bottomNav, children }: AppS
   const brand = (
     <div className="flex items-center gap-2">
       <Logo href={homeHref} />
-      {areaLabel ? <Badge variant="secondary">{areaLabel}</Badge> : null}
+      {areaLabel ? (
+        <Badge variant="outline" className="font-semibold tracking-wide uppercase">
+          {areaLabel}
+        </Badge>
+      ) : null}
     </div>
   );
 
@@ -39,13 +43,13 @@ export function AppShell({ areaLabel, homeHref, nav, bottomNav, children }: AppS
         Skip to content
       </a>
 
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-sidebar lg:flex">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
         <div className="flex h-16 items-center px-5">{brand}</div>
         <div className="flex-1 overflow-y-auto py-4">{nav}</div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/85 px-4 backdrop-blur sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/70 bg-background/85 px-4 backdrop-blur-md sm:px-6 lg:px-8">
           <MobileNav title={areaLabel ? `${areaLabel} menu` : "Menu"}>{nav}</MobileNav>
           <div className="lg:hidden">{brand}</div>
           <div className="ml-auto flex items-center gap-1">
