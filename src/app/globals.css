@@ -1,4 +1,4 @@
-/* Design tokens: docs/design-system.md (D-023).
+/* Design tokens: docs/design-system.md (D-023, redesign D-068 "Ink & Saffron").
    Components use these through Tailwind classes (bg-primary, text-success, ...). Never hard-code colours. */
 
 @import "tailwindcss";
@@ -9,8 +9,8 @@
 
 @theme inline {
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-mono: var(--font-code);
+  --font-heading: var(--font-display);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -75,119 +75,119 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.625rem;
 
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --surface: #f8fafc;
+  /* Paper and ink */
+  --background: #faf8f4;
+  --foreground: #15171c;
+  --surface: #f3efe7;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #15171c;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
+  --popover-foreground: #15171c;
+  --muted: #efeae1;
+  --muted-foreground: #5d6470;
+  --border: #e4ded3;
+  --input: #d9d1c3;
 
-  /* Brand: indigo primary, amber highlight (streaks, achievements, Pro) */
-  --primary: #4f46e5;
+  /* Brand: peacock teal for actions, saffron for achievement (streaks, ranks, Pro) */
+  --primary: #0f6e6a;
   --primary-foreground: #ffffff;
-  --secondary: #eef2ff;
-  --secondary-foreground: #3730a3;
-  --accent: #f1f5f9; /* shadcn hover/selected surface */
-  --accent-foreground: #0f172a;
-  --highlight: #f59e0b;
-  --highlight-foreground: #1c1917;
-  --ring: #6366f1;
+  --secondary: #e2efec;
+  --secondary-foreground: #0b4f4c;
+  --accent: #efeae1; /* hover/selected surface */
+  --accent-foreground: #15171c;
+  --highlight: #e8821e;
+  --highlight-foreground: #1f1306;
+  --ring: #0f6e6a;
 
   /* Status */
-  --destructive: #dc2626;
-  --success: #047857;
+  --destructive: #c2412d;
+  --success: #2f7d4f;
   --success-foreground: #ffffff;
-  --warning: #b45309;
+  --warning: #9a5b0b;
   --warning-foreground: #ffffff;
-  --info: #0369a1;
+  --info: #1f6aa5;
   --info-foreground: #ffffff;
 
   /* Product */
-  --difficulty-easy: #047857;
-  --difficulty-medium: #b45309;
-  --difficulty-hard: #dc2626;
-  --palette-answered: #059669;
-  --palette-not-answered: #dc2626;
-  --palette-review: #7c3aed;
-  --palette-not-visited: #cbd5e1;
+  --difficulty-easy: #2f7d4f;
+  --difficulty-medium: #9a5b0b;
+  --difficulty-hard: #c2412d;
+  --palette-answered: #2f9e5b;
+  --palette-not-answered: #d2492f;
+  --palette-review: #7a4fbf;
+  --palette-not-visited: #cfc8bb;
 
-  /* Charts (finalised with the charts work in Phase 4) */
-  --chart-1: #4f46e5;
-  --chart-2: #0891b2;
-  --chart-3: #f59e0b;
-  --chart-4: #db2777;
-  --chart-5: #059669;
+  --chart-1: #0f6e6a;
+  --chart-2: #e8821e;
+  --chart-3: #1f6aa5;
+  --chart-4: #b5476a;
+  --chart-5: #6e8b3d;
 
-  --sidebar: #f8fafc;
-  --sidebar-foreground: #0f172a;
-  --sidebar-primary: #4f46e5;
+  --sidebar: #f3efe7;
+  --sidebar-foreground: #15171c;
+  --sidebar-primary: #0f6e6a;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef2ff;
-  --sidebar-accent-foreground: #3730a3;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #6366f1;
+  --sidebar-accent: #e2efec;
+  --sidebar-accent-foreground: #0b4f4c;
+  --sidebar-border: #e4ded3;
+  --sidebar-ring: #0f6e6a;
 }
 
 .dark {
-  --background: #0b0f19;
-  --foreground: #e5e7eb;
-  --surface: #111827;
-  --card: #111827;
-  --card-foreground: #e5e7eb;
-  --popover: #111827;
-  --popover-foreground: #e5e7eb;
-  --muted: #1f2937;
-  --muted-foreground: #94a3b8;
-  --border: #1f2937;
-  --input: #273244;
+  --background: #0f1214;
+  --foreground: #ece8e1;
+  --surface: #14181b;
+  --card: #181d20;
+  --card-foreground: #ece8e1;
+  --popover: #181d20;
+  --popover-foreground: #ece8e1;
+  --muted: #1f2529;
+  --muted-foreground: #9aa1aa;
+  --border: #283035;
+  --input: #323b41;
 
-  --primary: #818cf8;
-  --primary-foreground: #0b0f19;
-  --secondary: #1e1b4b;
-  --secondary-foreground: #c7d2fe;
-  --accent: #1f2937;
-  --accent-foreground: #e5e7eb;
-  --highlight: #fbbf24;
-  --highlight-foreground: #1c1917;
-  --ring: #a5b4fc;
+  --primary: #4fb3a9;
+  --primary-foreground: #06201e;
+  --secondary: #12302d;
+  --secondary-foreground: #a9dcd5;
+  --accent: #1f2529;
+  --accent-foreground: #ece8e1;
+  --highlight: #f7a24b;
+  --highlight-foreground: #1f1306;
+  --ring: #4fb3a9;
 
-  --destructive: #f87171;
-  --success: #34d399;
-  --success-foreground: #052e1f;
-  --warning: #fbbf24;
-  --warning-foreground: #1c1917;
-  --info: #38bdf8;
-  --info-foreground: #082f49;
+  --destructive: #f07a62;
+  --success: #5cc48a;
+  --success-foreground: #072414;
+  --warning: #e9b44c;
+  --warning-foreground: #1e1503;
+  --info: #6cb4e8;
+  --info-foreground: #06223a;
 
-  --difficulty-easy: #34d399;
-  --difficulty-medium: #fbbf24;
-  --difficulty-hard: #f87171;
-  --palette-answered: #34d399;
-  --palette-not-answered: #f87171;
-  --palette-review: #a78bfa;
-  --palette-not-visited: #475569;
+  --difficulty-easy: #5cc48a;
+  --difficulty-medium: #e9b44c;
+  --difficulty-hard: #f07a62;
+  --palette-answered: #5cc48a;
+  --palette-not-answered: #f07a62;
+  --palette-review: #b39df0;
+  --palette-not-visited: #3a434a;
 
-  --chart-1: #818cf8;
-  --chart-2: #22d3ee;
-  --chart-3: #fbbf24;
-  --chart-4: #f472b6;
-  --chart-5: #34d399;
+  --chart-1: #4fb3a9;
+  --chart-2: #f7a24b;
+  --chart-3: #6cb4e8;
+  --chart-4: #e58aa8;
+  --chart-5: #a8c46b;
 
-  --sidebar: #0d1220;
-  --sidebar-foreground: #e5e7eb;
-  --sidebar-primary: #818cf8;
-  --sidebar-primary-foreground: #0b0f19;
-  --sidebar-accent: #1e1b4b;
-  --sidebar-accent-foreground: #c7d2fe;
-  --sidebar-border: #1f2937;
-  --sidebar-ring: #a5b4fc;
+  --sidebar: #12161a;
+  --sidebar-foreground: #ece8e1;
+  --sidebar-primary: #4fb3a9;
+  --sidebar-primary-foreground: #06201e;
+  --sidebar-accent: #12302d;
+  --sidebar-accent-foreground: #a9dcd5;
+  --sidebar-border: #283035;
+  --sidebar-ring: #4fb3a9;
 }
 
 @layer base {
@@ -200,10 +200,27 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv11";
+  }
+  /* Headings in the display face; page and section titles carry the brand (D-068). */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--highlight) 30%, transparent);
   }
   /* Scores, timers and counts line up */
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+  /* Big numbers (scores, ranks, prices) in the display face */
+  .numeral {
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
   }
 }
 

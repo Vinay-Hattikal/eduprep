@@ -8,8 +8,12 @@ import { truncate } from "@/lib/format";
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
 
-const PRIMARY = "#4f46e5";
-const HIGHLIGHT = "#f59e0b";
+// Ink & Saffron (D-068): paper, ink, peacock teal, and a deeper saffron that reads on paper.
+const PAPER = "#FAF8F4";
+const INK = "#15171C";
+const MUTED = "#5D6470";
+const PRIMARY = "#0F6E6A";
+const HIGHLIGHT = "#C2650F";
 
 export type OgCard = {
   /** The pill at the top right, e.g. "Coding problem". */
@@ -41,8 +45,9 @@ export function ogImage(card: OgCard, init?: ResponseInit): ImageResponse {
         flexDirection: "column",
         justifyContent: "space-between",
         padding: 64,
-        background: "linear-gradient(135deg, #eef2ff 0%, #ffffff 55%, #fff7ed 100%)",
-        color: "#0f172a",
+        background: PAPER,
+        borderLeft: `16px solid ${PRIMARY}`,
+        color: INK,
         fontFamily: "sans-serif",
       }}
     >
@@ -80,7 +85,7 @@ export function ogImage(card: OgCard, init?: ResponseInit): ImageResponse {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {card.eyebrow ? (
-          <div style={{ fontSize: 34, color: "#475569" }}>{truncate(card.eyebrow, 60)}</div>
+          <div style={{ fontSize: 34, color: MUTED }}>{truncate(card.eyebrow, 60)}</div>
         ) : null}
         <div
           style={{
@@ -106,12 +111,12 @@ export function ogImage(card: OgCard, init?: ResponseInit): ImageResponse {
           alignItems: "flex-end",
           gap: 32,
           fontSize: 26,
-          color: "#475569",
+          color: MUTED,
         }}
       >
         <div style={{ display: "flex", flexDirection: "column" }}>
           {card.footer?.strong ? (
-            <div style={{ fontSize: 36, fontWeight: 700, color: "#0f172a" }}>
+            <div style={{ fontSize: 36, fontWeight: 700, color: INK }}>
               {truncate(card.footer.strong, 40)}
             </div>
           ) : null}

@@ -10,7 +10,7 @@ test("landing page shows the pitch and a way in", async ({ page }) => {
     }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Get started" }).first()).toBeVisible();
-  await expect(page).toHaveTitle(/EduPrep/);
+  await expect(page).toHaveTitle(/AnyPrep/);
   await expectNoHorizontalScroll(page);
 });
 

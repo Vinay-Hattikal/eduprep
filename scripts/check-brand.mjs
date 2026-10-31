@@ -4,7 +4,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-const NAME = /eduprep/i;
+// Both names: the old one must not come back, the new one must come from siteConfig (D-068).
+const NAME = /eduprep|anyprep/i;
 const ROOT = path.resolve("src");
 const ALLOWED = new Set([path.join(ROOT, "config", "site.ts")]);
 const SKIP_DIRS = new Set([path.join(ROOT, "generated")]);
