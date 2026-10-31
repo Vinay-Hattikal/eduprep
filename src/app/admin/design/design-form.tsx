@@ -76,7 +76,7 @@ export function DesignForm({
         </Alert>
       ) : null}
       <fieldset disabled={!canEdit || pending} className="min-w-0 space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField
             id="design-externalId"
             label="ID"
@@ -107,7 +107,7 @@ export function DesignForm({
         <FormField id="design-title" label="Title" error={errors.title}>
           {(aria) => <Input {...aria} name="title" defaultValue={values.title} />}
         </FormField>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField id="design-kind" label="Kind" error={errors.kind}>
             {(aria) => (
               <NativeSelect

@@ -17,9 +17,7 @@ export function PageHeader({ title, description, actions, className }: PageHeade
       )}
     >
       <div className="min-w-0 space-y-1">
-        <h1 className="text-[1.75rem] leading-tight font-bold tracking-tight text-balance sm:text-[2rem]">
-          {title}
-        </h1>
+        <h1 className="title-app">{title}</h1>
         {description ? (
           <p className="max-w-3xl text-[0.95rem] text-pretty text-muted-foreground">
             {description}

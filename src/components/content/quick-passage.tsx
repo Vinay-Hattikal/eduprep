@@ -51,7 +51,7 @@ export function QuickPassage({ onCreated }: { onCreated: (externalId: string) =>
     );
   return (
     <div className="space-y-2 rounded-lg border border-dashed p-3" data-testid="quick-passage">
-      <div className="grid gap-2 sm:grid-cols-[10rem_1fr]">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[10rem_1fr]">
         <Input
           value={values.externalId}
           onChange={(e) => set("externalId", e.target.value)}

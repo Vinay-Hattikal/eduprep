@@ -31,7 +31,7 @@ export function NavLinks({ sections, label }: { sections: NavSection[]; label: s
                   "group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
                   "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
                   active
-                    ? "bg-card text-foreground shadow-[0_1px_2px_rgb(21_23_28/0.06)] ring-1 ring-border before:absolute before:inset-y-2 before:-left-3 before:w-1 before:rounded-r-full before:bg-primary"
+                    ? "bg-card text-foreground shadow-card ring-1 ring-border before:absolute before:inset-y-2 before:-left-3 before:w-1 before:rounded-r-full before:bg-primary"
                     : "text-muted-foreground hover:bg-card/70 hover:text-foreground",
                 )}
               >

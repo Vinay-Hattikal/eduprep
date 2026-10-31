@@ -54,7 +54,7 @@ async function Interviewers({
           description="We're onboarding interviewers for this type. Check back soon."
         />
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {interviewers.map((i) => (
             <li key={i.id}>
               <Card className="h-full" data-testid="interviewer-card">

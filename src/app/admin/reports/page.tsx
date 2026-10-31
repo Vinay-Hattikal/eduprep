@@ -79,7 +79,7 @@ async function Reports({
           {reports.map((report) => (
             <li key={report.id}>
               <Card>
-                <CardContent className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                <CardContent className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
                   <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{REASON_LABELS[report.reason]}</Badge>

@@ -86,9 +86,7 @@ async function Mock({ params }: Props) {
             </Link>
           ) : null}
         </div>
-        <h1 className="text-[2rem] leading-[1.1] font-bold tracking-[-0.025em] text-balance sm:text-[2.5rem]">
-          {test.title}
-        </h1>
+        <h1 className="title-page">{test.title}</h1>
         {test.description ? <p className="text-muted-foreground">{test.description}</p> : null}
         <Button asChild size="lg">
           <Link href={startHref}>

@@ -81,7 +81,7 @@ async function Progress() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardContent>
             <ColumnChart
@@ -121,7 +121,7 @@ async function Progress() {
           Weakest first. Mastery weighs recent answers and harder questions more, so it rises as you
           improve.
         </p>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {subjects.map((subject) => (
             <Card key={subject.slug}>
               <CardHeader>

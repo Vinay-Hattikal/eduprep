@@ -2,17 +2,9 @@
 
 import { cn } from "@/lib/utils";
 
-export type PaletteState =
-  "answered" | "not-answered" | "review" | "answered-review" | "not-visited";
+import { STATE_STYLES, type PaletteState } from "@/components/exam/palette-styles";
 
-const STATE_STYLES: Record<PaletteState, string> = {
-  answered: "bg-palette-answered text-white border-transparent",
-  "not-answered": "bg-palette-not-answered text-white border-transparent",
-  review: "bg-palette-review text-white border-transparent rounded-full",
-  "answered-review":
-    "bg-palette-review text-white border-transparent rounded-full ring-2 ring-palette-answered ring-offset-1 ring-offset-card",
-  "not-visited": "bg-card text-foreground border-palette-not-visited",
-};
+export type { PaletteState };
 
 export const STATE_LABELS: Record<PaletteState, string> = {
   answered: "Answered",

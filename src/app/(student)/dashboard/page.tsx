@@ -42,7 +42,7 @@ export const metadata: Metadata = { title: "Dashboard" };
 
 /** A "Do next" row: a quiet card that lifts to teal on hover. */
 const DO_NEXT =
-  "flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-surface";
+  "flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-surface focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
 
 export default function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
   return (
@@ -215,7 +215,7 @@ async function Dashboard({
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Company readiness</CardTitle>
@@ -236,7 +236,7 @@ async function Dashboard({
                 }
               />
             ) : (
-              <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {targets.map((target) => (
                   <li
                     key={target.companyId}
@@ -361,7 +361,7 @@ async function Dashboard({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Recent answers</CardTitle>

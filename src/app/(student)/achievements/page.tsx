@@ -38,7 +38,7 @@ export default function AchievementsPage() {
 const TIER_STYLES = {
   1: "bg-secondary text-secondary-foreground",
   2: "bg-primary/10 text-primary",
-  3: "bg-highlight/15 text-highlight",
+  3: "bg-highlight/15 text-highlight-foreground dark:text-highlight",
 } as const;
 
 async function Achievements() {
@@ -124,7 +124,7 @@ async function Achievements() {
         {groups.map((group) => (
           <div key={group} className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground">{BADGE_GROUPS[group]}</h3>
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {BADGE_IDS.filter((id) => BADGES[id].group === group).map((id) => {
                 const badge = BADGES[id];
                 const mine = earned.get(id);

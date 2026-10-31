@@ -219,7 +219,10 @@ async function User({ params, searchParams }: PageProps<"/admin/users/[id]">) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={grantAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <form
+              action={grantAction}
+              className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            >
               <input type="hidden" name="userId" value={user.id} />
               <div className="space-y-1.5">
                 <Label htmlFor="kind">What</Label>

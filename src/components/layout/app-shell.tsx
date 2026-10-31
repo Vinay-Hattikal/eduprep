@@ -49,7 +49,7 @@ export function AppShell({ areaLabel, homeHref, nav, bottomNav, children }: AppS
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/70 bg-background/85 px-4 backdrop-blur-md sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/70 bg-background/95 px-4 sm:px-6 lg:px-8">
           <MobileNav title={areaLabel ? `${areaLabel} menu` : "Menu"}>{nav}</MobileNav>
           <div className="lg:hidden">{brand}</div>
           <div className="ml-auto flex items-center gap-1">

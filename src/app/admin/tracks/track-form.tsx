@@ -50,7 +50,7 @@ export function TrackForm({
         </Alert>
       ) : null}
       <fieldset disabled={!canEdit || pending} className="min-w-0 space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField id="track-name" label="Name" error={errors.name}>
             {(aria) => <Input {...aria} name="name" defaultValue={values.name} />}
           </FormField>
@@ -80,7 +80,7 @@ export function TrackForm({
             <Textarea {...aria} name="description" rows={2} defaultValue={values.description} />
           )}
         </FormField>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField id="track-audience" label="For" error={errors.audience}>
             {(aria) => (
               <NativeSelect

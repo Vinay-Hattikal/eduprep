@@ -113,7 +113,7 @@ export function ProblemForm({
           <AlertDescription>{state.formError}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField
           id="externalId"
           label="ID"
@@ -194,12 +194,12 @@ export function ProblemForm({
         error={errors.languages}
       />
       {text("statement", "Statement (Markdown)", 8)}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {text("inputFormat", "Input format", 4)}
         {text("outputFormat", "Output format", 4)}
         {text("constraints", "Constraints", 4)}
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <FormField
           id="timeLimitMs"
           label="Time limit (ms)"
@@ -244,7 +244,7 @@ export function ProblemForm({
           )}
         </FormField>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[0, 1, 2].map((i) => (
           <FormField
             key={i}
@@ -331,7 +331,7 @@ export function SolutionForm({
           <input type="hidden" name="language" value={initial.language} />
         </>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <FormField id={`${prefix}-kind`} label="Kind" error={errors.kind}>
             {(aria) => (
               <NativeSelect {...aria} name="kind" defaultValue="REFERENCE" className="w-full">
@@ -399,7 +399,7 @@ export function AddTestForm({ problemId }: { problemId: string }) {
           <AlertDescription>{state.formError}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="test-input">Input</Label>
           <Textarea id="test-input" name="input" rows={4} className="font-mono text-sm" />

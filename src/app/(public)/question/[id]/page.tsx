@@ -113,9 +113,7 @@ async function Question({ params }: Props) {
         </Link>
       </nav>
 
-      <h1 className="text-[1.75rem] leading-tight font-bold tracking-[-0.02em] text-balance sm:text-[2rem]">
-        {questionTitle(question.text, 110)}
-      </h1>
+      <h1 className="title-app">{questionTitle(question.text, 110)}</h1>
 
       <PublicQuestionCard question={question} practiceHref={practiceHref} headingLevel="h2" />
 

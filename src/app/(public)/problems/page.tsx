@@ -27,9 +27,7 @@ export default function ProblemsPage(props: Props) {
   return (
     <main className="mx-auto w-full max-w-5xl space-y-8 px-4 py-8 sm:px-6 lg:py-12">
       <header className="space-y-3">
-        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
-          Coding problems
-        </h1>
+        <h1 className="title-display">Coding problems</h1>
         <p className="max-w-2xl text-muted-foreground">
           Problems from placement online assessments. Read any problem free; sign up to solve it in
           the browser with real test cases.

@@ -49,7 +49,7 @@ async function Report({ searchParams }: { searchParams: PageProps<"/asked/new">[
   ]);
   const defaultCompany = companies.find((c) => c.slug === company)?.id;
   return (
-    <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
       <Card>
         <CardContent className="pt-6">
           <DriveReportForm companies={companies} defaultCompany={defaultCompany} />

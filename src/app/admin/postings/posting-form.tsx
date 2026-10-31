@@ -83,7 +83,7 @@ export function PostingForm({
           <CardHeader>
             <CardTitle>The job</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {text("title", "Job title", { placeholder: "Graduate Engineer Trainee" })}
             {text("companyName", "Employer", {
               description: "As students know it, e.g. Infosys.",
@@ -198,7 +198,7 @@ export function PostingForm({
           <CardHeader>
             <CardTitle>Who can apply</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-3">
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {text("minExperience", "Experience from (years)")}
             {text("maxExperience", "Experience up to (years)", {
               description: "0 and 0 means freshers only.",

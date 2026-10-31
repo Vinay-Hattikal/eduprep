@@ -104,7 +104,7 @@ export function BlueprintEditor({
             <h2>Test</h2>
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="bp-title">Title</Label>
             <Input
@@ -252,7 +252,7 @@ export function BlueprintEditor({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-6">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor={`s${index}-name`}>Name</Label>
                 <Input

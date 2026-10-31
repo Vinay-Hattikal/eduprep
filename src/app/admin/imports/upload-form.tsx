@@ -51,7 +51,7 @@ export function UploadForm({
         </Alert>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <FormField
           id="import-type"
           label="What are you importing?"

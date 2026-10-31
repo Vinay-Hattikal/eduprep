@@ -66,14 +66,12 @@ async function Subject({ params }: { params: PageProps<"/questions/[subject]">["
         </span>
       </nav>
       <header className="space-y-2">
-        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
-          {subject.name} questions
-        </h1>
+        <h1 className="title-display">{subject.name} questions</h1>
         <p className="text-muted-foreground">
           {subject.questions} questions in {subject.topics.length} topics.
         </p>
       </header>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {subject.topics.map((topic) => (
           <li key={topic.id}>
             <Link

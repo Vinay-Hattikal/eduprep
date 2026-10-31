@@ -73,7 +73,7 @@ async function ProblemList({
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard label="Solved" value={summary.solved} icon={CheckCircle2} />
         <StatCard label="Attempted" value={summary.attempted} icon={CircleDot} />
         <StatCard

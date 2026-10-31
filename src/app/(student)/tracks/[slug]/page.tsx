@@ -42,7 +42,7 @@ async function Track({ params }: { params: PageProps<"/tracks/[slug]">["params"]
   return (
     <div className="space-y-8">
       <PageHeader title={track.name} description={track.description} />
-      <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
         <Card>
           <CardHeader>
             <CardTitle>
@@ -84,7 +84,7 @@ async function Track({ params }: { params: PageProps<"/tracks/[slug]">["params"]
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {problems.length ? (
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Coding problems</h2>

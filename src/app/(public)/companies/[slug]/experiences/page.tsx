@@ -73,9 +73,7 @@ async function Experiences({ params, searchParams }: PageProps<"/companies/[slug
       </Button>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-[1.75rem] leading-tight font-bold tracking-[-0.02em] sm:text-[2rem]">
-            {company.name} interview experiences
-          </h1>
+          <h1 className="title-app">{company.name} interview experiences</h1>
           <p className="text-sm text-muted-foreground">
             Shared by candidates and checked by our team. {facets.total} so far.
           </p>

@@ -317,7 +317,7 @@ export function ExamRunner({ view }: { view: RunnerView }) {
   // The timer chip: ink, then amber under 5 minutes, then red in the last minute.
   const timerTone =
     remaining < 60_000
-      ? "bg-destructive text-white dark:text-[#2a0c06]"
+      ? "bg-destructive text-destructive-foreground"
       : remaining < 5 * 60_000
         ? "bg-warning text-warning-foreground"
         : "bg-inverse text-inverse-foreground";

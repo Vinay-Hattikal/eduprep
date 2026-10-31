@@ -130,7 +130,7 @@ export function OnboardingForm({
       <section hidden={step !== 0} className="space-y-5" aria-label="About you">
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">I am…</legend>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {(
               [
                 {
@@ -178,7 +178,7 @@ export function OnboardingForm({
           )}
         </FormField>
 
-        <div hidden={type !== "FRESHER"} className="grid gap-4 sm:grid-cols-2">
+        <div hidden={type !== "FRESHER"} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField id="college" label="College" error={errors.college} className="sm:col-span-2">
             {(aria) => (
               <Input
@@ -282,7 +282,7 @@ export function OnboardingForm({
           </fieldset>
         </div>
 
-        <div hidden={type !== "EXPERIENCED"} className="grid gap-4 sm:grid-cols-2">
+        <div hidden={type !== "EXPERIENCED"} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField id="currentRole" label="Current role" error={errors.currentRole}>
             {(aria) => (
               <Input

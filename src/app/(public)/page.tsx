@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { ArrowRight, ArrowUpRight, BadgeCheck, CheckCircle2, Clock, Flag } from "lucide-react";
+import { STATE_STYLES, type PaletteState } from "@/components/exam/palette-styles";
+import { MasteryBar } from "@/components/learning/mastery-bar";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,13 @@ const subjects = [
   "Pseudocode",
 ];
 
+/** Sample topics for the readiness preview (attempts > 0 so the level shows). */
+const READINESS_PREVIEW = [
+  { label: "Time and Work", score: 82, attempts: 20 },
+  { label: "Blood Relations", score: 64, attempts: 20 },
+  { label: "Pointers in C", score: 41, attempts: 20 },
+];
+
 const steps = [
   {
     title: "Pick your target companies",
@@ -40,10 +49,6 @@ const steps = [
   },
 ];
 
-/** Ruled exam-paper lines, behind the hero and the closing call to action. */
-const RULED =
-  "bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_31px,var(--border)_31px,var(--border)_32px)]";
-
 export default function LandingPage() {
   return (
     <main>
@@ -51,10 +56,7 @@ export default function LandingPage() {
       <section className="relative overflow-hidden border-b border-border/70">
         <div
           aria-hidden="true"
-          className={cn(
-            "pointer-events-none absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,black,transparent_85%)] opacity-60",
-            RULED,
-          )}
+          className="pointer-events-none absolute inset-0 -z-10 ruled [mask-image:linear-gradient(to_bottom,black,transparent_85%)] [--rule:color-mix(in_oklab,var(--border)_60%,transparent)]"
         />
         <div className="mx-auto grid w-full max-w-6xl items-center gap-14 px-4 pt-14 pb-20 sm:px-6 lg:grid-cols-12 lg:pt-20 lg:pb-28">
           <div className="space-y-7 lg:col-span-6">
@@ -64,8 +66,7 @@ export default function LandingPage() {
             </p>
             <h1 className="text-[2.4rem] leading-[1.05] font-extrabold tracking-[-0.035em] text-balance sm:text-[3.4rem] xl:text-[3.75rem]">
               Prepare for{" "}
-              {/* A flat marker stripe (one colour, not a gradient) that wraps with the words. */}
-              <span className="bg-[linear-gradient(color-mix(in_oklab,var(--highlight)_38%,transparent),color-mix(in_oklab,var(--highlight)_38%,transparent))] [box-decoration-break:clone] bg-[length:100%_0.32em] bg-bottom bg-no-repeat">
+              <span className="bg-linear-to-b from-highlight/40 to-highlight/40 [box-decoration-break:clone] bg-[length:100%_0.32em] bg-bottom bg-no-repeat">
                 the company you want
               </span>
               , not just any test
@@ -86,14 +87,13 @@ export default function LandingPage() {
             </div>
             <dl className="grid max-w-md grid-cols-3 gap-4 border-t border-border pt-6">
               {[
-                ["11", "subjects"],
+                [String(subjects.length), "subjects"],
                 ["130+", "topics"],
                 ["0", "ads"],
               ].map(([value, label]) => (
-                <div key={label}>
-                  <dt className="sr-only">{label}</dt>
+                <div key={label} className="flex flex-col-reverse">
+                  <dt className="text-sm text-muted-foreground">{label}</dt>
                   <dd className="numeral text-3xl font-bold">{value}</dd>
-                  <dd className="text-sm text-muted-foreground">{label}</dd>
                 </div>
               ))}
             </dl>
@@ -101,7 +101,7 @@ export default function LandingPage() {
 
           <div className="relative lg:col-span-6">
             <ExamWindow />
-            <div className="absolute -bottom-8 -left-4 hidden w-60 rounded-xl border border-border bg-card p-4 shadow-[0_12px_32px_-12px_rgb(21_23_28/0.25)] sm:block lg:-left-10">
+            <div className="absolute -bottom-8 -left-4 hidden w-60 rounded-xl border border-border bg-card p-4 shadow-lift sm:block lg:-left-10">
               <p className="text-xs font-medium text-muted-foreground">
                 Readiness for your target company
               </p>
@@ -127,7 +127,7 @@ export default function LandingPage() {
       {/* Features */}
       <section id="features" className="scroll-mt-20 bg-surface">
         <div className="mx-auto w-full max-w-6xl space-y-12 px-4 py-20 sm:px-6 lg:py-24">
-          <div className="grid gap-6 lg:grid-cols-12">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
             <h2 className="text-4xl leading-tight font-bold text-balance lg:col-span-7">
               Built around how companies actually hire
             </h2>
@@ -137,7 +137,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-12">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
             <Tile className="lg:col-span-7" title="The real exam interface">
               Mock tests copy the platform you&apos;ll actually sit: section locks, per-section
               timers and no-going-back rules.
@@ -146,26 +146,8 @@ export default function LandingPage() {
             <Tile className="lg:col-span-5" title="Readiness score per company">
               See exactly how ready you are for each target company, and which topics to fix first.
               <div className="mt-6 space-y-3">
-                {[
-                  ["Time and Work", 82],
-                  ["Blood Relations", 64],
-                  ["Pointers in C", 41],
-                ].map(([topic, value]) => (
-                  <div key={topic} className="space-y-1.5">
-                    <div className="flex justify-between text-sm text-foreground">
-                      <span>{topic}</span>
-                      <span className="tabular font-medium">{value}%</span>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className={cn(
-                          "h-full rounded-full",
-                          Number(value) < 50 ? "bg-highlight" : "bg-primary",
-                        )}
-                        style={{ width: `${value}%` }}
-                      />
-                    </div>
-                  </div>
+                {READINESS_PREVIEW.map((topic) => (
+                  <MasteryBar key={topic.label} {...topic} />
                 ))}
               </div>
             </Tile>
@@ -173,14 +155,14 @@ export default function LandingPage() {
               Rounds, sections, timers and eligibility for each company, with sources and a
               last-verified date on every page.
               <p className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-success">
-                <BadgeCheck className="size-4" aria-hidden="true" /> Verified 19 Oct · 2 sources
+                <BadgeCheck className="size-4" aria-hidden="true" /> Verified this month · 2 sources
               </p>
             </Tile>
             <Tile className="lg:col-span-4" title="Recently asked questions">
               Questions tagged with when candidates reported them, so you practise what&apos;s being
               asked now.
               <div className="mt-5 flex flex-wrap gap-2">
-                {["Asked Oct 2026", "Asked Sep 2026"].map((label) => (
+                {["Asked this month", "Asked last month"].map((label) => (
                   <span
                     key={label}
                     className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium"
@@ -195,8 +177,8 @@ export default function LandingPage() {
               online-assessment mode.
               <div className="mt-5 flex items-center justify-between rounded-lg bg-inverse px-3 py-2 font-mono text-xs text-inverse-foreground">
                 <span>6/6 tests · 41 ms</span>
-                {/* The ink band is dark in both themes, so this is the dark-mode success green. */}
-                <span className="font-semibold text-[#5cc48a]">Accepted</span>
+
+                <span className="font-semibold text-success-on-inverse">Accepted</span>
               </div>
             </Tile>
             <Tile className="lg:col-span-12" title="1:1 mock interviews" horizontal>
@@ -211,7 +193,7 @@ export default function LandingPage() {
       <section id="how-it-works" className="scroll-mt-20">
         <div className="mx-auto w-full max-w-6xl space-y-12 px-4 py-20 sm:px-6 lg:py-24">
           <h2 className="text-4xl font-bold">How it works</h2>
-          <ol className="grid gap-10 md:grid-cols-3 md:gap-8">
+          <ol className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8">
             {steps.map((step, index) => (
               <li key={step.title} className="space-y-3 border-t-2 border-foreground pt-5">
                 <span className="numeral block text-5xl font-bold text-primary">
@@ -270,7 +252,7 @@ export default function LandingPage() {
         <div className="relative mx-auto flex w-full max-w-6xl flex-col items-start gap-6 overflow-hidden rounded-2xl bg-primary px-6 py-12 text-primary-foreground sm:px-12 md:flex-row md:items-center md:justify-between">
           <div
             aria-hidden="true"
-            className={cn("pointer-events-none absolute inset-0 opacity-15", RULED)}
+            className="pointer-events-none absolute inset-0 ruled opacity-15"
           />
           <div className="relative space-y-2">
             <h2 className="text-3xl font-bold">Your next drive is closer than you think</h2>
@@ -397,41 +379,29 @@ async function CompanyStrip() {
 
 // ---------- the exam window (illustration, not interactive) ----------
 
-const STATES = [
+/** The preview's chips: real palette states, plus the question on screen. */
+const PREVIEW: (PaletteState | "current")[] = [
   "answered",
   "answered",
   "review",
   "answered",
-  "skipped",
+  "not-answered",
   "answered",
   "current",
-  "seen",
-  "seen",
-  "seen",
-  "seen",
-  "seen",
-  "seen",
-  "seen",
-  "seen",
-] as const;
-
-const STATE_CLASS: Record<(typeof STATES)[number], string> = {
-  answered: "bg-palette-answered text-white",
-  review: "bg-palette-review text-white",
-  skipped: "bg-palette-not-answered text-white",
-  current: "bg-card text-foreground ring-2 ring-primary",
-  seen: "bg-palette-not-visited/60 text-foreground/70",
-};
+  ...Array<PaletteState>(8).fill("not-visited"),
+];
 
 function QuestionPalette({ className }: { className?: string }) {
   return (
     <div className={cn("grid max-w-xs grid-cols-5 gap-1.5", className)} aria-hidden="true">
-      {STATES.map((state, i) => (
+      {PREVIEW.map((state, i) => (
         <span
           key={i}
           className={cn(
-            "tabular flex aspect-square items-center justify-center rounded-md text-xs font-semibold",
-            STATE_CLASS[state],
+            "tabular flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
+            state === "current"
+              ? "border-primary bg-card text-foreground ring-2 ring-primary/30"
+              : STATE_STYLES[state],
           )}
         >
           {i + 1}
@@ -444,7 +414,7 @@ function QuestionPalette({ className }: { className?: string }) {
 function ExamWindow() {
   return (
     <figure
-      className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_24px_60px_-24px_rgb(21_23_28/0.35)]"
+      className="overflow-hidden rounded-2xl border border-border bg-card shadow-float"
       aria-label="A mock test in the exam interface"
     >
       <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-2.5 text-xs">

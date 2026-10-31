@@ -45,7 +45,10 @@ export function AskedAtField({
       {rows.length ? (
         <ul className="space-y-2">
           {rows.map((row, i) => (
-            <li key={row.key} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <li
+              key={row.key}
+              className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+            >
               <div className="space-y-1">
                 <Label htmlFor={`asked-company-${row.key}`} className="text-xs">
                   Company {i + 1}

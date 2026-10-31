@@ -37,7 +37,7 @@ export function ApplyForm({ types }: { types: { id: string; name: string }[] }) 
       >
         {(aria) => <Input {...aria} name="headline" />}
       </FormField>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <FormField id="currentCompany" label="Company" error={e.currentCompany}>
           {(aria) => <Input {...aria} name="currentCompany" />}
         </FormField>
@@ -48,7 +48,7 @@ export function ApplyForm({ types }: { types: { id: string; name: string }[] }) 
           {(aria) => <Input {...aria} name="yearsExperience" inputMode="numeric" />}
         </FormField>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField
           id="pastCompanies"
           label="Past companies"
@@ -86,7 +86,7 @@ export function ApplyForm({ types }: { types: { id: string; name: string }[] }) 
       </FormField>
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">Interviews you can take</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {types.map((t) => (
             <div key={t.id} className="flex items-center gap-2">
               <Checkbox id={`type-${t.id}`} name="typeIds" value={t.id} />

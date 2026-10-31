@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { brandColors } from "@/config/brand-colors";
 
 // Colour contrast gate (R.10, D-068): every text-on-background pair the UI uses must meet WCAG AA
 // (4.5:1 for normal text) in both themes, read straight from the tokens in globals.css.
@@ -57,7 +58,36 @@ const PAIRS: [string, string][] = [
   ["difficulty-hard", "card"],
   ["sidebar-foreground", "sidebar"],
   ["sidebar-accent-foreground", "sidebar-accent"],
+  // Exam palette numbers, the last-minute timer, and green text on the ink band.
+  ["palette-foreground", "palette-answered"],
+  ["palette-foreground", "palette-not-answered"],
+  ["palette-foreground", "palette-review"],
+  ["foreground", "palette-not-visited"],
+  ["destructive-foreground", "destructive"],
+  ["success-on-inverse", "inverse"],
 ];
+
+/** Which CSS token each brand colour mirrors; null = no token (checked for contrast instead). */
+const MIRRORS: Record<keyof typeof brandColors, [":root" | ".dark", string] | null> = {
+  paper: [":root", "background"],
+  paperDark: [".dark", "background"],
+  ink: [":root", "foreground"],
+  muted: [":root", "muted-foreground"],
+  teal: [":root", "primary"],
+  saffronText: null,
+};
+
+describe("brand colours outside CSS", () => {
+  it.each(Object.entries(MIRRORS).filter(([, m]) => m))("%s matches its token", (key, mirror) => {
+    const [selector, token] = mirror!;
+    expect(brandColors[key as keyof typeof brandColors]).toBe(tokens(selector)[token]);
+  });
+
+  it("social-card saffron is readable on paper", () => {
+    // Only used for 40 px bold text on social cards: large text, so AA is 3:1.
+    expect(contrast(brandColors.saffronText, brandColors.paper)).toBeGreaterThanOrEqual(3);
+  });
+});
 
 describe.each([":root", ".dark"] as const)("contrast in %s", (selector) => {
   const t = tokens(selector);

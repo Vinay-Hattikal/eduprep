@@ -142,9 +142,7 @@ async function JobDetail({
               </Badge>
             ))}
           </div>
-          <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
-            {job.title}
-          </h1>
+          <h1 className="title-display">{job.title}</h1>
           <p className="flex flex-wrap items-center gap-x-2 text-lg">
             {job.company ? (
               <Link href={`/companies/${job.company.slug}`} className="font-medium hover:underline">
@@ -161,7 +159,7 @@ async function JobDetail({
         </Suspense>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>

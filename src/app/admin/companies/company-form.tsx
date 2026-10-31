@@ -79,7 +79,7 @@ export function CompanyForm({ values, canEdit }: { values: CompanyFormValues; ca
           <CardHeader>
             <CardTitle>Profile</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Text name="name" label="Name" values={values} errors={errors} />
             <Text
               name="slug"
@@ -172,7 +172,7 @@ export function CompanyForm({ values, canEdit }: { values: CompanyFormValues; ca
           <CardHeader>
             <CardTitle>Eligibility</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-3">
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Text name="minCgpa" label="Minimum CGPA" values={values} errors={errors} />
             <Text name="min10thPercent" label="Minimum 10th %" values={values} errors={errors} />
             <Text name="min12thPercent" label="Minimum 12th %" values={values} errors={errors} />

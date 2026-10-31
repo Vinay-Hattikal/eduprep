@@ -63,7 +63,7 @@ export function PublicQuestionCard({
       ) : null}
 
       {question.type !== "NUMERIC" ? (
-        <ol className="grid gap-2 sm:grid-cols-2" aria-label="Options">
+        <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2" aria-label="Options">
           {question.options.map((option, i) => (
             <li key={OPTION_LETTERS[i]} className="flex gap-3 rounded-lg border px-3 py-2">
               <span className="font-mono text-sm font-semibold text-muted-foreground">

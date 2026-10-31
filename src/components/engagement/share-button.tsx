@@ -109,7 +109,7 @@ export function ShareButton({
                   <Copy /> Copy
                 </Button>
               </div>
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <Button asChild>
                   <a href={whatsappShareUrl(text, url)} target="_blank" rel="noopener noreferrer">
                     WhatsApp

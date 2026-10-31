@@ -48,7 +48,7 @@ export function DriveReportForm({
           <AlertDescription>{state.error}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField id="companyId" label="Company" error={e.companyId}>
           {(aria) => (
             <NativeSelect
@@ -110,7 +110,7 @@ export function DriveReportForm({
       >
         {(aria) => <Textarea {...aria} name="questions" rows={6} />}
       </FormField>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <FormField id="topics" label="Sections or topics (optional)" error={e.topics}>
           {(aria) => <Input {...aria} name="topics" placeholder="Quant, reasoning, 2 coding" />}
         </FormField>

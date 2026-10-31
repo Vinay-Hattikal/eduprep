@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CompanyMark } from "@/components/shared/company-mark";
 import { JsonLd } from "@/components/shared/json-ld";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -130,12 +131,7 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
 
       <header className="flex flex-col gap-6 rounded-2xl border border-border bg-card p-5 sm:p-7 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex min-w-0 flex-1 gap-5">
-          <span
-            aria-hidden="true"
-            className="hidden size-16 shrink-0 items-center justify-center rounded-xl bg-inverse font-heading text-3xl font-bold text-inverse-foreground sm:flex"
-          >
-            {company.name.charAt(0)}
-          </span>
+          <CompanyMark name={company.name} className="hidden size-16 rounded-xl text-3xl sm:flex" />
           <div className="min-w-0 space-y-3">
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">{CATEGORY_LABELS[company.category]}</Badge>
@@ -147,9 +143,7 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
                 <Badge variant="outline">{LEVEL_LABELS[company.level]}: reported pattern</Badge>
               )}
             </div>
-            <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
-              {company.name}
-            </h1>
+            <h1 className="title-display">{company.name}</h1>
             <p className="text-sm text-muted-foreground">
               Last verified {formatDate(company.lastVerifiedAt)} · {company.sources.length} source
               {company.sources.length === 1 ? "" : "s"}
@@ -170,8 +164,8 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="min-w-0 space-y-6 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>
@@ -422,7 +416,7 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
           ) : null}
         </div>
 
-        <aside className="min-w-0 space-y-6">
+        <aside className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>

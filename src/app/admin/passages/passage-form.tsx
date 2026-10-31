@@ -37,7 +37,7 @@ export function PassageForm({
         </Alert>
       ) : null}
       <fieldset disabled={!canEdit || pending} className="min-w-0 space-y-4">
-        <div className="grid gap-4 sm:grid-cols-[1fr_2fr]">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_2fr]">
           <FormField
             id="passage-externalId"
             label="ID"
@@ -58,7 +58,7 @@ export function PassageForm({
             {(aria) => <Input {...aria} name="title" defaultValue={values.title} />}
           </FormField>
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <FormField
             id="passage-body"
             label="Passage (Markdown, tables and LaTeX allowed)"

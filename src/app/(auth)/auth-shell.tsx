@@ -27,7 +27,7 @@ export function AuthShell({
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-inverse p-12 text-inverse-foreground lg:flex">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_31px,rgb(236_232_225/0.06)_31px,rgb(236_232_225/0.06)_32px)]"
+          className="pointer-events-none absolute inset-0 ruled [--rule:color-mix(in_oklab,var(--inverse-foreground)_6%,transparent)]"
         />
         <p className="relative font-heading text-2xl font-bold tracking-tight">{siteConfig.name}</p>
         <div className="relative max-w-md space-y-8">
@@ -55,14 +55,14 @@ export function AuthShell({
           <div className="flex justify-center lg:justify-start">
             <Logo />
           </div>
-          <Card className="lg:border-0 lg:bg-transparent lg:py-0 lg:shadow-none">
-            <CardHeader className="lg:px-0">
+          <Card className="lg:gap-6 lg:border-0 lg:bg-transparent lg:shadow-none lg:[--card-spacing:0]">
+            <CardHeader>
               <CardTitle>
                 <h1 className="text-2xl font-bold tracking-[-0.02em] lg:text-3xl">{title}</h1>
               </CardTitle>
               {description ? <CardDescription>{description}</CardDescription> : null}
             </CardHeader>
-            <CardContent className="lg:px-0">{children}</CardContent>
+            <CardContent>{children}</CardContent>
           </Card>
           {footer ? (
             <div className="text-center text-sm text-muted-foreground lg:text-left">{footer}</div>

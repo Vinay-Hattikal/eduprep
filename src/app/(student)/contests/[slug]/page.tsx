@@ -118,7 +118,7 @@ async function Contest({ params, searchParams }: PageProps<"/contests/[slug]">) 
         </Card>
       ) : mine ? (
         <section className="space-y-3" aria-label="Your result">
-          <div className="grid gap-3 sm:grid-cols-3" data-testid="contest-standing">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" data-testid="contest-standing">
             <StatCard
               label={mine.final ? "All-India rank" : "Rank so far"}
               value={`${mine.rank.toLocaleString("en-IN")}`}

@@ -102,7 +102,7 @@ export function QuestionEditor({
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
       <form onSubmit={onSubmit} className="space-y-6" aria-label="Question editor">
         {v.id ? <input type="hidden" name="id" value={v.id} /> : null}
         {state.formError ? (
@@ -116,7 +116,7 @@ export function QuestionEditor({
             <CardHeader>
               <CardTitle>Classification</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+            <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 id="externalId"
                 label="Question ID"
@@ -286,7 +286,7 @@ export function QuestionEditor({
                   />
                 )}
               </FormField>
-              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
                 <FormField id="code" label="Code snippet (optional)" error={errors.code}>
                   {(aria) => (
                     <Textarea
@@ -441,7 +441,7 @@ export function QuestionEditor({
                   />
                 )}
               </FormField>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField id="tags" label="Tags (optional)" description="Separate with commas.">
                   {(aria) => (
                     <Input

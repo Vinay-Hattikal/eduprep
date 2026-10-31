@@ -34,9 +34,7 @@ export default function JobsPage({ searchParams }: PageProps<"/jobs">) {
   return (
     <main className="mx-auto w-full max-w-4xl space-y-8 px-4 py-10 sm:px-6 lg:py-14">
       <div className="max-w-2xl space-y-3">
-        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
-          Jobs
-        </h1>
+        <h1 className="title-display">Jobs</h1>
         <p className="text-lg text-muted-foreground">
           Openings for freshers and experienced engineers, checked by our team. You apply on the
           company&apos;s own site.
@@ -107,7 +105,7 @@ async function JobList({ searchParams }: { searchParams: PageProps<"/jobs">["sea
 
       {showSaved ? null : (
         <form
-          className="grid gap-2 sm:grid-cols-[1fr_auto_auto]"
+          className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto]"
           role="search"
           aria-label="Find jobs"
         >

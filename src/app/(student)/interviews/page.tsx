@@ -60,7 +60,7 @@ async function Hub() {
           <h2 id="upcoming" className="text-lg font-semibold">
             Upcoming
           </h2>
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {hub.upcoming.map((b) => (
               <li key={b.id}>
                 <Card data-testid="upcoming-booking">
@@ -101,7 +101,7 @@ async function Hub() {
         <h2 id="types" className="text-lg font-semibold">
           Book an interview
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {hub.types.map((t) => (
             <Card key={t.id} className="flex flex-col" data-testid="interview-type">
               <CardHeader>

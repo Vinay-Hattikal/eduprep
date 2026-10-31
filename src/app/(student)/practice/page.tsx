@@ -87,7 +87,7 @@ async function PracticeHub() {
         description="Pick a topic or a company. Questions go from easy to hard, with an explanation after each answer."
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {dailyId ? (
           <QuickLink
             href="/practice/daily"
@@ -159,7 +159,7 @@ async function PracticeHub() {
             description="Questions appear here as soon as reviewers publish them."
           />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {subjects.map((subject, index) => {
               const level =
                 subject.averageMastery === null ? "new" : masteryLevel(subject.averageMastery, 1);
@@ -169,7 +169,7 @@ async function PracticeHub() {
                   href={`/practice/${subject.slug}`}
                   className="group rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
-                  <Card className="h-full transition-[border-color,box-shadow,transform] duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-[0_12px_28px_-16px_rgb(21_23_28/0.3)] motion-reduce:group-hover:translate-y-0">
+                  <Card className="h-full card-lift">
                     <CardHeader>
                       <CardTitle className="flex items-start justify-between gap-3">
                         {subject.name}

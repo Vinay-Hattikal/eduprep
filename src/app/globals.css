@@ -12,6 +12,10 @@
   --font-mono: var(--font-code);
   --font-heading: var(--font-display);
 
+  --shadow-card: var(--elev-card);
+  --shadow-lift: var(--elev-lift);
+  --shadow-float: var(--elev-float);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
@@ -32,8 +36,10 @@
   --color-inverse: var(--inverse);
   --color-inverse-foreground: var(--inverse-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-on-inverse: var(--success-on-inverse);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
@@ -49,6 +55,7 @@
   --color-palette-not-answered: var(--palette-not-answered);
   --color-palette-review: var(--palette-review);
   --color-palette-not-visited: var(--palette-not-visited);
+  --color-palette-foreground: var(--palette-foreground);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -105,10 +112,17 @@
   --inverse: #15171c; /* ink band: footer */
   --inverse-foreground: #ece8e1;
 
+  /* Elevation: ink-tinted shadows (shadow-card, shadow-lift, shadow-float) */
+  --elev-card: 0 1px 2px rgb(21 23 28 / 0.05);
+  --elev-lift: 0 12px 28px -16px rgb(21 23 28 / 0.3);
+  --elev-float: 0 24px 60px -24px rgb(21 23 28 / 0.35);
+
   /* Status */
   --destructive: #c2412d;
+  --destructive-foreground: #ffffff;
   --success: #2f7d4f;
   --success-foreground: #ffffff;
+  --success-on-inverse: #5cc48a; /* green text on the ink band */
   --warning: #9a5b0b;
   --warning-foreground: #ffffff;
   --info: #1f6aa5;
@@ -118,10 +132,11 @@
   --difficulty-easy: #2f7d4f;
   --difficulty-medium: #9a5b0b;
   --difficulty-hard: #c2412d;
-  --palette-answered: #2f9e5b;
-  --palette-not-answered: #d2492f;
+  --palette-answered: #23804a;
+  --palette-not-answered: #b93d26;
   --palette-review: #7a4fbf;
   --palette-not-visited: #cfc8bb;
+  --palette-foreground: #ffffff; /* numbers on answered/not-answered/review */
 
   --chart-1: #0f6e6a;
   --chart-2: #e8821e;
@@ -163,10 +178,15 @@
   --ring: #4fb3a9;
   --inverse: #090b0d;
   --inverse-foreground: #ece8e1;
+  --elev-card: 0 0 #0000;
+  --elev-lift: 0 12px 28px -16px rgb(0 0 0 / 0.6);
+  --elev-float: 0 24px 60px -24px rgb(0 0 0 / 0.7);
 
   --destructive: #f07a62;
+  --destructive-foreground: #2a0c06;
   --success: #5cc48a;
   --success-foreground: #072414;
+  --success-on-inverse: #5cc48a;
   --warning: #e9b44c;
   --warning-foreground: #1e1503;
   --info: #6cb4e8;
@@ -179,6 +199,7 @@
   --palette-not-answered: #f07a62;
   --palette-review: #b39df0;
   --palette-not-visited: #3a434a;
+  --palette-foreground: #0f1214;
 
   --chart-1: #4fb3a9;
   --chart-2: #f7a24b;
@@ -211,7 +232,7 @@
   /* Headings in the display face; page and section titles carry the brand (D-068). */
   h1,
   h2 {
-    font-family: var(--font-display);
+    font-family: var(--font-heading);
     letter-spacing: -0.02em;
     text-wrap: balance;
   }
@@ -224,7 +245,7 @@
   }
   /* Big numbers (scores, ranks, prices) in the display face */
   .numeral {
-    font-family: var(--font-display);
+    font-family: var(--font-heading);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.03em;
   }
@@ -262,4 +283,58 @@
 .hljs-title,
 .hljs-function {
   color: var(--info);
+}
+
+/* Page titles (D-068): one place for the title scale. */
+@utility title-display {
+  font-size: 2.1rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  @media (width >= 40rem) {
+    font-size: 3rem;
+  }
+}
+@utility title-page {
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  @media (width >= 40rem) {
+    font-size: 2.5rem;
+  }
+}
+@utility title-app {
+  font-size: 1.75rem;
+  line-height: 1.25;
+  font-weight: 700;
+  @media (width >= 40rem) {
+    font-size: 2rem;
+  }
+}
+
+/* A link-wrapped card that lifts on hover (put "group" on the link). */
+@utility card-lift {
+  transition-property: transform, border-color;
+  transition-duration: 200ms;
+  &:is(:where(.group):hover *),
+  &:is(:where(.group):focus-visible *) {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+    box-shadow: var(--elev-lift);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:is(:where(.group):hover *) {
+      transform: none;
+    }
+  }
+}
+
+/* Ruled exam-paper lines; set --rule to change their colour. */
+@utility ruled {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 31px,
+    var(--rule, var(--border)) 31px 32px
+  );
 }

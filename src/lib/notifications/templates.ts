@@ -1,6 +1,7 @@
 // Message templates (PRD 8.14). Pure: data in, subject + plain text out. The same text goes to
 // email (wrapped in a simple layout) and WhatsApp. Times are shown in IST unless a zone is given.
 
+import { brandColors } from "@/config/brand-colors";
 import { siteConfig } from "@/config/site";
 import { formatSlot } from "@/lib/time/zones";
 
@@ -193,15 +194,12 @@ export const MARKETING_TEMPLATES: readonly TemplateName[] = [];
 /** Job alerts and contest reminders respect the user's alerts opt-out (D-059). */
 export const ALERT_TEMPLATES: readonly TemplateName[] = ["jobs.digest", "contest.reminder"];
 
-/** Brand teal (D-068), the only colour in emails. */
-const TEAL = "#0f6e6a";
-
 /** Minimal, safe HTML for email from the plain-text body (links made clickable). */
 export function emailHtml(subject: string, body: string): string {
   const escape = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const html = escape(body)
-    .replace(/(https?:\/\/[^\s<]+)/g, `<a href="$1" style="color:${TEAL}">$1</a>`)
+    .replace(/(https?:\/\/[^\s<]+)/g, `<a href="$1" style="color:${brandColors.teal}">$1</a>`)
     .replace(/\n/g, "<br>");
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${escape(subject)}</title></head><body style="font-family:system-ui,sans-serif;line-height:1.55;color:#15171c;background:#ffffff;max-width:560px;margin:24px auto;padding:0 16px"><div style="border-top:4px solid ${TEAL};padding-top:16px;margin-bottom:20px;font-weight:800;font-size:18px;letter-spacing:-0.01em;color:${TEAL}">${escape(siteConfig.name)}</div>${html}</body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escape(subject)}</title></head><body style="font-family:system-ui,sans-serif;line-height:1.55;color:${brandColors.ink};background:#ffffff;max-width:560px;margin:24px auto;padding:0 16px"><div style="border-top:4px solid ${brandColors.teal};padding-top:16px;margin-bottom:20px;font-weight:800;font-size:18px;letter-spacing:-0.01em;color:${brandColors.teal}">${escape(siteConfig.name)}</div>${html}</body></html>`;
 }

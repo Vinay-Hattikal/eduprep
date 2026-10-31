@@ -106,7 +106,7 @@ async function Detail({ params, searchParams }: PageProps<"/interviewer/bookings
         </Button>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_2fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_2fr]">
         <Card>
           <CardHeader>
             <CardTitle>

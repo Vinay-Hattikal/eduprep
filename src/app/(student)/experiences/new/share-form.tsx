@@ -38,7 +38,7 @@ export function ShareForm({
           <AlertDescription>{state.error}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField id="companyId" label="Company" error={e.companyId}>
           {(aria) => (
             <NativeSelect
@@ -67,7 +67,7 @@ export function ShareForm({
           {(aria) => <Input {...aria} name="role" />}
         </FormField>
       </div>
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <FormField id="profileType" label="You were a" error={e.profileType}>
           {(aria) => (
             <NativeSelect

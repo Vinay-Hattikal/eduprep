@@ -72,7 +72,7 @@ export function InterviewTypeForm({
         </Alert>
       ) : null}
       <fieldset disabled={pending} className="min-w-0 space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField id="type-name" label="Name" error={errors.name}>
             {(aria) => <Input {...aria} name="name" defaultValue={values.name} />}
           </FormField>
@@ -98,7 +98,7 @@ export function InterviewTypeForm({
             <Textarea {...aria} name="description" rows={2} defaultValue={values.description} />
           )}
         </FormField>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <FormField id="type-audience" label="For" error={errors.audience}>
             {(aria) => (
               <NativeSelect
@@ -176,7 +176,10 @@ export function InterviewTypeForm({
           ) : null}
           <ol className="space-y-3">
             {rows.map((row, i) => (
-              <li key={row.rowId} className="grid gap-2 sm:grid-cols-[1fr_2fr_auto] sm:items-end">
+              <li
+                key={row.rowId}
+                className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_2fr_auto] sm:items-end"
+              >
                 <input type="hidden" name="rubricKey" value={row.key} />
                 <div className="space-y-1.5">
                   <Label htmlFor={`rubric-label-${row.rowId}`}>Item {i + 1}</Label>

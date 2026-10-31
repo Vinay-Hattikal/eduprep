@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { siteConfig } from "@/config/site";
 import "./globals.css";
+import { brandColors } from "@/config/brand-colors";
 
 // Type (D-068): Onest for text and UI, Bricolage Grotesque for headings and big numbers,
 // JetBrains Mono for code and IDs. Self-hosted by next/font, with matched fallbacks.
@@ -14,7 +15,13 @@ const display = Bricolage_Grotesque({
   subsets: ["latin"],
   display: "swap",
 });
-const mono = JetBrains_Mono({ variable: "--font-code", subsets: ["latin"], display: "swap" });
+// Code font: not preloaded, it is below the fold or behind sign-in on most pages.
+const mono = JetBrains_Mono({
+  variable: "--font-code",
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -36,8 +43,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FAF8F4" },
-    { media: "(prefers-color-scheme: dark)", color: "#0F1214" },
+    { media: "(prefers-color-scheme: light)", color: brandColors.paper },
+    { media: "(prefers-color-scheme: dark)", color: brandColors.paperDark },
   ],
 };
 

@@ -23,9 +23,7 @@ export default function PricingPage() {
   return (
     <main className="mx-auto w-full max-w-6xl space-y-12 px-4 py-12 sm:px-6">
       <div className="mx-auto max-w-2xl space-y-3 text-center">
-        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
-          Simple plans, priced for students
-        </h1>
+        <h1 className="title-display">Simple plans, priced for students</h1>
         <p className="text-pretty text-muted-foreground">
           Start free. Upgrade when your drive is close. Prices include GST; no auto-renewal.
         </p>
@@ -63,7 +61,7 @@ async function Plans() {
 
   return (
     <div className="space-y-12">
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>
@@ -220,7 +218,7 @@ async function Plans() {
         </div>
       </section>
 
-      <section className="grid gap-6 sm:grid-cols-2" aria-label="Questions">
+      <section className="grid grid-cols-1 gap-6 sm:grid-cols-2" aria-label="Questions">
         {[
           [
             "Does anything renew automatically?",

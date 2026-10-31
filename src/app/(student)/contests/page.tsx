@@ -95,7 +95,7 @@ async function Contests() {
   return (
     <div className="space-y-8">
       {current.length ? (
-        <section className="grid gap-4 lg:grid-cols-2" aria-label="Live and upcoming">
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-label="Live and upcoming">
           {current.map((contest) => (
             <CurrentContest key={contest.id} contest={contest} />
           ))}

@@ -58,7 +58,7 @@ export function RoundForm({
       <input type="hidden" name="companyId" value={companyId} />
       {values?.id ? <input type="hidden" name="roundId" value={values.id} /> : null}
       <FormError message={state.formError} />
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FormField id={`${p}-name`} label="Round name" error={errors.name}>
           {(aria) => (
             <Input
@@ -86,7 +86,7 @@ export function RoundForm({
           )}
         </FormField>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <FormField id={`${p}-platform`} label="Platform (optional)" error={errors.platform}>
           {(aria) => (
             <NativeSelect
@@ -185,7 +185,7 @@ export function SectionForm({
       <input type="hidden" name="roundId" value={roundId} />
       {values?.id ? <input type="hidden" name="sectionId" value={values.id} /> : null}
       <FormError message={state.formError} />
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FormField id={`${p}-name`} label="Section name" error={errors.name}>
           {(aria) => (
             <Input
@@ -275,7 +275,7 @@ export function SourceForm({ companyId, today }: { companyId: string; today: str
     <form onSubmit={onSubmit} className="space-y-3" aria-label="New source">
       <input type="hidden" name="companyId" value={companyId} />
       <FormError message={state.formError} />
-      <div className="grid gap-3 sm:grid-cols-[1fr_2fr_auto]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr_auto]">
         <FormField id="source-label" label="Label" error={errors.label}>
           {(aria) => <Input {...aria} name="label" placeholder="Official careers page" />}
         </FormField>

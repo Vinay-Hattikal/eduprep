@@ -39,7 +39,7 @@ async function Earnings() {
   const paid = payouts.reduce((n, p) => n + p.amountPaise, 0);
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <StatCard label="Balance to be paid" value={formatRupees(balancePaise)} icon={Wallet} />
         <StatCard
           label="Paid so far"

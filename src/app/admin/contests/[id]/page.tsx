@@ -114,7 +114,7 @@ async function ContestDetail({ params, searchParams }: PageProps<"/admin/contest
         </Alert>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard
           label="Status"
           value={

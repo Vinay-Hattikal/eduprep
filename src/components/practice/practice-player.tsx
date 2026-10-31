@@ -405,7 +405,8 @@ export function PracticePlayer({
                         "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
                         state === "selected" && "border-primary bg-primary text-primary-foreground",
                         state === "correct" && "border-success bg-success text-success-foreground",
-                        state === "wrong" && "border-destructive bg-destructive text-white",
+                        state === "wrong" &&
+                          "border-destructive bg-destructive text-destructive-foreground",
                       )}
                       aria-hidden="true"
                     >

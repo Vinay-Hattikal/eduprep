@@ -23,7 +23,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   const links = env().TEST_MODE ? allLinks.filter((l) => l.href !== "/pricing") : allLinks;
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-4 sm:px-6">
           <Logo />
           <nav aria-label="Main" className="hidden items-center gap-1 text-sm lg:flex">
@@ -55,7 +55,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
       <footer className="bg-inverse text-inverse-foreground">
         <div className="mx-auto w-full max-w-6xl px-4 pt-14 pb-8 sm:px-6">
-          <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
             <div className="max-w-sm space-y-3">
               <p className="font-heading text-2xl font-bold tracking-tight">{siteConfig.name}</p>
               <p className="text-sm text-inverse-foreground/70">{siteConfig.tagline}.</p>

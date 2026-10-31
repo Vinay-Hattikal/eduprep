@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { BadgeCheck, Building2, Search } from "lucide-react";
 import { RequestCompanyForm } from "@/app/(public)/companies/client-forms";
+import { CompanyMark } from "@/components/shared/company-mark";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -25,9 +26,7 @@ export default function CompaniesPage({ searchParams }: PageProps<"/companies">)
   return (
     <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-10 sm:px-6 lg:py-14">
       <div className="max-w-2xl space-y-3">
-        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
-          Companies
-        </h1>
+        <h1 className="title-display">Companies</h1>
         <p className="text-lg text-muted-foreground">
           Each company&apos;s rounds, test sections and eligibility, with the sources we checked and
           when.
@@ -51,7 +50,7 @@ export default function CompaniesPage({ searchParams }: PageProps<"/companies">)
 
 function DirectorySkeleton() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }, (_, i) => (
         <Skeleton key={i} className="h-40 rounded-xl" />
       ))}
@@ -119,22 +118,20 @@ async function Directory({
           description="Try a different search, or request the company below."
         />
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {companies.map((company) => (
             <li key={company.id}>
               <Link
                 href={`/companies/${company.slug}`}
                 className="group block h-full rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
-                <Card className="h-full transition-[border-color,box-shadow,transform] duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-[0_12px_28px_-16px_rgb(21_23_28/0.3)] motion-reduce:group-hover:translate-y-0">
+                <Card className="h-full card-lift">
                   <CardHeader>
                     <CardTitle className="flex items-start gap-3">
-                      <span
-                        aria-hidden="true"
-                        className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-inverse font-heading text-lg font-bold text-inverse-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
-                      >
-                        {company.name.charAt(0)}
-                      </span>
+                      <CompanyMark
+                        name={company.name}
+                        className="transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
+                      />
                       <span className="flex-1 pt-0.5">{company.name}</span>
                       {company.level === "FULL" ? (
                         <BadgeCheck

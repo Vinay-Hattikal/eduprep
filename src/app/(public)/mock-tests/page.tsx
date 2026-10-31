@@ -19,9 +19,7 @@ export default function MockTestsPage() {
   return (
     <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:py-12">
       <header className="space-y-3">
-        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
-          Mock tests
-        </h1>
+        <h1 className="title-display">Mock tests</h1>
         <p className="max-w-2xl text-muted-foreground">
           Practise in the real format: the same sections, timers, negative marking and exam screen.
           See each test&apos;s pattern here; sign up free to take it.
@@ -38,7 +36,7 @@ async function Mocks() {
   const mocks = await listPublicMocks();
   if (!mocks.length) return <p className="text-muted-foreground">Mock tests are on the way.</p>;
   return (
-    <ul className="grid gap-4 md:grid-cols-2">
+    <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
       {mocks.map((m) => {
         const summary = mockSummary(m.sections);
         return (
