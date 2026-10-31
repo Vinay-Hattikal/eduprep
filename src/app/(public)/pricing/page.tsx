@@ -23,7 +23,7 @@ export default function PricingPage() {
   return (
     <main className="mx-auto w-full max-w-6xl space-y-12 px-4 py-12 sm:px-6">
       <div className="mx-auto max-w-2xl space-y-3 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
           Simple plans, priced for students
         </h1>
         <p className="text-pretty text-muted-foreground">

@@ -19,7 +19,7 @@ export default function MockTestsPage() {
   return (
     <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:py-12">
       <header className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
           Mock tests
         </h1>
         <p className="max-w-2xl text-muted-foreground">

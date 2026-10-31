@@ -66,7 +66,7 @@ async function Subject({ params }: { params: PageProps<"/questions/[subject]">["
         </span>
       </nav>
       <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
           {subject.name} questions
         </h1>
         <p className="text-muted-foreground">

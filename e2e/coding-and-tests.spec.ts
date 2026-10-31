@@ -111,7 +111,8 @@ test.describe("mock tests", () => {
 test.describe("admin", () => {
   test("sees problems checked in the judge, tests and the job monitor", async ({ page }, info) => {
     test.skip(info.project.name !== "desktop", "admin screens are checked on desktop");
-    await signInAs(page, accounts.admin, "/admin/problems");
+    // Searched, because problems made by earlier runs push it off the first page.
+    await signInAs(page, accounts.admin, "/admin/problems?q=Pair%20With%20Target%20Sum");
     await expect(page.getByRole("row", { name: /Pair With Target Sum/ })).toContainText("Passed");
     await page.getByRole("link", { name: "Pair With Target Sum" }).click();
     await expect(page.getByTestId("judge-check")).toContainText("✓ reference (python)");

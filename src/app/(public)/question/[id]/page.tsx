@@ -113,7 +113,7 @@ async function Question({ params }: Props) {
         </Link>
       </nav>
 
-      <h1 className="text-2xl font-semibold tracking-tight text-balance">
+      <h1 className="text-[1.75rem] leading-tight font-bold tracking-[-0.02em] text-balance sm:text-[2rem]">
         {questionTitle(question.text, 110)}
       </h1>
 

@@ -128,28 +128,36 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
         </span>
       </nav>
 
-      <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{CATEGORY_LABELS[company.category]}</Badge>
-            {company.level === "FULL" ? (
-              <Badge variant="outline" className="gap-1 border-primary/40 text-primary">
-                <BadgeCheck /> Verified pattern
-              </Badge>
-            ) : (
-              <Badge variant="outline">{LEVEL_LABELS[company.level]}: reported pattern</Badge>
-            )}
+      <header className="flex flex-col gap-6 rounded-2xl border border-border bg-card p-5 sm:p-7 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex min-w-0 flex-1 gap-5">
+          <span
+            aria-hidden="true"
+            className="hidden size-16 shrink-0 items-center justify-center rounded-xl bg-inverse font-heading text-3xl font-bold text-inverse-foreground sm:flex"
+          >
+            {company.name.charAt(0)}
+          </span>
+          <div className="min-w-0 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">{CATEGORY_LABELS[company.category]}</Badge>
+              {company.level === "FULL" ? (
+                <Badge variant="outline" className="gap-1 border-primary/40 text-primary">
+                  <BadgeCheck /> Verified pattern
+                </Badge>
+              ) : (
+                <Badge variant="outline">{LEVEL_LABELS[company.level]}: reported pattern</Badge>
+              )}
+            </div>
+            <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
+              {company.name}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Last verified {formatDate(company.lastVerifiedAt)} · {company.sources.length} source
+              {company.sources.length === 1 ? "" : "s"}
+            </p>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-            {company.name}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Last verified {formatDate(company.lastVerifiedAt)} · {company.sources.length} source
-            {company.sources.length === 1 ? "" : "s"}
-          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Suspense fallback={<Skeleton className="h-8 w-48" />}>
+        <div className="flex flex-wrap gap-2 lg:shrink-0 lg:flex-nowrap">
+          <Suspense fallback={<Skeleton className="h-9 w-40 rounded-lg" />}>
             <TargetButton companyId={company.id} slug={company.slug} />
           </Suspense>
           {company.questionCount ? (
@@ -163,7 +171,7 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>
@@ -414,7 +422,7 @@ async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]"
           ) : null}
         </div>
 
-        <aside className="space-y-6">
+        <aside className="min-w-0 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>

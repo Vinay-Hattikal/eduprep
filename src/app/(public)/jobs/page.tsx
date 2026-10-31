@@ -34,7 +34,9 @@ export default function JobsPage({ searchParams }: PageProps<"/jobs">) {
   return (
     <main className="mx-auto w-full max-w-4xl space-y-8 px-4 py-10 sm:px-6 lg:py-14">
       <div className="max-w-2xl space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Jobs</h1>
+        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
+          Jobs
+        </h1>
         <p className="text-lg text-muted-foreground">
           Openings for freshers and experienced engineers, checked by our team. You apply on the
           company&apos;s own site.

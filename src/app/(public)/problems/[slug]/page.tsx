@@ -80,7 +80,9 @@ async function Problem({ params }: Props) {
         </span>
       </nav>
       <header className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance">{problem.title}</h1>
+        <h1 className="text-[2rem] leading-[1.1] font-bold tracking-[-0.025em] text-balance sm:text-[2.5rem]">
+          {problem.title}
+        </h1>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">{DIFFICULTY_LABELS[problem.difficulty]}</Badge>
           {topics.map((t) => (

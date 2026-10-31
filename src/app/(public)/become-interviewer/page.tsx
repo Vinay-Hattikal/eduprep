@@ -22,7 +22,9 @@ export default function BecomeInterviewerPage() {
   return (
     <main className="mx-auto w-full max-w-3xl space-y-10 px-4 py-12 sm:px-6">
       <div className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance">Interview with us</h1>
+        <h1 className="text-[2rem] leading-[1.1] font-bold tracking-[-0.025em] text-balance sm:text-[2.5rem]">
+          Interview with us
+        </h1>
         <p className="text-pretty text-muted-foreground">
           Help freshers and engineers get ready for real interviews. You set the hours; we handle
           bookings, payments and reminders.

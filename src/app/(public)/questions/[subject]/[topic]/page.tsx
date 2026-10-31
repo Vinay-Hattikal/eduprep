@@ -118,7 +118,7 @@ async function Topic({ params, searchParams }: Props) {
       </nav>
 
       <header className="space-y-4">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
           {topic.name} questions
         </h1>
         <p className="text-muted-foreground">

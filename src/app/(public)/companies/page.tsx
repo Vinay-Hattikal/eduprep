@@ -25,7 +25,7 @@ export default function CompaniesPage({ searchParams }: PageProps<"/companies">)
   return (
     <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-10 sm:px-6 lg:py-14">
       <div className="max-w-2xl space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+        <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
           Companies
         </h1>
         <p className="text-lg text-muted-foreground">
@@ -126,10 +126,16 @@ async function Directory({
                 href={`/companies/${company.slug}`}
                 className="group block h-full rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
-                <Card className="h-full transition-colors group-hover:border-primary/40">
+                <Card className="h-full transition-[border-color,box-shadow,transform] duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-[0_12px_28px_-16px_rgb(21_23_28/0.3)] motion-reduce:group-hover:translate-y-0">
                   <CardHeader>
-                    <CardTitle className="flex items-start gap-2">
-                      <span className="flex-1">{company.name}</span>
+                    <CardTitle className="flex items-start gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-inverse font-heading text-lg font-bold text-inverse-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
+                      >
+                        {company.name.charAt(0)}
+                      </span>
+                      <span className="flex-1 pt-0.5">{company.name}</span>
                       {company.level === "FULL" ? (
                         <BadgeCheck
                           className="size-5 shrink-0 text-primary"

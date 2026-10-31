@@ -142,7 +142,7 @@ async function JobDetail({
               </Badge>
             ))}
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+          <h1 className="text-[2.1rem] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-5xl">
             {job.title}
           </h1>
           <p className="flex flex-wrap items-center gap-x-2 text-lg">

@@ -56,7 +56,7 @@ async function Card({ params }: { params: PageProps<"/s/[id]">["params"] }) {
         {formatDate(new Date(`${card.data.date}T12:00:00Z`))}
       </p>
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold tracking-tight text-balance">
+        <h1 className="text-[1.75rem] leading-tight font-bold tracking-[-0.02em] text-balance sm:text-[2rem]">
           Prepare for placements like {card.data.name.split(" ")[0]}
         </h1>
         <p className="text-muted-foreground">
