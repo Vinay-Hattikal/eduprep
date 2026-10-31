@@ -74,7 +74,8 @@ All via `next/font/google` with `display: swap`. Page titles: 2.1 rem → 3 rem 
 - Radius: `--radius: 0.625rem`; feature tiles and big panels use `rounded-2xl`.
 - Elevation: cards have a hairline border plus a soft paper shadow in light mode, none in dark. Hover lifts by 2 px (off with reduced motion).
 - Content width: 1152 px (`max-w-6xl`) for public pages, 1280 px for app pages, 720 px for reading.
-- Grid columns that hold cards get `min-w-0`, so wide content (tables) scrolls inside its card instead of widening the page.
+- Responsive grids start from `grid-cols-1` (columns can shrink), so wide content (tables) scrolls inside its card instead of widening the page.
+- Shared utilities: `title-display` / `title-page` / `title-app` (page titles), `shadow-card` / `shadow-lift` / `shadow-float` (elevation, dark values in the tokens), `card-lift` (link-wrapped card hover), `ruled` (exam-paper lines; `--rule` sets the colour), `numeral`.
 - Breakpoints: Tailwind defaults (`sm` 640, `md` 768, `lg` 1024, `xl` 1280).
 
 ### Key screen layouts
