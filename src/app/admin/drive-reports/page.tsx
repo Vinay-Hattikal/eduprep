@@ -32,7 +32,7 @@ async function Queue({
 }) {
   await requirePermission("experiences.moderate");
   const { error } = await searchParams;
-  const pending = await listDriveReportsForModeration("PENDING");
+  const pending = await listDriveReportsForModeration();
   return (
     <div className="space-y-4">
       {typeof error === "string" ? (
@@ -45,7 +45,7 @@ async function Queue({
         <EmptyState title="Nothing to review" description="New drive reports appear here." />
       ) : null}
       {pending.map((report) => (
-        <DriveReportReview key={report.id} report={report} back="/admin/drive-reports" />
+        <DriveReportReview key={report.id} report={report} />
       ))}
     </div>
   );

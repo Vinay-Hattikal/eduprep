@@ -5,10 +5,9 @@ import { Plus } from "lucide-react";
 import { DataTable } from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
 import { TableSkeleton } from "@/components/shared/skeletons";
-import { Badge } from "@/components/ui/badge";
+import { PostingStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
-import { isAcceptingApplications, JOB_STATUS_LABELS } from "@/lib/jobs/postings";
 import { istDay } from "@/lib/learning/dates";
 import { requirePermission } from "@/server/auth";
 import { listPostingsForAdmin } from "@/server/services/job-postings";
@@ -35,12 +34,6 @@ export default function PostingsPage() {
     </div>
   );
 }
-
-const STATUS_STYLES = {
-  DRAFT: "border-muted-foreground/30 text-muted-foreground",
-  PUBLISHED: "border-success/40 bg-success/10 text-success",
-  CLOSED: "border-warning/40 text-warning",
-} as const;
 
 async function PostingList() {
   await requirePermission("postings.manage");
@@ -72,14 +65,7 @@ async function PostingList() {
         {
           key: "status",
           header: "Status",
-          cell: (p) => {
-            const expired = p.status === "PUBLISHED" && !isAcceptingApplications(p, today);
-            return (
-              <Badge variant="outline" className={STATUS_STYLES[expired ? "CLOSED" : p.status]}>
-                {expired ? "Expired" : JOB_STATUS_LABELS[p.status]}
-              </Badge>
-            );
-          },
+          cell: (p) => <PostingStatusBadge posting={p} today={today} />,
         },
         {
           key: "apply",

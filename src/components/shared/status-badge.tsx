@@ -1,7 +1,8 @@
-import type { ContentStatus, ImportStatus } from "@/generated/prisma/enums";
+import type { ContentStatus, ImportStatus, JobPostingStatus } from "@/generated/prisma/enums";
 import { Badge } from "@/components/ui/badge";
 import { VERDICT_LABELS, type VerdictName } from "@/lib/coding/languages";
 import { STATUS_LABELS } from "@/lib/content/workflow";
+import { isAcceptingApplications, JOB_STATUS_LABELS } from "@/lib/jobs/postings";
 import { cn } from "@/lib/utils";
 
 const CONTENT_STYLES: Record<ContentStatus, string> = {
@@ -79,6 +80,28 @@ export function VerdictBadge({ verdict, label }: { verdict: VerdictName; label?:
   return (
     <Badge variant="outline" className={cn(VERDICT_STYLES[verdict])}>
       {label ?? VERDICT_LABELS[verdict]}
+    </Badge>
+  );
+}
+
+const POSTING_STYLES: Record<JobPostingStatus, string> = {
+  DRAFT: "border-muted-foreground/30 text-muted-foreground",
+  PUBLISHED: "border-success/40 bg-success/10 text-success",
+  CLOSED: "border-warning/40 text-warning",
+};
+
+/** A job posting's status; a published one past its apply-by date shows as expired. */
+export function PostingStatusBadge({
+  posting,
+  today,
+}: {
+  posting: { status: JobPostingStatus; applyBy: Date | null };
+  today: Date;
+}) {
+  const expired = posting.status === "PUBLISHED" && !isAcceptingApplications(posting, today);
+  return (
+    <Badge variant="outline" className={POSTING_STYLES[expired ? "CLOSED" : posting.status]}>
+      {expired ? "Expired" : JOB_STATUS_LABELS[posting.status]}
     </Badge>
   );
 }

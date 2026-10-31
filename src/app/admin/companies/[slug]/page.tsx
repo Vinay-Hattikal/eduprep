@@ -24,7 +24,6 @@ import { formatDate } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { requirePermission } from "@/server/auth";
-import { db } from "@/server/db";
 import { todayUtc } from "@/server/imports/definitions/companies";
 import { companiesWithRounds, companyActions, getCompanyBySlug } from "@/server/services/companies";
 import { companyPublishPlan } from "@/server/services/company-publish";
@@ -67,14 +66,9 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
   ]);
   if (!company) notFound();
   // The checklist drives the progress bar on every tab; the publish plan only the Overview.
-  const [readiness, plan, mock] = await Promise.all([
+  const [readiness, plan] = await Promise.all([
     companyReadiness(company),
     tab === "overview" ? companyPublishPlan(company.id) : null,
-    db.testBlueprint.findFirst({
-      where: { companyId: company.id, kind: "COMPANY_MOCK", status: { not: "ARCHIVED" } },
-      orderBy: { status: "desc" },
-      select: { id: true },
-    }),
   ]);
   const published = query.published === "1";
   const count = (key: string) => Number(query[key]) || 0;
@@ -101,9 +95,9 @@ async function CompanyDetail({ params, searchParams }: PageProps<"/admin/compani
                 <ExternalLink /> View page
               </Link>
             </Button>
-            {mock ? (
+            {readiness.mockId ? (
               <Button asChild variant="outline" size="sm">
-                <Link href={`/admin/tests/${mock.id}`}>Mock test</Link>
+                <Link href={`/admin/tests/${readiness.mockId}`}>Mock test</Link>
               </Button>
             ) : null}
           </>

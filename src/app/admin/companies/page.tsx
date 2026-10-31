@@ -12,6 +12,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { CATEGORY_LABELS, LEVEL_LABELS } from "@/lib/content/companies";
 import { DRAFT_STATUSES } from "@/lib/content/workflow";
 import { formatDate } from "@/lib/format";
+import { pick } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePermission } from "@/server/auth";
 import { listCompanies } from "@/server/services/companies";
@@ -72,26 +73,30 @@ async function RequestedCompanies() {
   );
 }
 
-const FILTERS = {
-  all: "All companies",
-  "not-ready": "Not ready",
-  stale: "Not verified lately",
-  draft: "Drafts",
-  published: "Published",
-} as const;
-const SORTS = {
-  name: "Name",
-  progress: "Least ready first",
-  verified: "Oldest check first",
-} as const;
+type Row = Awaited<ReturnType<typeof listCompanies>>[number];
+/** Archived companies have nothing left to do: they're never "not ready" and sort last. */
+const archived = (c: Row) => c.status === "ARCHIVED";
+const progress = (c: Row) => (archived(c) ? 2 : c.readiness.done / c.readiness.total);
 
-type Filter = keyof typeof FILTERS;
-/** Archived companies sort after the rest: there's nothing left to do on them. */
-const progress = (c: { status: string; readiness: { done: number; total: number } }) =>
-  c.status === "ARCHIVED" ? 2 : c.readiness.done / c.readiness.total;
-type Sort = keyof typeof SORTS;
-const pick = <T extends string>(value: unknown, options: Record<T, string>, fallback: T): T =>
-  typeof value === "string" && value in options ? (value as T) : fallback;
+const FILTERS = {
+  all: { label: "All companies", test: () => true },
+  "not-ready": {
+    label: "Not ready",
+    test: (c: Row) => !archived(c) && c.readiness.done < c.readiness.total,
+  },
+  stale: { label: "Not verified lately", test: (c: Row) => c.stale },
+  draft: { label: "Drafts", test: (c: Row) => DRAFT_STATUSES.includes(c.status) },
+  published: { label: "Published", test: (c: Row) => c.status === "PUBLISHED" },
+} satisfies Record<string, { label: string; test: (c: Row) => boolean }>;
+
+const SORTS = {
+  name: { label: "Name", compare: () => 0 }, // listCompanies is ordered by name
+  progress: { label: "Least ready first", compare: (a: Row, b: Row) => progress(a) - progress(b) },
+  verified: {
+    label: "Oldest check first",
+    compare: (a: Row, b: Row) => a.lastVerifiedAt.getTime() - b.lastVerifiedAt.getTime(),
+  },
+} satisfies Record<string, { label: string; compare: (a: Row, b: Row) => number }>;
 
 /** Companies with progress (D-067): filter to what needs work, sort by readiness or age. */
 async function CompanyList({
@@ -101,41 +106,23 @@ async function CompanyList({
 }) {
   await requirePermission("companies.manage");
   const query = await searchParams;
-  const filter = pick<Filter>(query.filter, FILTERS, "all");
-  const sort = pick<Sort>(query.sort, SORTS, "name");
+  const filter = pick(query.filter, FILTERS) ?? "all";
+  const sort = pick(query.sort, SORTS) ?? "name";
   const all = await listCompanies();
-  const companies = all
-    .filter((c) =>
-      filter === "not-ready"
-        ? c.status !== "ARCHIVED" && c.readiness.done < c.readiness.total
-        : filter === "stale"
-          ? c.stale
-          : filter === "draft"
-            ? DRAFT_STATUSES.includes(c.status)
-            : filter === "published"
-              ? c.status === "PUBLISHED"
-              : true,
-    )
-    .sort((a, b) =>
-      sort === "progress"
-        ? progress(a) - progress(b)
-        : sort === "verified"
-          ? a.lastVerifiedAt.getTime() - b.lastVerifiedAt.getTime()
-          : 0,
-    );
+  const companies = all.filter(FILTERS[filter].test).sort(SORTS[sort].compare);
 
   return (
     <div className="space-y-4">
       <form className="flex flex-wrap items-end gap-2" aria-label="Filter companies">
         <NativeSelect name="filter" defaultValue={filter} aria-label="Show" size="sm">
-          {Object.entries(FILTERS).map(([value, label]) => (
+          {Object.entries(FILTERS).map(([value, { label }]) => (
             <NativeSelectOption key={value} value={value}>
               {label}
             </NativeSelectOption>
           ))}
         </NativeSelect>
         <NativeSelect name="sort" defaultValue={sort} aria-label="Sort" size="sm">
-          {Object.entries(SORTS).map(([value, label]) => (
+          {Object.entries(SORTS).map(([value, { label }]) => (
             <NativeSelectOption key={value} value={value}>
               {label}
             </NativeSelectOption>
@@ -153,7 +140,7 @@ async function CompanyList({
   );
 }
 
-function CompanyTable({ companies }: { companies: Awaited<ReturnType<typeof listCompanies>> }) {
+function CompanyTable({ companies }: { companies: Row[] }) {
   return (
     <DataTable
       caption="Companies"
@@ -194,7 +181,7 @@ function CompanyTable({ companies }: { companies: Awaited<ReturnType<typeof list
               <span className="tabular text-sm font-medium">
                 {c.readiness.done}/{c.readiness.total}
               </span>
-              {c.readiness.next && c.status !== "ARCHIVED" ? (
+              {c.readiness.next && !archived(c) ? (
                 <p className="text-xs text-muted-foreground">Next: {c.readiness.next.label}</p>
               ) : null}
             </div>

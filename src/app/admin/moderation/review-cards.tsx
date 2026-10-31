@@ -21,6 +21,15 @@ import { RESULT_LABELS, type listForModeration } from "@/server/services/experie
 type Experience = Awaited<ReturnType<typeof listForModeration>>[number];
 type DriveReport = Awaited<ReturnType<typeof listDriveReportsForModeration>>[number];
 
+function ReturnTo({ company }: { company: string | null }) {
+  return company ? (
+    <>
+      <input type="hidden" name="from" value="company" />
+      <input type="hidden" name="companySlug" value={company} />
+    </>
+  ) : null;
+}
+
 function Decision({ id, note, testId }: { id: string; note: string; testId: string }) {
   return (
     <div className="flex flex-wrap items-end gap-2">
@@ -38,7 +47,8 @@ function Decision({ id, note, testId }: { id: string; note: string; testId: stri
   );
 }
 
-export function ExperienceReview({ x, back }: { x: Experience; back: string }) {
+/** `fromCompany`: shown on the company's Community tab, so the review returns there. */
+export function ExperienceReview({ x, fromCompany }: { x: Experience; fromCompany?: boolean }) {
   return (
     <Card data-testid="pending-experience">
       <CardHeader>
@@ -59,7 +69,7 @@ export function ExperienceReview({ x, back }: { x: Experience; back: string }) {
       <CardContent>
         <form action={moderateExperienceAction} className="space-y-3">
           <input type="hidden" name="id" value={x.id} />
-          <input type="hidden" name="back" value={back} />
+          <ReturnTo company={fromCompany ? x.company.slug : null} />
           <div className="space-y-1.5">
             <Label htmlFor={`rounds-${x.id}`}>Rounds</Label>
             <Textarea id={`rounds-${x.id}`} name="rounds" rows={5} defaultValue={x.rounds} />
@@ -88,7 +98,13 @@ export function ExperienceReview({ x, back }: { x: Experience; back: string }) {
   );
 }
 
-export function DriveReportReview({ report, back }: { report: DriveReport; back: string }) {
+export function DriveReportReview({
+  report,
+  fromCompany,
+}: {
+  report: DriveReport;
+  fromCompany?: boolean;
+}) {
   return (
     <Card data-testid="pending-drive-report">
       <CardHeader>
@@ -110,7 +126,7 @@ export function DriveReportReview({ report, back }: { report: DriveReport; back:
       <CardContent>
         <form action={moderateDriveReportAction} className="space-y-3">
           <input type="hidden" name="id" value={report.id} />
-          <input type="hidden" name="back" value={back} />
+          <ReturnTo company={fromCompany ? report.company.slug : null} />
           <div className="space-y-1.5">
             <Label htmlFor={`topics-${report.id}`}>Sections or topics</Label>
             <Input id={`topics-${report.id}`} name="topics" defaultValue={report.topics ?? ""} />

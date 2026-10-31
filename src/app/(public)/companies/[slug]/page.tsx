@@ -68,7 +68,8 @@ export default function CompanyPage({ params }: PageProps<"/companies/[slug]">) 
 
 async function CompanyDetail({ params }: { params: PageProps<"/companies/[slug]">["params"] }) {
   const { slug } = await params;
-  const company = (await getPublishedCompany(slug)) ?? (await adminPreview(slug));
+  const company =
+    (await getPublishedCompany(slug)) ?? (await getCompanyPreview(slug, await getCurrentUser()));
   if (!company) notFound();
   const draft = company.status !== "PUBLISHED";
 
@@ -700,10 +701,4 @@ async function PersonalEligibility({ rules }: { rules: Parameters<typeof checkEl
       </ul>
     </div>
   );
-}
-
-/** A draft company's page for admins only (D-067): visitors get a 404 as before. */
-async function adminPreview(slug: string) {
-  const user = await getCurrentUser();
-  return user && can(user.roles, "companies.manage") ? getCompanyPreview(slug) : null;
 }

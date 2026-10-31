@@ -2,6 +2,9 @@ import "server-only";
 
 import { cacheLife, cacheTag } from "next/cache";
 import { toPublicQuestion } from "@/lib/content/public-question";
+import type { Prisma } from "@/generated/prisma/client";
+import type { Role } from "@/generated/prisma/enums";
+import { can } from "@/lib/permissions";
 import { db } from "@/server/db";
 
 /** Cache tag for everything shown on public company pages. Admin actions call updateTag(). */
@@ -43,20 +46,21 @@ export async function getPublishedCompany(slug: string) {
   "use cache";
   cacheTag(COMPANIES_TAG, `company:${slug}`);
   cacheLife("hours");
-  return loadCompanyPage(slug, true);
+  return loadCompanyPage(slug, "PUBLISHED");
 }
 
 /**
  * The public page of a company that isn't published yet, for admins checking it before they
- * publish (D-067). Not cached; shows the content that is already live.
+ * publish (D-067); null for anyone else. Not cached; shows the content that is already live.
  */
-export async function getCompanyPreview(slug: string) {
-  return loadCompanyPage(slug, false);
+export async function getCompanyPreview(slug: string, viewer: { roles: readonly Role[] } | null) {
+  if (!viewer || !can(viewer.roles, "companies.manage")) return null;
+  return loadCompanyPage(slug, { not: "ARCHIVED" });
 }
 
-async function loadCompanyPage(slug: string, publishedOnly: boolean) {
+async function loadCompanyPage(slug: string, status: Prisma.EnumContentStatusFilter | "PUBLISHED") {
   const company = await db.company.findFirst({
-    where: { slug, ...(publishedOnly ? { status: "PUBLISHED" } : { status: { not: "ARCHIVED" } }) },
+    where: { slug, status },
     include: {
       rounds: {
         orderBy: { order: "asc" },

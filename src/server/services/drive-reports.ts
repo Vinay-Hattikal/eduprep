@@ -94,11 +94,11 @@ export async function listMyDriveReports(userId: string) {
   });
 }
 
-export async function listDriveReportsForModeration(
-  status: ExperienceStatus = "PENDING",
-  companyId?: string,
+export async function listDriveReportsForModeration({
+  status = "PENDING",
+  companyId,
   take = 100,
-) {
+}: { status?: ExperienceStatus; companyId?: string; take?: number } = {}) {
   return db.driveReport.findMany({
     where: { status, ...(companyId && { companyId }) },
     orderBy: { createdAt: status === "PENDING" ? "asc" : "desc" },

@@ -32,7 +32,7 @@ async function Queue({
 }) {
   await requirePermission("experiences.moderate");
   const { error } = await searchParams;
-  const pending = await listForModeration("PENDING");
+  const pending = await listForModeration();
   return (
     <div className="space-y-4">
       {typeof error === "string" ? (
@@ -45,7 +45,7 @@ async function Queue({
         <EmptyState title="Nothing to review" description="New experiences appear here." />
       ) : null}
       {pending.map((x) => (
-        <ExperienceReview key={x.id} x={x} back="/admin/experiences" />
+        <ExperienceReview key={x.id} x={x} />
       ))}
     </div>
   );

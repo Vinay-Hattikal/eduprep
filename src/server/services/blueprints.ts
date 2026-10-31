@@ -189,12 +189,16 @@ export const questionPool = (
 });
 
 /** What a coding section draws problems from: published and passed the judge check. */
+export const POOL_PROBLEM = {
+  status: "PUBLISHED",
+  validatedAt: { not: null },
+} as const satisfies Prisma.ProblemWhereInput;
+
 export const problemPool = (
   topicId: string,
   difficulty: PoolDifficulty = null,
 ): Prisma.ProblemWhereInput => ({
-  status: "PUBLISHED",
-  validatedAt: { not: null },
+  ...POOL_PROBLEM,
   topics: { some: { id: topicId } },
   ...(difficulty && { difficulty }),
 });

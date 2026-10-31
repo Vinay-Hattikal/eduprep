@@ -30,15 +30,14 @@ export async function listCompanies() {
       },
     },
   });
-  const readiness = await companiesReadiness(
-    companies.map((c) => ({ ...c, sources: c._count.sources })),
-  );
   const now = new Date();
-  return companies.map((company) => ({
-    ...company,
-    stale: isStale(company.lastVerifiedAt, now),
-    readiness: readiness.get(company.id)!,
+  const rows = companies.map((c) => ({
+    ...c,
+    sources: c._count.sources,
+    stale: isStale(c.lastVerifiedAt, now),
   }));
+  const readiness = await companiesReadiness(rows);
+  return rows.map((company) => ({ ...company, readiness: readiness.get(company.id)! }));
 }
 
 export async function getCompanyBySlug(slug: string) {

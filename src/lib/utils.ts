@@ -9,3 +9,9 @@ export function slugify(text: string, max = 60): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, max);
 }
+
+/** A search param when it's one of `allowed`'s keys, else undefined. */
+export const pick = <T extends string>(
+  value: unknown,
+  allowed: Record<T, unknown>,
+): T | undefined => (typeof value === "string" && value in allowed ? (value as T) : undefined);

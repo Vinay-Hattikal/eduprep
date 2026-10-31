@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { siteConfig } from "@/config/site";
 import { JOB_TYPE_LABELS, WORK_MODE_LABELS } from "@/lib/jobs/postings";
 import { can } from "@/lib/permissions";
+import { pick } from "@/lib/utils";
 import { getCurrentUser } from "@/server/auth";
 import {
   jobMarks,
@@ -56,9 +57,6 @@ function ListSkeleton() {
     </div>
   );
 }
-
-const pick = <T extends string>(value: unknown, allowed: Record<T, string>): T | undefined =>
-  typeof value === "string" && value in allowed ? (value as T) : undefined;
 
 async function JobList({ searchParams }: { searchParams: PageProps<"/jobs">["searchParams"] }) {
   // Openness depends on today's date: always render per request.

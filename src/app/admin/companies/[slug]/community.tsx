@@ -6,11 +6,12 @@ import {
   TurnIntoQuestion,
 } from "@/app/admin/moderation/review-cards";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { PostingStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { companyTabHref, ROUND_TYPE_LABELS } from "@/lib/content/companies";
+import { ROUND_TYPE_LABELS } from "@/lib/content/companies";
 import { formatDate, plainExcerpt } from "@/lib/format";
+import { istDay } from "@/lib/learning/dates";
 import { listDriveReportsForModeration } from "@/server/services/drive-reports";
 import { listForModeration } from "@/server/services/experiences";
 import { listPostingsForAdmin } from "@/server/services/job-postings";
@@ -26,12 +27,12 @@ export async function CommunityTab({
   company: { id: string; slug: string; name: string };
 }) {
   const [experiences, reports, approved, postings] = await Promise.all([
-    listForModeration("PENDING", company.id),
-    listDriveReportsForModeration("PENDING", company.id),
-    listDriveReportsForModeration("APPROVED", company.id, 10),
-    listPostingsForAdmin(undefined, company.id),
+    listForModeration({ companyId: company.id }),
+    listDriveReportsForModeration({ companyId: company.id }),
+    listDriveReportsForModeration({ status: "APPROVED", companyId: company.id, take: 10 }),
+    listPostingsForAdmin({ companyId: company.id }),
   ]);
-  const back = companyTabHref(company.slug, "community");
+  const today = istDay();
 
   return (
     <div className="space-y-6">
@@ -49,10 +50,10 @@ export async function CommunityTab({
           />
         ) : null}
         {reports.map((report) => (
-          <DriveReportReview key={report.id} report={report} back={back} />
+          <DriveReportReview key={report.id} report={report} fromCompany />
         ))}
         {experiences.map((x) => (
-          <ExperienceReview key={x.id} x={x} back={back} />
+          <ExperienceReview key={x.id} x={x} fromCompany />
         ))}
       </section>
 
@@ -114,9 +115,7 @@ export async function CommunityTab({
                   >
                     {p.title}
                   </Link>
-                  <Badge variant={p.status === "PUBLISHED" ? "default" : "outline"}>
-                    {p.status.toLowerCase()}
-                  </Badge>
+                  <PostingStatusBadge posting={p} today={today} />
                   <span className="text-xs text-muted-foreground">
                     {p.applyBy ? `apply by ${formatDate(p.applyBy)} · ` : ""}
                     {p.applyClicks} apply clicks
