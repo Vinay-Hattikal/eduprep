@@ -5,7 +5,7 @@ Where the project stands right now. **Update at the end of every work session.**
 - Task list and status for every phase: [plan.md](plan.md)
 - This file: current focus, known issues, session log
 
-Last updated: 2026-10-31 (company workspace part 2, steps 1–2: D-067)
+Last updated: 2026-10-31 (company workspace part 2 complete: D-067)
 
 ---
 
@@ -14,7 +14,7 @@ Last updated: 2026-10-31 (company workspace part 2, steps 1–2: D-067)
 - **Phases 1–5 are done; Phase 6 integrations are built.** Real accounts work; Razorpay, Resend, MSG91, WhatsApp, Google Meet, Redis/BullMQ and Docker are built behind switches and tested with development drivers and faked provider responses.
 - **Phase 7 (engagement) is built:** jobs board, weekly All-India mocks, "asked today" drive reports, question discussions, badges and streak freezes, share cards.
 - **One admin role, no review step (D-056):** a single Admin role does everything. Content is Draft → Published → Archived. Editors have "Save and publish", imports have "Publish after import", and admin › Drafts lists everything not yet live. 
-- **Company workspace (D-057):** each company's admin page has tabs: Profile, Hiring process, Sources, MCQ questions, Coding and Mock tests. Questions and coding problems are added from there already tagged with the company. "Then add another" keeps the setup and suggests the next ID. "Asked at" and "+ New topic" are in the editors. Next: the owner enters content; the remaining Phase 6 work waits for keys and hosting.
+- **Company workspace (D-057, D-067):** each company's admin page has tabs: Overview (checklist, progress, Publish everything), Profile, Hiring process (with coverage per topic and copy from another company), Sources, MCQ questions, Coding, Interview questions, Community and Mock tests. Questions and coding problems are added from there already tagged with the company. "Then add another" keeps the setup and suggests the next ID. "Asked at" and "+ New topic" are in the editors. Next: the owner enters content; the remaining Phase 6 work waits for keys and hosting.
 - **Admin panel completion (D-055):** coding problems, design questions, role tracks, interview types, passages and admin roles can now be created and edited in the admin panel, not only imported.
 - **Owner's order (2026-10-28):** finish building and testing the application first. API keys, payments, domain and hosting are undecided and come last.
 - **Later, after the build:** the owner gets the accounts and keys; then each service gets one real test on staging, following [deployment.md](deployment.md). Remaining Phase 6 work: hosting choice and staging, monitoring and backups, Razorpay Route payouts, a load test re-run on the production servers, legal review, content load, beta.
@@ -113,6 +113,8 @@ See PRD section 14.
 ## Session log
 
 Newest first. One line per session: date, who, what changed, what's next.
+
+- 2026-10-31 · Claude · **Company workspace step 3 (D-067), part 2 complete:** a Community tab per company (review its interview experiences and drive reports with the shared moderation cards, turn approved reports into questions, its job postings), previews (the company's public page, with a draft banner for admins, and its mock), and a companies list with progress, next step, content counts, filters and sorting. `/code-review` (10 fixes, among them a mock link admins couldn't open and questions prefilled from unapproved reports) and `/simplify` (one-pass readiness tallies, coding pools by the shared rule, moderation returns chosen by the server, shared posting badge). Verified: `npm run check` (317 unit), 154/154 integration, full e2e 109 passed, 0 failed. Next: the owner fills in companies; remaining Phase 6 work waits for keys and hosting.
 
 - 2026-10-31 · Claude · **Company workspace step 2 (D-067):** Interview questions tab (design questions gain Technical interview and HR / behavioural kinds; companies are `company_items` links with a round), import for a company, copy a hiring pattern, and "+ New passage" in the question editor. `/code-review` (10 fixes, among them re-imports that re-drafted questions and links drifting when rounds moved) and `/simplify` (round links by id, the design import on the shared company-link rules, shared link parts, batch publish). Verified: `npm run check` (317 unit), 153/153 integration, full e2e 105 passed, 0 failed. Next: step 3 (community tab, previews, companies list).
 
