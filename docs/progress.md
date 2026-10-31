@@ -5,7 +5,7 @@ Where the project stands right now. **Update at the end of every work session.**
 - Task list and status for every phase: [plan.md](plan.md)
 - This file: current focus, known issues, session log
 
-Last updated: 2026-10-31 (company workspace part 2 complete: D-067)
+Last updated: 2026-10-31 (AnyPrep redesign, "Ink & Saffron": D-068)
 
 ---
 
@@ -114,6 +114,7 @@ See PRD section 14.
 
 Newest first. One line per session: date, who, what changed, what's next.
 
+- 2026-10-31 · Claude · **AnyPrep redesign (D-068):** new brand (AnyPrep, anyprep.in, "A" mark), "Ink & Saffron" tokens (paper, ink, peacock teal, saffron for achievement) and type (Bricolage Grotesque, Onest, JetBrains Mono); restyled components and shells (ink footer, sidebar and tab-bar active states); a new landing page (exam-window hero, published-company strip, product-piece tiles); larger public page titles, company monograms and header card; split sign-in screens; dashboard and practice touches; an ink exam timer that turns amber then red; branded emails. URLs, wording tests rely on, test IDs and behaviour unchanged. New `tests/unit/contrast.test.ts` (26 token pairs, AA, both themes). Found and fixed: the hero marker added a space to the h1's accessible name; card padding made the company page scroll sideways at 360 px (grid columns now `min-w-0`); the taller footer pushed CLS over budget on cold loads (content area is now at least a screen tall); an admin test lost its problem off page 1 as e2e data grew. Verified: `npm run check` (369 unit), full e2e 113 passed (the one CLS failure fixed and re-run), visual review in light/dark on desktop and a 360 px phone. Next: the owner reviews the look; Phase 6 keys and hosting.
 - 2026-10-31 · Claude · **Company workspace step 3 (D-067), part 2 complete:** a Community tab per company (review its interview experiences and drive reports with the shared moderation cards, turn approved reports into questions, its job postings), previews (the company's public page, with a draft banner for admins, and its mock), and a companies list with progress, next step, content counts, filters and sorting. `/code-review` (10 fixes, among them a mock link admins couldn't open and questions prefilled from unapproved reports) and `/simplify` (one-pass readiness tallies, coding pools by the shared rule, moderation returns chosen by the server, shared posting badge). Verified: `npm run check` (317 unit), 154/154 integration, full e2e 109 passed, 0 failed. Next: the owner fills in companies; remaining Phase 6 work waits for keys and hosting.
 
 - 2026-10-31 · Claude · **Company workspace step 2 (D-067):** Interview questions tab (design questions gain Technical interview and HR / behavioural kinds; companies are `company_items` links with a round), import for a company, copy a hiring pattern, and "+ New passage" in the question editor. `/code-review` (10 fixes, among them re-imports that re-drafted questions and links drifting when rounds moved) and `/simplify` (round links by id, the design import on the shared company-link rules, shared link parts, batch publish). Verified: `npm run check` (317 unit), 153/153 integration, full e2e 105 passed, 0 failed. Next: step 3 (community tab, previews, companies list).

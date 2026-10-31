@@ -181,8 +181,8 @@ async function AdminOverview() {
                   ) : null}
                   <span
                     className={cn(
-                      "tabular w-8 text-right text-sm font-medium",
-                      active ? "text-foreground" : "text-muted-foreground",
+                      "tabular min-w-8 rounded-md px-1.5 py-0.5 text-center text-sm font-semibold",
+                      active ? "bg-secondary text-secondary-foreground" : "text-muted-foreground",
                     )}
                   >
                     {queue.count ?? 0}
@@ -197,7 +197,7 @@ async function AdminOverview() {
                   {queue.href ? (
                     <Link
                       href={queue.href}
-                      className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-3 hover:bg-muted/50"
+                      className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-surface"
                     >
                       {content}
                     </Link>

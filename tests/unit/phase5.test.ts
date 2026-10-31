@@ -244,7 +244,7 @@ describe("notification templates", () => {
 
   it("escapes HTML in emails", () => {
     expect(emailHtml("<x>", "a <b> https://x.example/y")).toContain(
-      '&lt;b&gt; <a href="https://x.example/y">',
+      '&lt;b&gt; <a href="https://x.example/y" style="color:#0f6e6a">',
     );
   });
 });

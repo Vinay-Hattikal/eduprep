@@ -1,4 +1,4 @@
-# AnyPrep redesign plan (proposed, D-068)
+# AnyPrep redesign plan (accepted, D-068)
 
 **Status:** proposed 2026-10-31, waiting for the owner to pick a visual direction (section 2). Nothing is built yet.
 

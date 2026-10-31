@@ -87,7 +87,7 @@ async function PracticeHub() {
         description="Pick a topic or a company. Questions go from easy to hard, with an explanation after each answer."
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {dailyId ? (
           <QuickLink
             href="/practice/daily"
@@ -160,7 +160,7 @@ async function PracticeHub() {
           />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {subjects.map((subject) => {
+            {subjects.map((subject, index) => {
               const level =
                 subject.averageMastery === null ? "new" : masteryLevel(subject.averageMastery, 1);
               return (
@@ -169,12 +169,20 @@ async function PracticeHub() {
                   href={`/practice/${subject.slug}`}
                   className="group rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
-                  <Card className="h-full transition-colors group-hover:border-primary/40">
+                  <Card className="h-full transition-[border-color,box-shadow,transform] duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-[0_12px_28px_-16px_rgb(21_23_28/0.3)] motion-reduce:group-hover:translate-y-0">
                     <CardHeader>
-                      <CardTitle>{subject.name}</CardTitle>
+                      <CardTitle className="flex items-start justify-between gap-3">
+                        {subject.name}
+                        <span
+                          aria-hidden="true"
+                          className="numeral text-sm font-semibold text-muted-foreground/70"
+                        >
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                      </CardTitle>
                       <CardDescription>
                         {subject.questions} question{subject.questions === 1 ? "" : "s"} ·{" "}
-                        {subject.topics.filter((t) => t.questions > 0).length} topics
+                        {topicCount(subject.topics)}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
@@ -206,4 +214,9 @@ async function PracticeHub() {
       </section>
     </div>
   );
+}
+
+function topicCount(topics: { questions: number }[]) {
+  const n = topics.filter((t) => t.questions > 0).length;
+  return `${n} topic${n === 1 ? "" : "s"}`;
 }

@@ -1,100 +1,81 @@
 # Design System
 
-How EduPrep looks and feels. The goal: a product that feels **modern, fast and trustworthy**, clearly better than the dated, ad-heavy look of IndiaBix and PrepInsta. Benchmarks: the clarity of Linear and Vercel, LeetCode's coding workspace, and the motivating progress feedback of Duolingo.
+How the product looks and feels: **"Ink & Saffron"** (D-068). Warm paper, ink text, peacock teal for actions and saffron for achievement: a calm, editorial look that reads as Indian and trustworthy, and doesn't look like a generic AI-made SaaS template. The reasoning and the alternatives considered are in [redesign-plan.md](redesign-plan.md).
 
-Tokens defined here are implemented as CSS variables in `src/app/globals.css` and used through Tailwind classes. **Never hard-code colours, fonts or brand names in components.**
+Tokens live as CSS variables in `src/app/globals.css` and are used through Tailwind classes. **Never hard-code colours, fonts or brand names in components.** (The one exception is a colour on the ink band, which is dark in both themes; say so in a comment.)
 
 ---
 
 ## 1. Principles
 
-1. **Focus first.** Practice and test screens remove everything except the task: no ads, no clutter, no pop-ups.
-2. **Feedback is instant and clear.** Right or wrong, time taken and progress are always visible.
-3. **Trust through precision.** Clean typography, aligned numbers, sources and verified dates shown openly.
-4. **Mobile-first, desktop-great.** Design at 360 px first, then use the extra space on desktop for side panels (question palette, explanation, analytics).
-5. **Fast feels premium.** Server rendering, skeleton loaders instead of spinners, optimistic updates where safe.
-6. **Accessible by default.** WCAG 2.2 AA contrast, full keyboard support, visible focus rings, respect `prefers-reduced-motion`.
+1. **Show the product, not icon cards.** Marketing pages show real pieces of the product (the exam window, the question palette, readiness bars) instead of grids of icons.
+2. **Focus first.** Practice and test screens remove everything except the task: no ads, no clutter, no pop-ups.
+3. **Trust through precision.** Display numerals, tabular figures, sources and verified dates shown openly.
+4. **Mobile-first, desktop-great.** Design at 360 px first (no sideways scroll, enforced by e2e), then use the space on desktop.
+5. **Asymmetry over symmetry.** Hero splits, mixed tile widths, numbered steps; avoid three identical centred cards.
+6. **Accessible by default.** WCAG 2.2 AA contrast (enforced by `tests/unit/contrast.test.ts`), keyboard support, visible focus rings, `prefers-reduced-motion`.
 
 ## 2. Brand
 
-Brand values come from one config file (`src/config/site.ts`) and environment variables, so renaming the product is a config change (D-021):
+The product is **AnyPrep** at **anyprep.in**. The name comes from one config file (`src/config/site.ts`, `NEXT_PUBLIC_APP_NAME`); `npm run check` fails if it appears anywhere else (D-021).
 
-```ts
-export const siteConfig = {
-  name: process.env.NEXT_PUBLIC_APP_NAME ?? "EduPrep",
-  shortName: "EduPrep",
-  tagline: "Get placement-ready, company by company",
-  description: "...",
-  url: process.env.NEXT_PUBLIC_APP_URL,
-  supportEmail: "...",
-  social: { linkedin: "", instagram: "", youtube: "", telegram: "" },
-};
-```
-
-The logo is a placeholder wordmark (product name in the display font plus a simple geometric mark) until the final name is chosen. Logo files live in `public/brand/`.
+- **Mark:** an "A" on a teal tile with a saffron crossbar (`src/components/brand/logo.tsx`, `src/app/icon.svg`).
+- **Wordmark:** the product name in Bricolage Grotesque, bold, tight tracking.
+- **Social cards:** `src/lib/og-card.tsx`: paper background, ink text, a teal bar; no gradients.
 
 ## 3. Colour
-
-Semantic tokens (shadcn/ui convention plus product-specific tokens). Values are a starting point; tune them in one place.
 
 ### 3.1 Core palette
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--background` | `#FFFFFF` | `#0B0F19` | Page background |
-| `--surface` | `#F8FAFC` | `#111827` | Cards, panels |
-| `--foreground` | `#0F172A` | `#E5E7EB` | Main text |
-| `--muted-foreground` | `#64748B` | `#94A3B8` | Secondary text |
-| `--border` | `#E2E8F0` | `#1F2937` | Borders, dividers |
-| `--primary` | `#4F46E5` (indigo) | `#818CF8` | Main actions, links, active states |
-| `--primary-foreground` | `#FFFFFF` | `#0B0F19` | Text on primary |
-| `--accent` | `#F59E0B` (amber) | `#FBBF24` | Highlights: streaks, achievements, "new", Pro badge |
-| `--ring` | `#6366F1` | `#A5B4FC` | Focus ring |
+| `--background` | `#FAF8F4` paper | `#0F1214` | Page background |
+| `--surface` | `#F3EFE7` | `#14181B` | Bands, sidebars, table headers |
+| `--card` | `#FFFFFF` | `#181D20` | Cards, inputs |
+| `--foreground` | `#15171C` ink | `#ECE8E1` | Main text |
+| `--muted-foreground` | `#5D6470` | `#9AA1AA` | Secondary text |
+| `--border` | `#E4DED3` | `#283035` | Hairlines |
+| `--primary` | `#0F6E6A` peacock teal | `#4FB3A9` | Actions, links, active states, focus ring |
+| `--secondary` | `#E2EFEC` | `#12302D` | Quiet teal fills (active tab pill, chips) |
+| `--highlight` | `#E8821E` saffron | `#F7A24B` | **Achievement only**: streaks, ranks, Pro, the hero marker |
+| `--inverse` | `#15171C` | `#090B0D` | The ink band: footer, sign-in panel, audience panel, timer |
 
 ### 3.2 Status colours
 
-| Token | Light | Dark | Use |
-|---|---|---|---|
-| `--success` | `#047857` | `#34D399` | Correct answer, accepted, passed |
-| `--danger` | `#DC2626` | `#F87171` | Wrong answer, errors, destructive actions |
-| `--warning` | `#B45309` | `#FBBF24` | Time running out, needs attention |
-| `--info` | `#0369A1` | `#38BDF8` | Tips, neutral notices |
-
-Never use colour alone to show meaning. Pair it with an icon or text (e.g. ✓ Correct, ✗ Wrong).
+`--success`, `--warning`, `--destructive`, `--info`, each with a `-foreground` that passes AA on it. Never use colour alone to show meaning; pair it with an icon or text.
 
 ### 3.3 Product tokens
 
 | Token | Use |
 |---|---|
-| `--difficulty-easy` / `-medium` / `-hard` | Difficulty badges (green / amber / red tones) |
-| `--palette-answered` | Test palette: answered (success) |
-| `--palette-not-answered` | Visited, not answered (danger) |
-| `--palette-review` | Marked for review (violet `#7C3AED`) |
-| `--palette-answered-review` | Answered and marked for review (violet + success dot) |
-| `--palette-not-visited` | Not visited (neutral border) |
-| `--chart-1` … `--chart-5` | Chart series colours (colour-blind safe, defined with the charts work) |
+| `--difficulty-easy` / `-medium` / `-hard` | Difficulty labels |
+| `--palette-answered` / `-not-answered` / `-review` / `-not-visited` | Exam question palette (D-034 meanings; unchanged by the redesign) |
+| `--chart-1` … `--chart-5` | Chart series: teal, saffron, blue, rose, olive |
 
-### 3.4 Themes
+### 3.4 Rules
 
-Light and dark modes from day one (`next-themes`), following the system setting with a manual toggle. **Test mode** uses a calm, low-distraction variant: neutral background, no accent colours except the timer and palette.
+- Teal does the work; saffron is a spark, used only for achievement. No colour gradients, and never on text. (The ruled-paper lines and the hero marker use CSS gradient syntax to draw flat, single-colour shapes.)
+- Light and dark themes from day one (`next-themes`), following the system with a manual toggle.
 
 ## 4. Typography
 
-| Role | Font | Notes |
-|---|---|---|
-| UI and body | **Geist Sans** (via `next/font`) | Clean and highly legible. Tabular numbers for scores and timers. |
-| Code | **Geist Mono** | Editor, code snippets, test I/O |
-| Math | KaTeX | Rendered in questions and explanations |
+| Role | Font | Variable | Notes |
+|---|---|---|---|
+| Display | **Bricolage Grotesque** | `--font-display` → `font-heading` | h1/h2, card titles, the wordmark, big numerals (`.numeral`). Tight tracking (−0.02 to −0.035 em). |
+| UI and body | **Onest** | `--font-sans` | Body 1 rem / 1.6; legible on low-DPI phone screens. |
+| Code | **JetBrains Mono** | `--font-code` → `font-mono` | Editor, test I/O, the exam timer. |
+| Math | KaTeX | | Questions and explanations. |
 
-Type scale (rem): 0.75 · 0.875 · **1 (body)** · 1.125 · 1.25 · 1.5 · 1.875 · 2.25 · 3. Body line height 1.6; headings 1.2. Question text uses 1.0625–1.125 rem for readability during long tests.
+All via `next/font/google` with `display: swap`. Page titles: 2.1 rem → 3 rem (public) and 1.75 rem → 2 rem (app). Numbers that matter (stats, readiness, prices) use `.numeral` (display face, tabular figures).
 
 ## 5. Layout and spacing
 
-- 4 px spacing grid (Tailwind default scale).
-- Border radius: `--radius: 0.75rem` for cards, smaller for inputs and badges.
-- Content width: 1280 px max for app pages, 720 px for reading (explanations, articles).
+- 4 px spacing grid (Tailwind default scale). Cards use `--card-spacing: 1.25rem`.
+- Radius: `--radius: 0.625rem`; feature tiles and big panels use `rounded-2xl`.
+- Elevation: cards have a hairline border plus a soft paper shadow in light mode, none in dark. Hover lifts by 2 px (off with reduced motion).
+- Content width: 1152 px (`max-w-6xl`) for public pages, 1280 px for app pages, 720 px for reading.
+- Grid columns that hold cards get `min-w-0`, so wide content (tables) scrolls inside its card instead of widening the page.
 - Breakpoints: Tailwind defaults (`sm` 640, `md` 768, `lg` 1024, `xl` 1280).
-- Shadows: subtle, used only for elevated elements (menus, dialogs, sticky headers).
 
 ### Key screen layouts
 | Screen | Phone | Desktop |

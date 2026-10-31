@@ -46,7 +46,7 @@ async function Onboarding() {
     <Card>
       <CardHeader>
         <CardTitle>
-          <h1 className="text-xl">
+          <h1 className="text-2xl font-bold tracking-[-0.02em] sm:text-[1.75rem]">
             {isEdit ? "Your profile and goals" : "Let's set up your preparation"}
           </h1>
         </CardTitle>

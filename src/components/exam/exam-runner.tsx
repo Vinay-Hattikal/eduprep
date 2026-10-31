@@ -314,8 +314,13 @@ export function ExamRunner({ view }: { view: RunnerView }) {
     </div>
   );
 
-  const warn =
-    remaining < 60_000 ? "text-destructive" : remaining < 5 * 60_000 ? "text-warning" : "";
+  // The timer chip: ink, then amber under 5 minutes, then red in the last minute.
+  const timerTone =
+    remaining < 60_000
+      ? "bg-destructive text-white dark:text-[#2a0c06]"
+      : remaining < 5 * 60_000
+        ? "bg-warning text-warning-foreground"
+        : "bg-inverse text-inverse-foreground";
   const answer = answers[currentId]!;
 
   return (
@@ -350,8 +355,8 @@ export function ExamRunner({ view }: { view: RunnerView }) {
           </div>
           <div
             className={cn(
-              "rounded-md bg-background/10 px-2.5 py-1 font-mono text-lg font-semibold tabular-nums",
-              warn,
+              "rounded-md px-2.5 py-1 font-mono text-lg font-semibold tabular-nums transition-colors",
+              timerTone,
             )}
             role="timer"
             aria-label={`Time left ${sequential ? "in this section" : ""}: ${formatClock(remaining)}`}

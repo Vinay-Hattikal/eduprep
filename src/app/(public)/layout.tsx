@@ -49,7 +49,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         </div>
       </header>
 
-      <div className="flex-1">{children}</div>
+      {/* At least a screen tall, so the footer starts below the fold and doesn't jump as
+          streamed content arrives (CLS budget, D-062). */}
+      <div className="min-h-[calc(100dvh-4rem)] flex-1">{children}</div>
 
       <footer className="bg-inverse text-inverse-foreground">
         <div className="mx-auto w-full max-w-6xl px-4 pt-14 pb-8 sm:px-6">

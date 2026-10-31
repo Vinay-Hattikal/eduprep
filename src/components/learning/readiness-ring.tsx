@@ -71,7 +71,7 @@ export function ReadinessRing({ score, size = 112, label, className }: Readiness
         ) : null}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-2xl font-semibold tracking-tight">
+        <span className="numeral text-[1.75rem] leading-none font-bold">
           {score === null ? "—" : `${value}%`}
         </span>
         <span className="text-[0.6875rem] text-muted-foreground">

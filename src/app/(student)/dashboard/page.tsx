@@ -40,6 +40,10 @@ import { dailyAnswer, getDailyQuestionId, practiceUsage } from "@/server/service
 
 export const metadata: Metadata = { title: "Dashboard" };
 
+/** A "Do next" row: a quiet card that lifts to teal on hover. */
+const DO_NEXT =
+  "flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-surface";
+
 export default function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
   return (
     <Suspense fallback={<PageSkeleton />}>
@@ -135,7 +139,10 @@ async function Dashboard({
       ) : null}
 
       {contest && !(contest.mine?.status === "SUBMITTED" && contest.phase !== "final") ? (
-        <Card className="border-primary/30 bg-primary/5" data-testid="featured-contest">
+        <Card
+          className="border-highlight/40 bg-highlight/[0.07] shadow-none"
+          data-testid="featured-contest"
+        >
           <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <p className="flex items-center gap-2 font-semibold">
@@ -274,10 +281,7 @@ async function Dashboard({
             </CardHeader>
             <CardContent className="space-y-2">
               {dailyId ? (
-                <Link
-                  href="/practice/daily"
-                  className="flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm hover:bg-muted/50"
-                >
+                <Link href="/practice/daily" className={DO_NEXT}>
                   <CalendarDays className="size-4 text-primary" aria-hidden="true" />
                   <span className="flex-1">Question of the day</span>
                   {daily ? (
@@ -288,10 +292,7 @@ async function Dashboard({
                 </Link>
               ) : null}
               {nextTopic ? (
-                <Link
-                  href={`/practice/session?topic=${nextTopic.topicSlug}`}
-                  className="flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm hover:bg-muted/50"
-                >
+                <Link href={`/practice/session?topic=${nextTopic.topicSlug}`} className={DO_NEXT}>
                   <Target className="size-4 text-primary" aria-hidden="true" />
                   <span className="flex-1">
                     {nextTopic.topicName}
@@ -303,10 +304,7 @@ async function Dashboard({
                 </Link>
               ) : null}
               {stats.openMistakes ? (
-                <Link
-                  href="/practice/session?source=mistakes"
-                  className="flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm hover:bg-muted/50"
-                >
+                <Link href="/practice/session?source=mistakes" className={DO_NEXT}>
                   <RotateCcw className="size-4 text-primary" aria-hidden="true" />
                   <span className="flex-1">
                     Retry {stats.openMistakes} mistake{stats.openMistakes === 1 ? "" : "s"}
@@ -314,10 +312,7 @@ async function Dashboard({
                   <ArrowRight className="size-4 text-muted-foreground" aria-hidden="true" />
                 </Link>
               ) : null}
-              <Link
-                href="/asked/new"
-                className="flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm hover:bg-muted/50"
-              >
+              <Link href="/asked/new" className={DO_NEXT}>
                 <Megaphone className="size-4 text-primary" aria-hidden="true" />
                 <span className="flex-1">
                   Had a drive today?
